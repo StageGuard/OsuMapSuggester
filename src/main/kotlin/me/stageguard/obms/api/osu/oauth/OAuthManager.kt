@@ -7,8 +7,7 @@ import me.stageguard.obms.database.model.User
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.utils.SimpleEncryptionUtils
-import me.stageguard.obms.utils.success
-import java.net.URLDecoder
+import org.jetbrains.exposed.exceptions.ExposedSQLException
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import java.time.LocalDateTime
@@ -26,10 +25,10 @@ object OAuthManager {
 
         append("&redirect_uri=")
         @Suppress("HttpUrlsUsage")
-        append("http://${PluginConfig.frontend.authCallbackShow}:${PluginConfig.frontend.port}/$AUTH_CALLBACK_PATH")
+        append("${PluginConfig.osuAuth.authCallbackBaseUrl}/$AUTH_CALLBACK_PATH")
 
         append("&response_type=code")
-        append("&scope=identify%20%20friends.read")
+        append("&scope=identify%20%20friends.read%20%20public")
 
         append("&state=")
         append(SimpleEncryptionUtils.aesEncrypt(buildString {
@@ -50,24 +49,35 @@ object OAuthManager {
             val qq = AuthCachePool.getQQ(decrypted[0])
             val tokenResponse = OsuWebApi.getTokenWithCode(code).getOrThrow()
             val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).getOrThrow()
-            val created = Database.suspendQuery {
-                User.new {
-                    osuId = userResponse.id
-                    osuName = userResponse.username
-                    this.qq = qq
-                    token = tokenResponse.accessToken
-                    refreshToken = tokenResponse.refreshToken
-                    tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
-                }
-            }
             AuthCachePool.removeTokenCache(decrypted[0])
+            val created = try {
+                Database.suspendQuery {
+                    val find = User.find { OsuUserInfo.qq eq qq }
+                    if(find.empty()) User.new {
+                        osuId = userResponse.id
+                        osuName = userResponse.username
+                        this.qq = qq
+                        token = tokenResponse.accessToken
+                        refreshToken = tokenResponse.refreshToken
+                        tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
+                    } else find.single().also {
+                        it.osuId = userResponse.id
+                        it.osuName = userResponse.username
+                        it.token = tokenResponse.accessToken
+                        it.refreshToken = tokenResponse.refreshToken
+                        it.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
+                    }
+                }
+            } catch (ex: ExposedSQLException) {
+                return Result.failure(IllegalStateException("ALREADY_BIND"))
+            }
             if(created == null) {
                 Result.failure(IllegalStateException("DATABASE_ERROR"))
             } else {
                 Result.success(Pair(created, decrypted[1].toLong()))
             }
         } catch(ex: Exception) {
-            Result.failure(ex)
+            Result.failure(IllegalStateException("INTERNAL_ERROR:$ex"))
         }
     }
 
@@ -88,7 +98,7 @@ object OAuthManager {
                 }
             }
         }.getOrElse {
-            Result.failure(it)
+            Result.failure(IllegalStateException("INTERNAL_ERROR:$it"))
         }
     }!!
 }

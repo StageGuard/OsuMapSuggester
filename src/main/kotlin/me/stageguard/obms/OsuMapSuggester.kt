@@ -58,4 +58,8 @@ object OsuMapSuggester : KotlinPlugin(
     override fun PluginComponentStorage.onLoad() {
         PluginConfig.reload()
     }
+
+    override fun onDisable() {
+        NettyHttpServer.stop()
+    }
 }

@@ -27,6 +27,10 @@ class User(id: EntityID<Int>) : IntEntity(id) {
     var refreshToken by OsuUserInfo.refreshToken
 }
 
-fun User.Companion.findByQQ(qq: Long) = Database.query {
-    User.find { OsuUserInfo.qq eq qq }.single()
+suspend fun User.Companion.getOsuIdSuspend(qq: Long) = Database.suspendQuery {
+    User.find { OsuUserInfo.qq eq qq }.singleOrNull() ?.osuId
+}
+
+suspend fun User.Companion.getOsuId(qq: Long) = Database.query {
+    User.find { OsuUserInfo.qq eq qq }.singleOrNull() ?.osuId
 }

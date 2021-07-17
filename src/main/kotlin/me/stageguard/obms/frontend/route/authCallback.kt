@@ -25,12 +25,12 @@ fun Application.authCallback() {
 
             if(verifyResult.isSuccess) {
                 val get = verifyResult.getOrNull()!!
-                context.respond(HttpStatusCode.OK, "Successfully bind your qq ${get.first.qq} account ${get.first.osuName}(${get.first.osuId})")
+                context.respond(HttpStatusCode.OK, "Successfully bind your qq ${get.first.qq} account to osu! account ${get.first.osuName}(${get.first.osuId}).")
                 MessageRoute.sendGroupMessage(get.second, buildMessageChain {
                     OsuMapSuggester.botInstance.groups[get.second] ?.getMember(get.first.qq).also {
                         if(it != null) add(At(it))
                     }
-                    add(" Successfully bind your osu! account ${get.first.osuName}(${get.first.osuId})")
+                    add(" Successfully bind your osu! account ${get.first.osuName}(${get.first.osuId}).")
                 })
 
             } else {

@@ -9,7 +9,7 @@ data class GetUserDTO(
     @SerialName("avatar_url")
         val avatarUrl: String,
     @SerialName("country")
-        val country: Country,
+        val country: CountryDTO,
     @SerialName("country_code")
         val countryCode: String,
     @SerialName("id")
@@ -23,21 +23,21 @@ data class GetUserDTO(
     @SerialName("is_restricted")
         val isRestricted: Boolean,
     @SerialName("monthly_playcounts")
-        val monthlyPlaycounts: List<MonthlyPlaycount>,
+        val monthlyPlaycounts: List<MonthlyPlaycountDTO>,
     @SerialName("pm_friends_only")
         val pmFriendsOnly: Boolean,
     @SerialName("rank_history")
-        val rankHistory: RankHistory,
+        val rankHistory: RankHistoryDTO,
     @SerialName("scores_first_count")
         val scoresFirstCount: Int,
     @SerialName("statistics")
-        val statistics: Statistics,
+        val statistics: UserStatisticsDTO,
     @SerialName("username")
         val username: String
 )
 
 @Serializable
-data class Country(
+data class CountryDTO(
     @SerialName("code")
     val code: String,
     @SerialName("name")
@@ -45,7 +45,7 @@ data class Country(
 )
 
 @Serializable
-data class MonthlyPlaycount(
+data class MonthlyPlaycountDTO(
     @SerialName("count")
     val count: Int,
     @SerialName("start_date")
@@ -54,7 +54,7 @@ data class MonthlyPlaycount(
 
 
 @Serializable
-data class RankHistory(
+data class RankHistoryDTO(
     @SerialName("data")
     val `data`: List<Int>,
     @SerialName("mode")
@@ -62,17 +62,17 @@ data class RankHistory(
 )
 
 @Serializable
-data class Statistics(
+data class UserStatisticsDTO(
     @SerialName("global_rank")
     val globalRank: Long,
     @SerialName("grade_counts")
-    val gradeCounts: GradeCounts,
+    val gradeCounts: GradeCountsDTO,
     @SerialName("hit_accuracy")
     val hitAccuracy: Double,
     @SerialName("is_ranked")
     val isRanked: Boolean,
     @SerialName("level")
-    val level: Level,
+    val level: LevelDTO,
     @SerialName("maximum_combo")
     val maximumCombo: Long,
     @SerialName("play_count")
@@ -82,7 +82,7 @@ data class Statistics(
     @SerialName("pp")
     val pp: Double,
     @SerialName("rank")
-    val rank: Rank,
+    val rank: RankDTO,
     @SerialName("ranked_score")
     val rankedScore: Long,
     @SerialName("replays_watched_by_others")
@@ -94,7 +94,7 @@ data class Statistics(
 )
 
 @Serializable
-data class GradeCounts(
+data class GradeCountsDTO(
     @SerialName("a")
     val a: Int,
     @SerialName("s")
@@ -108,7 +108,7 @@ data class GradeCounts(
 )
 
 @Serializable
-data class Level(
+data class LevelDTO(
     @SerialName("current")
     val current: Int,
     @SerialName("progress")
@@ -116,7 +116,7 @@ data class Level(
 )
 
 @Serializable
-data class Rank(
+data class RankDTO(
     @SerialName("country")
     val country: Long,
     @SerialName("global")

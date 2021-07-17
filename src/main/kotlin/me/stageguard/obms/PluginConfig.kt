@@ -24,12 +24,12 @@ data class DatabaseConfig(
 @Serializable
 data class OsuAuthConfig(
     val clientId: Int = 0,
-    val secret: String = ""
+    val secret: String = "",
+    val authCallbackBaseUrl: String = "http://localhost:8081",
 )
 
 @Serializable
 data class FrontendConfig(
     val host: String = "localhost",
-    val authCallbackShow: String = host,
     val port: Int = 8081
 )

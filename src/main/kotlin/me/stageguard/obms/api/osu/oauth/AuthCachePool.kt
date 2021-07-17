@@ -4,7 +4,7 @@ import java.lang.IllegalStateException
 
 object AuthCachePool {
     private val MAPPING = "0123456789abcdef".toByteArray()
-    //V: qq account, K: generated token
+    //K: generated token, V: qq account
     private val cache: HashMap<String, Long> = hashMapOf()
 
     private fun generateNBytes(n: Int) = buildString {
