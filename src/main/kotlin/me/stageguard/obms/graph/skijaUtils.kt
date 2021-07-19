@@ -22,7 +22,7 @@ fun Surface.export(
     val image = makeImageSnapshot()
     val imgData = image.encodeToData(format) ?.bytes!!
     try {
-        val file = File(path).run {
+        File(path).run {
             File(parent).mkdirs()
             createNewFile()
             writeBytes(imgData)

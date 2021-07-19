@@ -22,8 +22,8 @@ fun Application.authCallback() {
                 OAuthManager.verifyOAuthResponse(state = get("state"), code = get("code"))
             }
 
-            if(verifyResult.isSuccess) {
-                when(val get = verifyResult.getOrNull()!!) {
+            verifyResult.onSuccess { get ->
+                when(get) {
                     is BindResult.BindSuccessful -> {
                         context.respond(HttpStatusCode.OK, "Successfully bind your qq ${get.qq} account to osu! account ${get.osuName}(${get.osuId}).")
                         if(get.groupBind == -1L) {
@@ -58,7 +58,7 @@ fun Application.authCallback() {
                         context.respond(HttpStatusCode.Forbidden, "You have already bound your qq to ${get.osuName}(${get.osuId}). Please do not bind repeatedly.")
                     }
                 }
-            } else {
+            }.onFailure {
                 context.respond(HttpStatusCode.InternalServerError, "Error: ${verifyResult.exceptionOrNull()}")
             }
             finish()

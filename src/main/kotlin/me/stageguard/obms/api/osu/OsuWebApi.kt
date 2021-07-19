@@ -14,18 +14,19 @@ import kotlinx.serialization.json.Json
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.api.osu.dto.*
 import me.stageguard.obms.api.osu.oauth.OAuthManager
-import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.User
 import me.stageguard.obms.database.model.getOsuIdSuspend
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
+import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.success
 import java.lang.IllegalStateException
-import kotlin.reflect.typeOf
 
 object OsuWebApi {
     const val BASE_URL = "https://osu.ppy.sh/api/v2"
     val client = HttpClient(OkHttp)
     val json = Json { ignoreUnknownKeys = true }
 
+    private const val MAX_IN_ONE_REQ = 50
     /**
      * Auth related
      */
@@ -73,12 +74,40 @@ object OsuWebApi {
         user: Long, mode: String = "osu",
         type: String = "recent", includeFails: Boolean = false,
         limit: Int = 10, offset: Int = 0
-    ): Result<List<ScoreDTO>> = get("/users/${kotlin.run {
-        User.getOsuIdSuspend(user) ?: return Result.failure(IllegalStateException("NOT_BIND"))
-    }}/scores/$type", user, mapOf(
-        Pair("mode", mode), Pair("include_fails", if(includeFails) "1" else "0"),
-        Pair("limit", limit.toString()), Pair("offset", offset.toString())
-    ))
+    //Kotlin bug: Result<T> is cast to java.util.List, use Either instead.
+    ): Either<MutableList<ScoreDTO>, IllegalStateException> {
+        val userId = User.getOsuIdSuspend(user) ?: return Either.Right(IllegalStateException("NOT_BIND"))
+        val initialList: MutableList<ScoreDTO> = mutableListOf()
+        suspend fun getTailrec(current: Int = offset) : Result<Unit> {
+            if(current + MAX_IN_ONE_REQ < limit + offset) {
+                get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
+                    "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
+                    "limit" to MAX_IN_ONE_REQ.toString(), "offset" to current.toString()
+                )).also { re ->
+                    re.onSuccess { li ->
+                        initialList.addAll(li)
+                    }.onFailure {
+                        return Result.failure(it)
+                    }
+                }
+                getTailrec(current + MAX_IN_ONE_REQ)
+            } else {
+                get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
+                    "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
+                    "limit" to (limit + offset - current).toString(), "offset" to current.toString()
+                )).also { re ->
+                    re.onSuccess { li ->
+                        initialList.addAll(li)
+                    }.onFailure {
+                        return Result.failure(it)
+                    }
+                }
+            }
+            return Result.success()
+        }
+        val result = getTailrec()
+        return if(result.isSuccess) Either.Left(initialList) else Either.Right(result.exceptionOrNull()!! as IllegalStateException)
+    }
 
     suspend fun me(user: Long): Result<GetUserDTO> = get("/me", user = user)
 
