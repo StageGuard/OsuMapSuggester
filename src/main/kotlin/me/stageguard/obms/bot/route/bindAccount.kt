@@ -7,6 +7,6 @@ import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 fun GroupMessageSubscribersBuilder.bindAccount() {
     startsWith("./bind") {
         val link = OAuthManager.createOAuthLink(sender.id, group.id)
-        atReply("Please click this oAuth link to bind your account: $link")
+        atReply("Please click this oAuth link to bind your osu! account: $link")
     }
 }

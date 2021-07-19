@@ -7,6 +7,7 @@ import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.MessageRoute
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.frontend.NettyHttpServer
+import me.stageguard.obms.utils.exportStaticResourcesToDataFolder
 import me.stageguard.obms.utils.retry
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.extension.PluginComponentStorage
@@ -20,12 +21,11 @@ object OsuMapSuggester : KotlinPlugin(
     JvmPluginDescription(
         id = "me.stageguard.obms.OsuMapSuggester",
         name = "OsuMapSuggester",
-        version = "1.0-SNAPSHOT",
+        version = "1.1-SNAPSHOT",
     ) { author("StageGuard") }
 ) {
     lateinit var botInstance: Bot
     override fun onEnable() {
-        logger.info { "Plugin loaded." }
         logger.info { "Connecting to database ${PluginConfig.database.address}." }
         val connectionAsync = async {
             retry(5, exceptionBlock = {
@@ -38,6 +38,8 @@ object OsuMapSuggester : KotlinPlugin(
             }
         }
         launch {
+            logger.info { "Exporting static resources..." }
+            exportStaticResourcesToDataFolder()
             val connectionResult = connectionAsync.await()
             if(connectionResult.isSuccess) {
                 NettyHttpServer.start(PluginConfig.frontend.host, PluginConfig.frontend.port)

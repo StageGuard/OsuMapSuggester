@@ -46,10 +46,16 @@ data class ScoreDTO(
     val statistics: ScoreStatisticsDTO,
     @SerialName("user_id")
     val userId: Int,
-    /*@SerialName("weight")
-    val weight: Double? = null,*/
+    @SerialName("weight")
+    val weight: WeightDTO? = null
     /*@SerialName("match")
     val match: String? = null*/
+)
+
+@Serializable
+data class WeightDTO(
+    val percentage: Double,
+    val pp: Double
 )
 
 @Serializable

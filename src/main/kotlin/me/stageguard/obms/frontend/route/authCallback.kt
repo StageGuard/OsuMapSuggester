@@ -40,7 +40,7 @@ fun Application.authCallback() {
                         }
                     }
                     is BindResult.ChangeBinding -> {
-                        context.respond(HttpStatusCode.OK, "Successfully change your osu! account binding from ${get.oldOsuName}(${get.oldOsuName}) to ${get.osuName}(${get.osuId}) of qq ${get.qq}.")
+                        context.respond(HttpStatusCode.OK, "Successfully change your osu! account binding from ${get.oldOsuName}(${get.oldOsuId}) to ${get.osuName}(${get.osuId}) of qq ${get.qq}.")
                         if(get.groupBind == -1L) {
                             MessageRoute.sendFriendMessage(get.qq, buildMessageChain {
                                 add("Successfully change your osu! account binding from ${get.oldOsuName}(${get.oldOsuId}) to ${get.osuName}(${get.osuId}).")
