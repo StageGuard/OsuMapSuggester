@@ -72,12 +72,12 @@ object OsuWebApi {
     suspend fun userScore(
         user: Long, mode: String = "osu",
         type: String = "recent", includeFails: Boolean = false,
-        limit: Int = 10, page: Int = 1
+        limit: Int = 10, offset: Int = 0
     ): Result<List<ScoreDTO>> = get("/users/${kotlin.run {
         User.getOsuIdSuspend(user) ?: return Result.failure(IllegalStateException("NOT_BIND"))
     }}/scores/$type", user, mapOf(
         Pair("mode", mode), Pair("include_fails", if(includeFails) "1" else "0"),
-        Pair("limit", limit.toString()), Pair("offset", page.toString())
+        Pair("limit", limit.toString()), Pair("offset", offset.toString())
     ))
 
     suspend fun me(user: Long): Result<GetUserDTO> = get("/me", user = user)

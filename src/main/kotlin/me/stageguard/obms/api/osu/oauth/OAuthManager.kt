@@ -7,7 +7,6 @@ import me.stageguard.obms.database.model.User
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.utils.SimpleEncryptionUtils
-import org.jetbrains.exposed.exceptions.ExposedSQLException
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import java.time.LocalDateTime
@@ -41,7 +40,7 @@ object OAuthManager {
     }
 
     //Response from frontend oauth callback
-    suspend fun verifyOAuthResponse(state: String?, code: String?): Result<Pair<User, Long>> {
+    suspend fun verifyOAuthResponse(state: String?, code: String?): Result<BindResult> {
         require(state != null) { return Result.failure(IllegalArgumentException("NULL_PARAMETER:state")) }
         require(code != null) { return Result.failure(IllegalArgumentException("NULL_PARAMETER:code")) }
         return try {
@@ -50,31 +49,43 @@ object OAuthManager {
             val tokenResponse = OsuWebApi.getTokenWithCode(code).getOrThrow()
             val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).getOrThrow()
             AuthCachePool.removeTokenCache(decrypted[0])
-            val created = try {
-                Database.suspendQuery {
-                    val find = User.find { OsuUserInfo.qq eq qq }
-                    if(find.empty()) User.new {
+            Database.suspendQuery {
+                val find = User.find { OsuUserInfo.qq eq qq }
+                if(find.empty()) {
+                    User.new {
                         osuId = userResponse.id
                         osuName = userResponse.username
                         this.qq = qq
                         token = tokenResponse.accessToken
                         refreshToken = tokenResponse.refreshToken
                         tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
-                    } else find.single().also {
-                        it.osuId = userResponse.id
-                        it.osuName = userResponse.username
-                        it.token = tokenResponse.accessToken
-                        it.refreshToken = tokenResponse.refreshToken
-                        it.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
                     }
+                    BindResult.BindSuccessful(qq, decrypted[1].toLong(), userResponse.id, userResponse.username)
+                } else {
+                    val existUser = find.single()
+                    if(existUser.osuId == userResponse.id) {
+                        existUser.token = tokenResponse.accessToken
+                        existUser.refreshToken = tokenResponse.refreshToken
+                        existUser.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
+                        BindResult.AlreadyBound(qq, decrypted[1].toLong(), userResponse.id, userResponse.username)
+                    } else {
+                        val oldOsuId = existUser.osuId
+                        val oldOsuName = existUser.osuName
+                        existUser.osuId = userResponse.id
+                        existUser.osuName = userResponse.username
+                        existUser.token = tokenResponse.accessToken
+                        existUser.refreshToken = tokenResponse.refreshToken
+                        existUser.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
+                        BindResult.ChangeBinding(qq, decrypted[1].toLong(), userResponse.id, userResponse.username, oldOsuId, oldOsuName)
+                    }
+
                 }
-            } catch (ex: ExposedSQLException) {
-                return Result.failure(IllegalStateException("ALREADY_BIND"))
-            }
-            if(created == null) {
-                Result.failure(IllegalStateException("DATABASE_ERROR"))
-            } else {
-                Result.success(Pair(created, decrypted[1].toLong()))
+            }.run {
+                if(this == null) {
+                    Result.failure(IllegalStateException("DATABASE_ERROR"))
+                } else {
+                    Result.success(this)
+                }
             }
         } catch(ex: Exception) {
             Result.failure(IllegalStateException("INTERNAL_ERROR:$ex"))

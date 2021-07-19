@@ -9,9 +9,9 @@ import org.jetbrains.exposed.sql.Column
 
 
 object OsuUserInfo : IntIdTable("users") {
-    val osuId: Column<Int> = integer("osuId").uniqueIndex()
+    val qq: Column<Long> = long("qq").uniqueIndex()
+    val osuId: Column<Int> = integer("osuId")
     val osuName: Column<String> = varchar("osuName", 16)
-    val qq: Column<Long> = long("qq")
     val token: Column<String> = varchar("token", 1500)
     val tokenExpireUnixSecond: Column<Long> = long("tokenExpiresUnixSecond")
     val refreshToken: Column<String> = varchar("refreshToken", 1500)
