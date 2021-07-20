@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.api.osu.dto.*
 import me.stageguard.obms.api.osu.oauth.OAuthManager
@@ -19,6 +20,7 @@ import me.stageguard.obms.database.model.getOsuIdSuspend
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.success
+import net.mamoe.mirai.utils.info
 import java.lang.IllegalStateException
 
 object OsuWebApi {
@@ -75,7 +77,7 @@ object OsuWebApi {
         type: String = "recent", includeFails: Boolean = false,
         limit: Int = 10, offset: Int = 0
     //Kotlin bug: Result<T> is cast to java.util.List, use Either instead.
-    ): Either<MutableList<ScoreDTO>, IllegalStateException> {
+    ): Either<List<ScoreDTO>, IllegalStateException> {
         val userId = User.getOsuIdSuspend(user) ?: return Either.Right(IllegalStateException("NOT_BIND"))
         val initialList: MutableList<ScoreDTO> = mutableListOf()
         suspend fun getTailrec(current: Int = offset) : Result<Unit> {
@@ -106,7 +108,7 @@ object OsuWebApi {
             return Result.success()
         }
         val result = getTailrec()
-        return if(result.isSuccess) Either.Left(initialList) else Either.Right(result.exceptionOrNull()!! as IllegalStateException)
+        return if(result.isSuccess) Either.Left(initialList.toList()) else Either.Right(result.exceptionOrNull()!! as IllegalStateException)
     }
 
     suspend fun me(user: Long): Result<GetUserDTO> = get("/me", user = user)
@@ -135,7 +137,9 @@ object OsuWebApi {
     suspend inline fun <reified REQ, reified RESP> postImpl(
         url: String, token: String? = null, body: @Serializable REQ
     ) : Result<RESP> = client.post<HttpStatement> {
-        url(url)
+        url(url.also {
+            OsuMapSuggester.logger.info { "POST: $url" }
+        })
         if(token != null) header("Authorization", "Bearer $token")
         this.body = json.encodeToString(body)
         contentType(ContentType.Application.Json)
@@ -159,7 +163,11 @@ object OsuWebApi {
     suspend inline fun <reified RESP> getImpl(
         url: String, token: String, parameters: Map<String, String>
     ) : Result<RESP> = client.get<HttpStatement> {
-        url(url)
+        url(url.also {
+            OsuMapSuggester.logger.info {
+                "GET: $url?${parameters.map { "${it.key}=${it.value}" }.joinToString("&")}}"
+            }
+        })
         header("Authorization", "Bearer $token")
         parameters.forEach {
             parameter(it.key, it.value)

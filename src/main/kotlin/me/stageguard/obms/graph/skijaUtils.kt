@@ -8,7 +8,6 @@ import java.io.InputStream
 import java.lang.IllegalStateException
 import kotlin.math.ceil
 
-@Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
 fun resourcePath(path: String) = OsuMapSuggester.dataFolder.absolutePath + File.separator + "resources" + File.separator + path
 fun resourceStream(path: String): InputStream = File(resourcePath(path)).inputStream()
 fun typeface(variant: String) = Typeface.makeFromFile(resourcePath("font/Torus-$variant.otf"))

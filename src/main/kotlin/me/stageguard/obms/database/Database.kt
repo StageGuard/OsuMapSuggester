@@ -50,7 +50,7 @@ object Database {
     private fun initDatabase() { query {
         addLogger(object : SqlLogger {
             override fun log(context: StatementContext, transaction: Transaction) {
-                OsuMapSuggester.logger.verbose { "SQL: ${context.expandArgs(transaction)}" }
+                OsuMapSuggester.logger.info { "SQL: ${context.expandArgs(transaction)}" }
             }
         })
         SchemaUtils.create(OsuUserInfo)
@@ -64,6 +64,7 @@ object Database {
                 OsuMapSuggester.logger.warning { "Database table is not set in config file ${PluginConfig.saveName} and now it will be default value 'sctimetabledb'." }
                 PluginConfig.database.table = "sctimetabledb"
             }
+            PluginConfig.database.port !in 1024..65535 -> throw IllegalArgumentException("Database port is invalid.")
             PluginConfig.database.user == "" -> throw IllegalArgumentException("Database user is not set in config file ${PluginConfig.saveName}.")
             PluginConfig.database.password == "" -> throw IllegalArgumentException("Database password is not set in config file ${PluginConfig.saveName}.")
             PluginConfig.database.maximumPoolSize == null -> {
@@ -71,7 +72,7 @@ object Database {
                 PluginConfig.database.maximumPoolSize = 10
             }
         }
-        jdbcUrl         = "jdbc:mysql://${PluginConfig.database.address}/${PluginConfig.database.table}"
+        jdbcUrl         = "jdbc:mysql://${PluginConfig.database.address}:${PluginConfig.database.port}/${PluginConfig.database.table}"
         driverClassName = "com.mysql.cj.jdbc.Driver"
         username        = PluginConfig.database.user
         password        = PluginConfig.database.password

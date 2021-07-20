@@ -14,12 +14,57 @@ const val cardHeight = 60f
 const val backgroundPadding = 60f
 const val intervalBetweenCards = 10f
 val format = DecimalFormat("#######0.00")
+const val diffInOneLine = 3.0
+
+fun orderScores(scores: Pair<List<ScoreDTO>, List<ScoreDTO>?>) = scores.second.let { secList ->
+    if(secList == null) {
+        scores.first.mapIndexed { i, it -> OrderResultEntity(true, it to i) }
+    } else {
+        val resultList = mutableListOf<OrderResultEntity>()
+        val combined = mutableListOf<ScoreDTO>().also {
+            it.addAll(scores.first)
+            it.addAll(secList)
+        }.toList().sortedByDescending { it.pp }
+        val leftUserId = scores.first.first().userId
+        var currentRowItemCount = 1
+        var currentRow = 0
+        var currentId = combined.first().userId
+        var currentBottomPP = combined.first().pp
+        resultList.add(OrderResultEntity(leftUserId == currentId, combined.first() to currentRow))
+        combined.drop(1).forEach {
+            if(it.pp + diffInOneLine < currentBottomPP) {
+                currentRow ++
+                currentRowItemCount = 1
+            } else if(currentId == it.userId) {
+                currentRow ++
+                currentRowItemCount = 1
+            } else if(currentRowItemCount == 2) {
+                currentRow ++
+                currentRowItemCount = 1
+            } else {
+                currentRowItemCount ++
+            }
+            resultList.add(OrderResultEntity(leftUserId == it.userId, it to currentRow))
+            currentId = it.userId
+            currentBottomPP = it.pp
+        }
+        resultList
+    }
+}
+
+data class OrderResultEntity(
+    val isLeft: Boolean,
+    val data: Pair<ScoreDTO, Int>
+)
 
 fun drawBestPerformancesImage(
-    scores: List<ScoreDTO>
+    scores: List<OrderResultEntity>
 ) : Surface {
-    val surfaceWidth = backgroundPadding * 2 + cardWidth
-    val surfaceHeight = backgroundPadding * 2 + intervalBetweenCards * scores.size - 1 + scores.size * cardHeight
+    val isSingleColumn = scores.all { it.isLeft }
+    val theLastLine = scores.last().data.second
+
+    val surfaceWidth = backgroundPadding * 2 + cardWidth + (if(isSingleColumn) 0f else intervalBetweenCards + cardWidth)
+    val surfaceHeight = backgroundPadding * 2 + intervalBetweenCards * theLastLine + (theLastLine + 1) * cardHeight
 
     val surface = Surface.makeRasterN32Premul(surfaceWidth.toInt(), surfaceHeight.toInt())
 
@@ -28,12 +73,21 @@ fun drawBestPerformancesImage(
         val backgroundImage = image("image/background.png")
         drawImage(backgroundImage, 0f, surfaceHeight - backgroundImage.height.toFloat())
 
-        var yOffset = backgroundPadding
-
-        scores.forEach {
-            val card = drawSingleCard(it)
-            drawImage(card, backgroundPadding, yOffset)
-            yOffset += (card.height + intervalBetweenCards)
+        if(isSingleColumn) {
+            var yOffset = backgroundPadding
+            scores.forEach {
+                val card = drawSingleCard(it.data.first)
+                drawImage(card, backgroundPadding, yOffset)
+                yOffset += (card.height + intervalBetweenCards)
+            }
+        } else {
+            scores.forEach {
+                val card = drawSingleCard(it.data.first)
+                drawImage(card,
+                    backgroundPadding + (if(it.isLeft) 0f else card.width + intervalBetweenCards),
+                    backgroundPadding + it.data.second * (card.height + intervalBetweenCards)
+                )
+            }
         }
     }
     return surface
@@ -158,9 +212,7 @@ fun drawSingleCard(score: ScoreDTO) : Image {
         //mod info
         val marginToPPInfo = accInfoStart - 25f //margin
         var negativeOffset = 0f
-        score.mods.ifEmpty {
-            listOf("NM")
-        }.forEach {
+        score.mods.forEach {
             val icon = image("image/mod_${it.lowercase()}.png")
             negativeOffset += icon.width + 1f
             drawImage(icon, marginToPPInfo - negativeOffset, (cardHeight - icon.height) / 2f + 2f)
