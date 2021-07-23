@@ -4,6 +4,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.stageguard.obms.PluginConfig
+import me.stageguard.obms.api.osu.OsuWebApi
 import me.stageguard.obms.bot.MessageRoute
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.frontend.NettyHttpServer
@@ -63,5 +64,6 @@ object OsuMapSuggester : KotlinPlugin(
 
     override fun onDisable() {
         NettyHttpServer.stop()
+        OsuWebApi.closeClient()
     }
 }

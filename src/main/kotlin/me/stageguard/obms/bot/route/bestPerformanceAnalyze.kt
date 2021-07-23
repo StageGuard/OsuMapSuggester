@@ -21,7 +21,6 @@ val regex = Regex("(\\d+)[\\-_→](\\d+)")
 
 fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
     startsWith(".bpa") {
-
         //parse message
         var (limit, offset) = 25 to 0
         val target: At? = message.filterIsInstance<At>().run {
@@ -33,6 +32,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1
             offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
         }
+
         val scoresPair: Pair<List<ScoreDTO>, List<ScoreDTO>?> =
             when(val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)) {
                 is Either.Left -> myBpScores.value

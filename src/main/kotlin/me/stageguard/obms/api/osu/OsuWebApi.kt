@@ -188,6 +188,8 @@ object OsuWebApi {
             Result.failure(IllegalStateException("BAD_RESPONSE:${it.status.value}"))
         }
     }
+
+    fun closeClient() = client.close()
 }
 
 @Serializable
