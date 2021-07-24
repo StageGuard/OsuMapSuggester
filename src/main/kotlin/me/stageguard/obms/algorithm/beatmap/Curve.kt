@@ -9,14 +9,30 @@ import kotlin.math.pow
 import me.stageguard.obms.utils.pointAtDistance as staticPointAtDistance
 
 sealed class Curve {
-    class Bezier(val point: Points) : Curve()
-    class Catmull(val point: Points) : Curve()
-    class Linear(val points: List<HitObjectPosition>) : Curve()
+    class Bezier(val point: Points) : Curve() {
+        override fun toString(): String {
+            return "Bezier(point=$point)"
+        }
+    }
+    class Catmull(val point: Points) : Curve() {
+        override fun toString(): String {
+            return "Catmull(point=$point)"
+        }
+    }
+    class Linear(val points: List<HitObjectPosition>) : Curve() {
+        override fun toString(): String {
+            return "Linear(points=$points)"
+        }
+    }
     class Perfect(
         val origin: HitObjectPosition,
         val center: HitObjectPosition,
         val radius: Double
-    ) : Curve()
+    ) : Curve() {
+        override fun toString(): String {
+            return "Perfect(origin=$origin, center=$center, radius=$radius)"
+        }
+    }
 
     @Suppress("FunctionName")
     companion object {
@@ -56,13 +72,13 @@ sealed class Curve {
                 }
             }
 
-            for((end, pair) in points.zip(points.drop(1)).mapIndexed { index, pair -> index + 1 to pair }) {
+            for((end, pair) in (1..Int.MAX_VALUE).zip(points.zip(points.drop(1)))) {
                 if (end - start > 1 && pair.first == pair.second) {
                     _bezier(points.subList(start, end))
                     start = end
                 }
             }
-            _bezier(points.subList(start, points.lastIndex))
+            _bezier(points.subList(start, points.lastIndex + 1))
             return Bezier(Points.Multi(result))
         }
 
@@ -149,8 +165,16 @@ sealed class Curve {
 }
 
 sealed class Points {
-    class Single(val position: HitObjectPosition) : Points()
-    class Multi(val positions: List<HitObjectPosition>) : Points()
+    class Single(val position: HitObjectPosition) : Points() {
+        override fun toString(): String {
+            return "Single(position=$position)"
+        }
+    }
+    class Multi(val positions: List<HitObjectPosition>) : Points() {
+        override fun toString(): String {
+            return "Multi(positions=$positions)"
+        }
+    }
 
     fun pointAtDistance(dist: Double) = when(this) {
         is Multi -> staticPointAtDistance(positions, dist)

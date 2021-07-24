@@ -18,7 +18,6 @@ class SliderState(beatmap: Beatmap) {
             }
         } else { 1000.0 to 1.0 }
         this.next = controlPoints.next()
-        println("${this.next.get()}")
         this.beatLength = beatLength
         this.speedMultiply = speedMultiply
     }
@@ -29,14 +28,11 @@ class SliderState(beatmap: Beatmap) {
                 is ControlPoint.Timing -> {
                     beatLength = it.beatLength
                     speedMultiply = 1.0
-                    print("SliderState.update: Timing: ")
                 }
                 is ControlPoint.Difficulty -> {
                     speedMultiply = it.speedMultiply
-                    print("SliderState.update: Difficulty: ")
                 }
             }
-            println("$beatLength, $speedMultiply")
             next = controlPoints.next()
         }
     }

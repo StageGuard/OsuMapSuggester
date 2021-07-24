@@ -54,7 +54,6 @@ fun Beatmap.stars(
     val stackThreshold = timePreempt * stackLeniency
 
     val hitObjectMappedIterator = hitObjects.take(take).map { ho ->
-        println("OsuObjectArguments: $initialAttributes")
         OsuStdObject(
             h = ho,
             beatmap = this,
@@ -127,6 +126,7 @@ fun Beatmap.stars(
 
         prevPrev = Optional.of(prev)
         prevVals = Optional.of(hDifficultyPoint.run { jumpDist to strainTime })
+        prev = curr
     }
 
     aim.saveCurrentPeak()
@@ -148,62 +148,59 @@ fun List<OsuStdObject>.stacking(stackThreshold: Double) {
     var extendedStartIndex = 0
     val extendedEndIndex = size - 1
 
-    var outerIndex = 1
-    for (i in (1 until extendedEndIndex).reversed()) {
-        var n = outerIndex
 
-        if (get(outerIndex).stackHeight != 0.0 || !get(1).isSlider) {
+    for (i in (1..extendedEndIndex).reversed()) {
+        var n = i
+
+        if (get(i).stackHeight != 0.0 || !get(i).isSlider) {
             continue
         }
 
-        if (get(outerIndex).isCircle) {
-            repeat(Int.MAX_VALUE) breakRepeat@ {
-                n = try {
-                    n - 1
-                } catch (ex: Exception) {
-                    return@breakRepeat
-                }
+        if (get(i).isCircle) {
+            var outerIndex = i
+            kotlin.run breakRepeat@ {
+                repeat(Int.MAX_VALUE) {
+                    n = if(n - 1 < 0) return@breakRepeat else n - 1
 
-                if (get(n).isSpinner) {
-                    return@breakRepeat
-                } else if (n < extendedStartIndex) {
-                    get(n).stackHeight = 0.0
-                    extendedStartIndex = n
-                }
-
-                if (get(n).isSlider && get(n).endPosition.distance(get(outerIndex).position) < STACK_DISTANCE) {
-                    val offset = get(outerIndex).stackHeight - get(n).stackHeight + 1.0
-
-                    for (j in n + 1 until outerIndex) {
-                        if (get(n).position.distance(get(j).position) < STACK_DISTANCE) {
-                            get(j).stackHeight -= offset
-                        }
+                    if (get(n).isSpinner) {
+                        return@breakRepeat
+                    } else if (n < extendedStartIndex) {
+                        get(n).stackHeight = 0.0
+                        extendedStartIndex = n
                     }
-                    return@breakRepeat
-                } else if (get(n).position.distance(get(outerIndex).position) < STACK_DISTANCE) {
-                    get(n).stackHeight = get(outerIndex).stackHeight + 1.0
-                    outerIndex = n
+
+                    if (get(n).isSlider && get(n).endPosition.distance(get(outerIndex).position) < STACK_DISTANCE) {
+                        val offset = get(outerIndex).stackHeight - get(n).stackHeight + 1.0
+
+                        for (j in n + 1 until outerIndex) {
+                            if (get(n).position.distance(get(j).position) < STACK_DISTANCE) {
+                                get(j).stackHeight -= offset
+                            }
+                        }
+                        return@breakRepeat
+                    } else if (get(n).position.distance(get(outerIndex).position) < STACK_DISTANCE) {
+                        get(n).stackHeight = get(outerIndex).stackHeight + 1.0
+                        outerIndex = n
+                    }
                 }
             }
-        } else if (get(outerIndex).isSlider) {
-            repeat(Int.MAX_VALUE) breakRepeat@ {
-                n = try {
-                    n - 1
-                } catch (ex: Exception) {
-                    return@breakRepeat
-                }
+        } else if (get(i).isSlider) {
+            var outerIndex = i
+            kotlin.run breakRepeat@ {
+                repeat(Int.MAX_VALUE) continueRepeat@ {
+                    n = if(n - 1 < 0) return@breakRepeat else n - 1
 
-                if (get(n).isSpinner) {
-                    //do nothing
-                } else if (get(outerIndex).time - get(n).time > stackThreshold) {
-                    return@breakRepeat
-                } else if (get(n).endPosition.distance(get(outerIndex).position) < STACK_DISTANCE) {
-                    get(n).stackHeight = get(outerIndex).stackHeight + 1.0
-                    outerIndex = n
+                    if (get(n).isSpinner) {
+                        return@continueRepeat
+                    } else if (get(outerIndex).time - get(n).time > stackThreshold) {
+                        return@breakRepeat
+                    } else if (get(n).endPosition.distance(get(outerIndex).position) < STACK_DISTANCE) {
+                        get(n).stackHeight = get(outerIndex).stackHeight + 1.0
+                        outerIndex = n
+                    }
                 }
             }
         }
-        outerIndex ++
     }
 }
 

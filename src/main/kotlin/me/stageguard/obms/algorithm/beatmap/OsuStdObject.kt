@@ -21,7 +21,7 @@ class OsuStdObject constructor(
     var time by Delegates.notNull<Double>()
     lateinit var position: HitObjectPosition
     var stackHeight by Delegates.notNull<Double>()
-    var kind: OsuStdObjectType = OsuStdObjectType.Hold
+    private var kind: OsuStdObjectType = OsuStdObjectType.Hold
 
     val travelDist get() = when(val kind = kind) {
         is OsuStdObjectType.Slider -> kind.travelDist
@@ -78,12 +78,12 @@ class OsuStdObject constructor(
                     tickDistance /= min(1000.0, max(10.0, 100.0 / sliderState.speedMultiply)) / 100.0
                 }
 
-                println("sliderState.speedMultiply: ${sliderState.speedMultiply}")
-
                 val duration = h.kind.repeatTimes.toDouble() * sliderState.beatLength * h.kind.pixelLength / (beatmap.sliderMultiplier * sliderState.speedMultiply) / 100
                 val spanDuration = duration / h.kind.repeatTimes.toDouble()
 
                 val curve = Curve.newCurve(h.kind.curvePoints, h.kind.pathType)
+
+                //println("\tCurve: $curve")
 
                 val computeVertex = { time: Double ->
                     attributes.maxCombo ++
@@ -114,13 +114,11 @@ class OsuStdObject constructor(
 
                 val target = h.kind.pixelLength - tickDistance / 8.0
                 //ticks.reserve((target / tickDistance).toInt())
-                println("Variable: h.kind.pixelLength: ${h.kind.pixelLength}, tickDistance: $tickDistance")
 
                 if (currentDistance < target) {
                     for (index in 1..Int.MAX_VALUE) {
                         val time = h.startTime + timeAdd * index
                         computeVertex(time)
-                        println("Combo: currentDistance < target + 1")
                         ticks.add(time)
                         currentDistance += tickDistance
 
@@ -129,19 +127,15 @@ class OsuStdObject constructor(
                 }
 
                 if(h.kind.repeatTimes > 1) {
-                    println("RepeatTimes: ${h.kind.repeatTimes}")
                     for (rptIndex in 1 until h.kind.repeatTimes) {
                         val timeOffset = (duration / h.kind.repeatTimes.toDouble()) * rptIndex.toDouble()
                         computeVertex(h.startTime + timeOffset)
-                        println("Combo: repeatTimes > 1 + 1")
                         if (rptIndex and 1 == 1) {
                             ticks.asReversed().forEach {
-                                println("Combo: reservedList + 1")
                                 computeVertex(it)
                             }
                         } else {
                             ticks.forEach{
-                                println("Combo: normalList + 1")
                                 computeVertex(it)
                             }
                         }
@@ -182,15 +176,33 @@ class OsuStdObject constructor(
         }
     }
 
-
+    override fun toString(): String {
+        return "OsuStdObject(time=$time, position=$position, stackHeight=$stackHeight, travelDist=$travelDist, endPosition=$endPosition, endTime=$endTime, lazyEndPosition=$lazyEndPosition, isCircle=$isCircle, isSlider=$isSlider, isSpinner=$isSpinner)"
+    }
 }
 
 sealed class OsuStdObjectType {
-    object Circle : OsuStdObjectType()
+    object Circle : OsuStdObjectType() {
+        override fun toString(): String {
+            return "Circle()"
+        }
+    }
     class Slider(
         val endTime: Double, val endPosition: HitObjectPosition,
         val lazyEndPosition: HitObjectPosition, val travelDist: Double
-    ) : OsuStdObjectType()
-    class Spinner(val endTime: Double) : OsuStdObjectType()
-    object Hold : OsuStdObjectType()
+    ) : OsuStdObjectType() {
+        override fun toString(): String {
+            return "Slider(endTime=$endTime, endPosition=$endPosition, lazyEndPosition=$lazyEndPosition, travelDist=$travelDist)"
+        }
+    }
+    class Spinner(val endTime: Double) : OsuStdObjectType() {
+        override fun toString(): String {
+            return "Spinner(endTime=$endTime)"
+        }
+    }
+    object Hold : OsuStdObjectType() {
+        override fun toString(): String {
+            return "Circle()"
+        }
+    }
 }
