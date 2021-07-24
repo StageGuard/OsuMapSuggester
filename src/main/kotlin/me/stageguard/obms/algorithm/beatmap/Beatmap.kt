@@ -180,7 +180,7 @@ class Beatmap private constructor(
                                         HitObjectType.Circle
                                     } else {
                                         val repeats = min(it[6].toInt(), 9000)
-                                        val pixelLength = min(max(it[6].toDouble(), 0.0), MAX_COORDINATE_VALUE)
+                                        val pixelLength = min(max(it[7].toDouble(), 0.0), MAX_COORDINATE_VALUE)
                                         HitObjectType.Slider(
                                             pixelLength = pixelLength,
                                             repeatTimes = repeats,

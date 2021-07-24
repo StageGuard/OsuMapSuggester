@@ -78,6 +78,8 @@ class OsuStdObject constructor(
                     tickDistance /= min(1000.0, max(10.0, 100.0 / sliderState.speedMultiply)) / 100.0
                 }
 
+                println("sliderState.speedMultiply: ${sliderState.speedMultiply}")
+
                 val duration = h.kind.repeatTimes.toDouble() * sliderState.beatLength * h.kind.pixelLength / (beatmap.sliderMultiplier * sliderState.speedMultiply) / 100
                 val spanDuration = duration / h.kind.repeatTimes.toDouble()
 
@@ -112,11 +114,13 @@ class OsuStdObject constructor(
 
                 val target = h.kind.pixelLength - tickDistance / 8.0
                 //ticks.reserve((target / tickDistance).toInt())
+                println("Variable: h.kind.pixelLength: ${h.kind.pixelLength}, tickDistance: $tickDistance")
 
                 if (currentDistance < target) {
                     for (index in 1..Int.MAX_VALUE) {
                         val time = h.startTime + timeAdd * index
                         computeVertex(time)
+                        println("Combo: currentDistance < target + 1")
                         ticks.add(time)
                         currentDistance += tickDistance
 
@@ -125,13 +129,21 @@ class OsuStdObject constructor(
                 }
 
                 if(h.kind.repeatTimes > 1) {
-                    for (rptIndex in 1..h.kind.repeatTimes) {
+                    println("RepeatTimes: ${h.kind.repeatTimes}")
+                    for (rptIndex in 1 until h.kind.repeatTimes) {
                         val timeOffset = (duration / h.kind.repeatTimes.toDouble()) * rptIndex.toDouble()
                         computeVertex(h.startTime + timeOffset)
+                        println("Combo: repeatTimes > 1 + 1")
                         if (rptIndex and 1 == 1) {
-                            ticks.asReversed().forEach(computeVertex)
+                            ticks.asReversed().forEach {
+                                println("Combo: reservedList + 1")
+                                computeVertex(it)
+                            }
                         } else {
-                            ticks.forEach(computeVertex)
+                            ticks.forEach{
+                                println("Combo: normalList + 1")
+                                computeVertex(it)
+                            }
                         }
                     }
                 }
@@ -169,6 +181,8 @@ class OsuStdObject constructor(
             }
         }
     }
+
+
 }
 
 sealed class OsuStdObjectType {

@@ -54,6 +54,7 @@ fun Beatmap.stars(
     val stackThreshold = timePreempt * stackLeniency
 
     val hitObjectMappedIterator = hitObjects.take(take).map { ho ->
+        println("OsuObjectArguments: $initialAttributes")
         OsuStdObject(
             h = ho,
             beatmap = this,
@@ -148,7 +149,7 @@ fun List<OsuStdObject>.stacking(stackThreshold: Double) {
     val extendedEndIndex = size - 1
 
     var outerIndex = 1
-    for (i in (1..extendedEndIndex).reversed()) {
+    for (i in (1 until extendedEndIndex).reversed()) {
         var n = outerIndex
 
         if (get(outerIndex).stackHeight != 0.0 || !get(1).isSlider) {
@@ -173,7 +174,7 @@ fun List<OsuStdObject>.stacking(stackThreshold: Double) {
                 if (get(n).isSlider && get(n).endPosition.distance(get(outerIndex).position) < STACK_DISTANCE) {
                     val offset = get(outerIndex).stackHeight - get(n).stackHeight + 1.0
 
-                    for (j in n + 1..outerIndex) {
+                    for (j in n + 1 until outerIndex) {
                         if (get(n).position.distance(get(j).position) < STACK_DISTANCE) {
                             get(j).stackHeight -= offset
                         }
@@ -207,7 +208,7 @@ fun List<OsuStdObject>.stacking(stackThreshold: Double) {
 }
 
 fun List<OsuStdObject>.oldStacking(stackThreshold: Double) {
-    for (i in 0..size) {
+    for (i in 0 until size) {
         if (get(i).stackHeight != 0.0 && !get(i).isSlider) {
             continue
         }
@@ -217,7 +218,7 @@ fun List<OsuStdObject>.oldStacking(stackThreshold: Double) {
 
         var sliderStack = 0.0
 
-        for (j in i + 1..size) {
+        for (j in i + 1 until size) {
             if (get(j).time - stackThreshold > startTime) {
                 break
             }

@@ -18,22 +18,26 @@ class SliderState(beatmap: Beatmap) {
             }
         } else { 1000.0 to 1.0 }
         this.next = controlPoints.next()
+        println("${this.next.get()}")
         this.beatLength = beatLength
         this.speedMultiply = speedMultiply
     }
 
     fun update(time: Double) {
-        next.filter { cp -> time >= cp.time }.ifPresent {
-            when(it) {
+        while(next.filter { cp -> time >= cp.time }.isPresent) {
+            when(val it = next.filter { cp -> time >= cp.time }.get()) {
                 is ControlPoint.Timing -> {
                     beatLength = it.beatLength
                     speedMultiply = 1.0
+                    print("SliderState.update: Timing: ")
                 }
                 is ControlPoint.Difficulty -> {
                     speedMultiply = it.speedMultiply
+                    print("SliderState.update: Difficulty: ")
                 }
             }
-            this.next = controlPoints.next()
+            println("$beatLength, $speedMultiply")
+            next = controlPoints.next()
         }
     }
 }
