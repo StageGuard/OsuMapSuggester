@@ -5,7 +5,7 @@ import kotlin.properties.Delegates
 
 class SliderState(beatmap: Beatmap) {
     val controlPoints: ControlPointIterator = ControlPointIterator(beatmap)
-    lateinit var next: Optional<ControlPoint>
+    var next: Optional<ControlPoint>
     var beatLength by Delegates.notNull<Double>()
     var speedMultiply by Delegates.notNull<Double>()
 
@@ -17,6 +17,7 @@ class SliderState(beatmap: Beatmap) {
                 is ControlPoint.Difficulty -> 1000.0 to value.speedMultiply
             }
         } else { 1000.0 to 1.0 }
+        this.next = controlPoints.next()
         this.beatLength = beatLength
         this.speedMultiply = speedMultiply
     }

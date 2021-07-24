@@ -1,19 +1,19 @@
 package me.stageguard.obms.algorithm.beatmap
 
 class ModCombination(private val value: Int) {
-    companion object {
-        private const val NF: Int = 1 shl 0
-        private const val EZ: Int = 1 shl 1
-        private const val TD: Int = 1 shl 2
-        private const val HD: Int = 1 shl 3
-        private const val HR: Int = 1 shl 4
-        private const val DT: Int = 1 shl 6
-        private const val RX: Int = 1 shl 7
-        private const val HT: Int = 1 shl 8
-        private const val FL: Int = 1 shl 10
-        private const val SO: Int = 1 shl 12
-        private const val AP: Int = 1 shl 13
-        private const val V2: Int = 1 shl 29
+    companion object Mod {
+        const val NF: Int = 1 shl 0
+        const val EZ: Int = 1 shl 1
+        const val TD: Int = 1 shl 2
+        const val HD: Int = 1 shl 3
+        const val HR: Int = 1 shl 4
+        const val DT: Int = 1 shl 6
+        const val RX: Int = 1 shl 7
+        const val HT: Int = 1 shl 8
+        const val FL: Int = 1 shl 10
+        const val SO: Int = 1 shl 12
+        const val AP: Int = 1 shl 13
+        const val V2: Int = 1 shl 29
     }
 
     fun isDoubleTimeOrHalfTime() = value and (HT or DT) > 0

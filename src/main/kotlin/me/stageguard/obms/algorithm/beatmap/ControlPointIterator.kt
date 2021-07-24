@@ -15,16 +15,36 @@ class ControlPointIterator(beatmap: Beatmap) : Iterator<Optional<ControlPoint>> 
     override fun next(): Optional<ControlPoint> = if(nextTiming.isPresent && nextDifficulty.isPresent) {
         if(nextTiming.get().first <= nextDifficulty.get().first) {
             val (nextTimingTime, nextTimingBeatLength) = nextTiming.get()
-            nextTiming = Optional.ofNullable(timingPoints.next().run { time to beatLength })
+            nextTiming = if(timingPoints.hasNext()) {
+                Optional.of(timingPoints.next().run { time to beatLength })
+            } else {
+                Optional.empty()
+            }
             Optional.of(ControlPoint.Timing(nextTimingTime, nextTimingBeatLength))
         } else {
-            val (nextDifficultyTime, nextDifficultySpeedMultiply) = nextTiming.get()
-            nextDifficulty = Optional.ofNullable(difficultyPoints.next().run { time to speedMultiplier })
+            val (nextDifficultyTime, nextDifficultySpeedMultiply) = nextDifficulty.get()
+            nextDifficulty = if(difficultyPoints.hasNext()) {
+                Optional.of(difficultyPoints.next().run { time to speedMultiplier })
+            } else {
+                Optional.empty()
+            }
             Optional.of(ControlPoint.Difficulty(nextDifficultyTime, nextDifficultySpeedMultiply))
         }
+    } else if (nextDifficulty.isPresent){
+        val (nextDifficultyTime, nextDifficultySpeedMultiply) = nextDifficulty.get()
+        nextDifficulty = if(difficultyPoints.hasNext()) {
+            Optional.of(difficultyPoints.next().run { time to speedMultiplier })
+        } else {
+            Optional.empty()
+        }
+        Optional.of(ControlPoint.Difficulty(nextDifficultyTime, nextDifficultySpeedMultiply))
     } else if (nextTiming.isPresent && nextDifficulty.isEmpty) {
         val (nextTimingTime, nextTimingBeatLength) = nextTiming.get()
-        nextTiming = Optional.ofNullable(timingPoints.next().run { time to beatLength })
+        nextTiming = if(timingPoints.hasNext()) {
+            Optional.of(timingPoints.next().run { time to beatLength })
+        } else {
+            Optional.empty()
+        }
         Optional.of(ControlPoint.Timing(nextTimingTime, nextTimingBeatLength))
     } else {
         Optional.empty<ControlPoint>()
