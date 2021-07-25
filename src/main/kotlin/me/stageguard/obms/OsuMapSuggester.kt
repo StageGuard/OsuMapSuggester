@@ -22,7 +22,7 @@ object OsuMapSuggester : KotlinPlugin(
     JvmPluginDescription(
         id = "me.stageguard.obms.OsuMapSuggester",
         name = "OsuMapSuggester",
-        version = "1.1-SNAPSHOT",
+        version = "1.2",
     ) { author("StageGuard") }
 ) {
     lateinit var botInstance: Bot
