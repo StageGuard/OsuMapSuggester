@@ -5,10 +5,16 @@ import java.util.*
 class ControlPointIterator(beatmap: Beatmap) : Iterator<Optional<ControlPoint>> {
     val timingPoints = beatmap.timingPoints.iterator()
     val difficultyPoints = beatmap.difficultyPoints.iterator()
-    var nextTiming : Optional<Pair<Double, Double>> =
-        Optional.ofNullable(timingPoints.next().run { time to beatLength })
-    var nextDifficulty : Optional<Pair<Double, Double>> =
-        Optional.ofNullable(difficultyPoints.next().run { time to speedMultiplier })
+    var nextTiming : Optional<Pair<Double, Double>> = if (timingPoints.hasNext()) {
+        Optional.of(timingPoints.next().run { time to beatLength })
+    } else {
+        Optional.empty()
+    }
+    var nextDifficulty : Optional<Pair<Double, Double>> = if (difficultyPoints.hasNext()) {
+        Optional.of(difficultyPoints.next().run { time to speedMultiplier })
+    } else {
+        Optional.empty()
+    }
 
     override fun hasNext(): Boolean = nextTiming.isEmpty && nextDifficulty.isEmpty
 
