@@ -14,6 +14,7 @@ import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.PlainText
+import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import java.io.File
@@ -58,33 +59,37 @@ suspend fun orderScores(
         } else {
             scores.first.mapIndexed { idx, score ->
                 val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)
+                when(beatmap) {
+                    is Either.Left -> {
+                        val recalculatedPp = PPCalculator.of(beatmap.value)
+                            .accuracy(score.accuracy * 100.0)
+                            .passedObjects(score.statistics.count100 + score.statistics.count300 + score.statistics.count50)
+                            .mods(score.mods.map {
+                                when(it) {
+                                    "EZ" -> Mod.Easy
+                                    "NF" -> Mod.NoFail
+                                    "HT" -> Mod.HalfTime
+                                    "HR" -> Mod.HardRock
+                                    "SD" -> Mod.SuddenDeath
+                                    "DT" -> Mod.DoubleTime
+                                    "HD" -> Mod.Hidden
+                                    "FL" -> Mod.Flashlight
+                                    else -> Mod.None //scorev2 cannot appears in best performance
+                                }
+                            }.ifEmpty { listOf(Mod.None) }).calculate()
 
-                val recalculatedPp = PPCalculator.of(beatmap.getOrElse {
-                    return@let Result.failure(IllegalStateException("CALCULATE_ERROR:${beatmap.exceptionOrNull()}"))
-                })
-                    .accuracy(score.accuracy * 100.0)
-                    .passedObjects(score.statistics.count100 + score.statistics.count300 + score.statistics.count50)
-                    .mods(score.mods.map {
-                    when(it) {
-                        "EZ" -> Mod.Easy
-                        "NF" -> Mod.NoFail
-                        "HT" -> Mod.HalfTime
-                        "HR" -> Mod.HardRock
-                        "SD" -> Mod.SuddenDeath
-                        "DT" -> Mod.DoubleTime
-                        "HD" -> Mod.Hidden
-                        "FL" -> Mod.Flashlight
-                        else -> Mod.None //scorev2 cannot appears in best performance
+                        OrderResult.Entry.DetailAnalyze(
+                            rankChange = 0,
+                            drawLine = idx, // now drawLine is as original rank
+                            recalculatedPp = recalculatedPp.total,
+                            recalculatedWeightedPp = 0.0,
+                            score = score
+                        )
                     }
-                }.ifEmpty { listOf(Mod.None) }).calculate()
-
-                OrderResult.Entry.DetailAnalyze(
-                    rankChange = 0,
-                    drawLine = idx, // now drawLine is as original rank
-                    recalculatedPp = recalculatedPp.total,
-                    recalculatedWeightedPp = 0.0,
-                    score = score
-                )
+                    is Either.Right -> {
+                        return@let Result.failure(IllegalStateException("CALCULATE_ERROR:${beatmap.value}"))
+                    }
+                }
             }.sortedByDescending { it.recalculatedPp }.mapIndexed { idx, it ->
                 OrderResult.Entry.DetailAnalyze(
                     rankChange = it.drawLine - idx,
@@ -144,7 +149,7 @@ suspend fun GroupMessageEvent.processData(orderResult: OrderResult) {
     val externalResource = File(outputFile).toExternalResource("png")
     val image = group.uploadImage(externalResource)
     externalResource.close()
-    group.sendMessage(image)
+    atReply(image.toMessageChain())
 }
 
 @Suppress("SpellCheckingInspection")
@@ -203,7 +208,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             true
         } else false
 
-        if(analyzeDetail) atReply("Recalculating all performance point of your best perforamnces, this my take a while...")
+        if(analyzeDetail) atReply("Recalculating all performance point of your best perforamnces, this mmy take a while...")
 
         regex.matchEntire(msg)?.groupValues?.run {
             limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1

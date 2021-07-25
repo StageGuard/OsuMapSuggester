@@ -12,6 +12,7 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.subscribeGroupMessages
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.Message
+import net.mamoe.mirai.message.data.MessageChain
 import net.mamoe.mirai.message.data.buildMessageChain
 import net.mamoe.mirai.utils.info
 
@@ -33,5 +34,10 @@ object MessageRoute {
         group.sendMessage(buildMessageChain {
             add(At(sender))
             add(" $plain")
+        })
+    suspend fun GroupMessageEvent.atReply(msg: MessageChain) =
+        group.sendMessage(buildMessageChain {
+            add(At(sender))
+            add(msg)
         })
 }
