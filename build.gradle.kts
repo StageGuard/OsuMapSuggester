@@ -13,8 +13,6 @@ repositories {
     maven("https://maven.aliyun.com/repository/public")
     maven ("https://packages.jetbrains.team/maven/p/skija/maven")
     mavenCentral()
-    jcenter()
-    mavenCentral()
     gradlePluginPortal()
 }
 
@@ -43,5 +41,7 @@ dependencies {
     implementation("io.ktor:ktor-server-netty:1.4.0")
     //mirai
     implementation("net.mamoe:mirai-slf4j-bridge:$miraiSlf4jBridgeVersion")
+
+    implementation("commons-io:commons-io:2.6")
 
 }

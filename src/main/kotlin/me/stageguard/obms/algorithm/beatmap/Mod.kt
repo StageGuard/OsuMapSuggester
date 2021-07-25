@@ -34,6 +34,9 @@ class ModCombination private constructor(private val value: Int) {
         fun of(vararg mods: Mod) = ModCombination(
             if(mods.size == 1) mods.single().value else mods.drop(1).fold(mods.first().value) { r, v -> r or v.value }
         )
+        fun of(mods: List<Mod>) = ModCombination(
+            if(mods.size == 1) mods.single().value else mods.drop(1).fold(mods.first().value) { r, v -> r or v.value }
+        )
     }
 }
 

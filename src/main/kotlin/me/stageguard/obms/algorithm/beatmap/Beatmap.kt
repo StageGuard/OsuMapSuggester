@@ -43,11 +43,14 @@ class Beatmap private constructor(
             val lines = reader.readLines().filterNot {
                 it.startsWith("//") || it.startsWith("_") ||
                         it.startsWith(" ") || it.isEmpty() || it.isBlank()
+            }.map {
+                it.trim { c -> c == '﻿' }
+                it
             }
-            lines.first().run {
-                if(startsWith("osu file format v")) {
-                    version = substringAfter("osu file format v").toInt()
-                }
+            lines.first {
+                it.startsWith("osu file format v")
+            }.run {
+                version = substringAfter("osu file format v").toInt()
             }
             val sections = mutableListOf<Pair<String, Int>>().also { lines.forEachIndexed { index, s ->
                 if(s.startsWith("[") && s.endsWith("]")) it.add(s.drop(1).dropLast(1) to index)

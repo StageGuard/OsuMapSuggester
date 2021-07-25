@@ -6,10 +6,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.utils.io.*
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
+import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.PluginConfig
@@ -21,6 +18,7 @@ import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.success
 import net.mamoe.mirai.utils.info
+import java.io.InputStream
 import java.lang.IllegalStateException
 
 object OsuWebApi {
@@ -67,6 +65,11 @@ object OsuWebApi {
     /**
      * Api function related
      */
+
+    suspend fun getBeatmap(bid: Int) = openStream(
+        url = "https://old.ppy.sh/osu/$bid",
+        parameters = mapOf()
+    ) { this }
 
     suspend fun users(user: Long): Result<GetUserDTO> = get("/users/${kotlin.run {
         User.getOsuIdSuspend(user) ?: return Result.failure(IllegalStateException("NOT_BIND"))
@@ -133,6 +136,7 @@ object OsuWebApi {
         parameters = parameters
     )
 
+    @OptIn(ExperimentalSerializationApi::class)
     @Suppress("DuplicatedCode")
     suspend inline fun <reified REQ, reified RESP> postImpl(
         url: String, token: String? = null, body: @Serializable REQ
@@ -158,14 +162,16 @@ object OsuWebApi {
         }
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
+    @OptIn(ExperimentalStdlibApi::class, ExperimentalSerializationApi::class)
     @Suppress("DuplicatedCode")
     suspend inline fun <reified RESP> getImpl(
         url: String, token: String, parameters: Map<String, String>
     ) : Result<RESP> = client.get<HttpStatement> {
         url(url.also {
             OsuMapSuggester.logger.info {
-                "GET: $url?${parameters.map { "${it.key}=${it.value}" }.joinToString("&")}}"
+                "GET: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
+                    if(isNotEmpty()) "?$this" else ""
+                }}"
             }
         })
         header("Authorization", "Bearer $token")
@@ -188,6 +194,22 @@ object OsuWebApi {
             Result.failure(IllegalStateException("BAD_RESPONSE:${it.status.value}"))
         }
     }
+
+    @Suppress("DuplicatedCode")
+    suspend inline fun <R> openStream(
+        url: String, parameters: Map<String, String>, consumer: InputStream.() -> R
+    ) = client.get<InputStream> {
+        url(url.also {
+            OsuMapSuggester.logger.info {
+                "GET: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run { 
+                    if(isNotEmpty()) "?$this" else ""
+                }}"
+            }
+        })
+        parameters.forEach {
+            parameter(it.key, it.value)
+        }
+    }.run(consumer)
 
     fun closeClient() = client.close()
 }

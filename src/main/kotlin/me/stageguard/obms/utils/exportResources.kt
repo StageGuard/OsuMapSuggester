@@ -21,6 +21,7 @@ suspend fun KotlinPlugin.exportStaticResourcesToDataFolder() = withContext(Dispa
         .plus(grades.map { "/svg/$it" })
         .toMutableList().also {
             it.add("/image/background.png")
+            it.add("/svg/arrow-right.svg")
         }.forEach {
             val inputStream = this@exportStaticResourcesToDataFolder::class.java.getResourceAsStream(it)
             val outputFile = dataFolder.absolutePath + File.separator + "resources" + it

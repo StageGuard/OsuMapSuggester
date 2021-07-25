@@ -29,6 +29,7 @@ class PPCalculator private constructor(
         attr.ifPresent { this.attributes = Optional.of(it) }
     }
     @Suppress("unused") fun mods(vararg mods: Mod) = this.also { this.mods = ModCombination.of(*mods) }
+    @Suppress("unused") fun mods(mods: List<Mod>) = this.also { this.mods = ModCombination.of(mods) }
     @Suppress("unused") fun combo(cb: Int) = this.also { this.combo = Optional.of(cb) }
     @Suppress("unused") fun n300(n : Int) = this.also { this.n300 = Optional.of(n) }
     @Suppress("unused") fun n100(n: Int) = this.also { this.n100 = Optional.of(n) }
