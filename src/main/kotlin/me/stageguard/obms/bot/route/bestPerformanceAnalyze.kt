@@ -73,8 +73,7 @@ suspend fun orderScores(
                                         "HT" -> Mod.HalfTime
                                         "HR" -> Mod.HardRock
                                         "SD" -> Mod.SuddenDeath
-                                        "DT" -> Mod.DoubleTime
-                                        "NC" -> Mod.NightCore
+                                        "DT", "NC" -> Mod.DoubleTime
                                         "HD" -> Mod.Hidden
                                         "FL" -> Mod.Flashlight
                                         "SO" -> Mod.SpunOut
@@ -236,7 +235,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
         }
 
-        if(analyzeDetail) atReply("正在重新计算你 Best Performance 中 $offset 到 ${offset + limit} 的成绩...")
+        if(analyzeDetail) atReply("正在重新计算你 Best Performance 中 ${offset + 1} 到 ${offset + limit} 的成绩...")
 
         when(val orderResult = orderScores(
             when(val myBpScores = OsuWebApi.userScore(
