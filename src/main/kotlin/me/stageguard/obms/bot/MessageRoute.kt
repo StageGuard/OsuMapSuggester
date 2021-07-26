@@ -6,6 +6,7 @@ import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.api.osu.OsuWebApi
 import me.stageguard.obms.bot.route.bestPerformanceAnalyze
 import me.stageguard.obms.bot.route.bindAccount
+import me.stageguard.obms.bot.route.help
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Member
 import net.mamoe.mirai.event.events.GroupMessageEvent
@@ -21,6 +22,7 @@ object MessageRoute {
         bot.eventChannel.subscribeGroupMessages {
             bindAccount()
             bestPerformanceAnalyze()
+            help()
         }
         OsuMapSuggester.logger.info { "Subscribed group and friend messages." }
     }
