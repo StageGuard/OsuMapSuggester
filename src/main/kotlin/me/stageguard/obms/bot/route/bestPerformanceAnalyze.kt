@@ -38,6 +38,7 @@ data class OrderResult(
             drawLine: Int,
             val recalculatedPp: Double,
             val recalculatedWeightedPp: Double,
+            val isRecalculated: Boolean,
             score: ScoreDTO
         ) : Entry(score, drawLine)
         class Default(
@@ -51,45 +52,58 @@ data class OrderResult(
 
 suspend fun orderScores(
     scores: Pair<List<ScoreDTO>, List<ScoreDTO>?>,
-    analyzeDetail: Boolean = false
+    analyzeDetail: Boolean = false,
+    rangeToRecalculate: IntRange = 0..25,
 ) : Either<OrderResult, IllegalStateException> = scores.second.let { secList ->
     if(secList == null) {
         if(!analyzeDetail) {
             Either.Left(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
         } else {
             scores.first.mapIndexed { idx, score ->
-                when(val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)) {
-                    is Either.Left -> {
-                        val recalculatedPp = PPCalculator.of(beatmap.value)
-                            .accuracy(score.accuracy * 100.0)
-                            .passedObjects(score.statistics.count100 + score.statistics.count300 + score.statistics.count50)
-                            .mods(score.mods.map {
-                                when(it) {
-                                    "EZ" -> Mod.Easy
-                                    "NF" -> Mod.NoFail
-                                    "HT" -> Mod.HalfTime
-                                    "HR" -> Mod.HardRock
-                                    "SD" -> Mod.SuddenDeath
-                                    "DT" -> Mod.DoubleTime
-                                    "NC" -> Mod.NightCore
-                                    "HD" -> Mod.Hidden
-                                    "FL" -> Mod.Flashlight
-                                    "SO" -> Mod.SpunOut
-                                    else -> Mod.None //scorev2 cannot appears in best performance
-                                }
-                            }.ifEmpty { listOf(Mod.None) }).calculate()
+                if(idx in rangeToRecalculate) {
+                    when(val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)) {
+                        is Either.Left -> {
+                            val recalculatedPp = PPCalculator.of(beatmap.value)
+                                .accuracy(score.accuracy * 100.0)
+                                .passedObjects(score.statistics.count100 + score.statistics.count300 + score.statistics.count50)
+                                .mods(score.mods.map {
+                                    when(it) {
+                                        "EZ" -> Mod.Easy
+                                        "NF" -> Mod.NoFail
+                                        "HT" -> Mod.HalfTime
+                                        "HR" -> Mod.HardRock
+                                        "SD" -> Mod.SuddenDeath
+                                        "DT" -> Mod.DoubleTime
+                                        "NC" -> Mod.NightCore
+                                        "HD" -> Mod.Hidden
+                                        "FL" -> Mod.Flashlight
+                                        "SO" -> Mod.SpunOut
+                                        else -> Mod.None //scorev2 cannot appears in best performance
+                                    }
+                                }.ifEmpty { listOf(Mod.None) }).calculate()
 
-                        OrderResult.Entry.DetailAnalyze(
-                            rankChange = 0,
-                            drawLine = idx, // now drawLine is as original rank
-                            recalculatedPp = recalculatedPp.total,
-                            recalculatedWeightedPp = 0.0,
-                            score = score
-                        )
+                            OrderResult.Entry.DetailAnalyze(
+                                rankChange = 0,
+                                drawLine = idx, // now drawLine is as original rank
+                                recalculatedPp = recalculatedPp.total,
+                                recalculatedWeightedPp = 0.0,
+                                isRecalculated = true,
+                                score = score
+                            )
+                        }
+                        is Either.Right -> {
+                            return@let Either.Right(IllegalStateException("CALCULATE_ERROR:${beatmap.value}"))
+                        }
                     }
-                    is Either.Right -> {
-                        return@let Either.Right(IllegalStateException("CALCULATE_ERROR:${beatmap.value}"))
-                    }
+                } else {
+                    OrderResult.Entry.DetailAnalyze(
+                        rankChange = 0,
+                        drawLine = idx, // now drawLine is as original rank
+                        recalculatedPp = score.pp,
+                        recalculatedWeightedPp = 0.0,
+                        isRecalculated = false,
+                        score = score
+                    )
                 }
             }.sortedByDescending { it.recalculatedPp }.mapIndexed { idx, it ->
                 OrderResult.Entry.DetailAnalyze(
@@ -97,7 +111,17 @@ suspend fun orderScores(
                     drawLine = idx, // now drawLine is as original rank
                     recalculatedPp = it.recalculatedPp,
                     recalculatedWeightedPp = it.recalculatedPp * 0.95.pow(idx),
+                    isRecalculated = it.isRecalculated,
                     score = it.score
+                )
+            }.filterIndexed { _, it -> it.isRecalculated }.mapIndexed { idx, it ->
+                OrderResult.Entry.DetailAnalyze(
+                    rankChange = it.rankChange,
+                    drawLine = idx, // now drawLine is as original rank
+                    recalculatedPp = it.recalculatedPp,
+                    recalculatedWeightedPp = it.recalculatedWeightedPp,
+                    score = it.score,
+                    isRecalculated = it.isRecalculated,
                 )
             }.run {
                 Either.Left(OrderResult(this))
@@ -160,13 +184,13 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         var (limit, offset) = 25 to 0
         val target: At = message.filterIsInstance<At>().run {
             if(isEmpty()) {
-                atReply("Please specify a target player to compare.")
+                atReply("请指定一个玩家来对比。")
                 return@startsWith
             } else first()
         }
 
         if(target.target == sender.id) {
-            atReply("Cannot compare with yourself!")
+            atReply("无法与你自己对比！")
             return@startsWith
         }
 
@@ -181,19 +205,19 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             when(val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)) {
                 is Either.Left -> myBpScores.value
                 is Either.Right -> {
-                    atReply("Cannot fetch your best performance scores: ${myBpScores.value}")
+                    atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${myBpScores.value}")
                     return@startsWith
                 }
             } to when(val myBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset)) {
                 is Either.Left -> myBpScores.value
                 is Either.Right -> {
-                    atReply("Cannot fetch target's best performance scores: ${myBpScores.value}")
+                    atReply("从服务器获取对方的 Best Performance 信息时发生了异常: ${myBpScores.value}")
                     return@startsWith
                 }
             }
         )) {
             is Either.Left -> processData(orderResult.value)
-            is Either.Right -> atReply("Cannot process score data: ${orderResult.value}")
+            is Either.Right -> atReply("处理数据时发生了异常: ${orderResult.value}")
         }
     }
 
@@ -207,23 +231,31 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             true
         } else false
 
-        if(analyzeDetail) atReply("Recalculating all performance point of your best perforamnces, this may take a while...")
-
         regex.matchEntire(msg)?.groupValues?.run {
             limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1
             offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
         }
 
+        if(analyzeDetail) atReply("正在重新计算你 Best Performance 中 $offset 到 ${offset + limit} 的成绩...")
+
         when(val orderResult = orderScores(
-            when(val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)) {
+            when(val myBpScores = OsuWebApi.userScore(
+                user = sender.id, type = "best",
+                limit = if(analyzeDetail) 100 else limit, offset = if(analyzeDetail) 0 else offset
+            )) {
                 is Either.Left -> myBpScores.value
                 is Either.Right -> {
-                    atReply("Cannot fetch your best performance scores: ${myBpScores.value}")
+                    atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${myBpScores.value}")
                     return@startsWith
                 }
-            } to null, analyzeDetail)) {
+            } to null, analyzeDetail, offset..(limit + offset))
+        ) {
             is Either.Left -> processData(orderResult.value)
-            is Either.Right -> atReply("Cannot process score data: ${orderResult.value}")
+            is Either.Right -> atReply("处理数据时发生了异常: ${orderResult.value}")
         }
+    }
+
+    startsWith(".help") {
+
     }
 }
