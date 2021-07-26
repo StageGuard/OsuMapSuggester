@@ -15,13 +15,13 @@ import java.text.DecimalFormat
 import kotlin.math.*
 
 // Draw normal card (bpvs or bp)
-const val cardWidth = 1100f
+const val cardWidth = 1125f
 const val cardHeight = 60f
 const val backgroundPadding = 60f
 const val intervalBetweenCards = 10f
 const val ppBackgroundWidth = 125f
 // Draw detailed card
-const val detailedCardWidth = 1190f + cardHeight
+const val detailedCardWidth = 1215f + cardHeight
 const val detailedPpBackgroundWidth = 235f
 // Colors
 val backgroundBaseColor = Color.makeRGB(42, 34, 38)
@@ -41,7 +41,7 @@ val regularFont = typeface("Regular")
 val semiBoldFont = typeface("SemiBold")
 val boldFont = typeface("Bold")
 
-val format = DecimalFormat("#######0.0")
+val format = DecimalFormat("#######0.00")
 
 fun drawBestPerformancesImage(
     result: OrderResult
@@ -184,7 +184,7 @@ fun drawNormalSingleCard(
             }
         )
         //pp info
-        val accInfoStart = cardWidth - ppBackgroundWidth - 156.25f
+        val accInfoStart = cardWidth - ppBackgroundWidth - 180f
         val accText = TextLine.make("${format.format(entry.score.accuracy * 100.0f)}%    ", Font(semiBoldFont, 18f))
         val weightedPPText = TextLine.make("${format.format(entry.score.weight!!.pp)}pp", Font(semiBoldFont, 18f))
         val weightedPercentage = TextLine.make("weighted ${format.format(entry.score.weight!!.percentage)}%", Font(regularFont, 16f))
@@ -196,7 +196,7 @@ fun drawNormalSingleCard(
             }
         )
         drawTextLine(weightedPPText,
-            accInfoStart + accText.width,
+            accInfoStart + 80f,
             (cardHeight - weightedPPText.height / 2) / 2f + 2f,
             paint.apply {
                 color = Color.makeRGB(255, 255, 255)
@@ -391,8 +391,8 @@ fun drawDetailedSingleCard(
             )
         }
         //pp info
-        val accInfoStart = detailedCardWidth - detailedPpBackgroundWidth - 156.25f
-        val accText = TextLine.make("${format.format(entry.score.accuracy * 100.0f)}%    ", Font(semiBoldFont, 18f))
+        val accInfoStart = detailedCardWidth - detailedPpBackgroundWidth - 180f
+        val accText = TextLine.make("${format.format(entry.score.accuracy * 100.0f)}%", Font(semiBoldFont, 18f))
         val weightedPPText = TextLine.make("${format.format(entry.recalculatedWeightedPp)}pp", Font(semiBoldFont, 18f))
         val weightedPercentage = TextLine.make("weighted ${format.format(entry.recalculatedWeightedPp / entry.recalculatedPp * 100.0f)}%", Font(regularFont, 16f))
         drawTextLine(accText,
@@ -403,7 +403,7 @@ fun drawDetailedSingleCard(
             }
         )
         drawTextLine(weightedPPText,
-            accInfoStart + accText.width,
+            accInfoStart + 80f,
             (cardHeight - weightedPPText.height / 2) / 2f + 2f,
             paint.apply {
                 color = Color.makeRGB(255, 255, 255)
