@@ -157,7 +157,7 @@ class PPCalculator private constructor(
 
         // Penalize misses
         if (this.nMisses > 0) {
-            aimValue *= 0.97 * (1.0 - (this.nMisses / totalHits).pow(0.775)).pow(this.nMisses)
+            aimValue *= 0.97 * (1.0 - (this.nMisses.toDouble() / totalHits).pow(0.775)).pow(this.nMisses)
         }
 
         // Combo scaling
@@ -170,9 +170,12 @@ class PPCalculator private constructor(
         if (attributes.approachRate > 10.33) {
             approachRateFactor += 0.4 * (attributes.approachRate - 10.33)
         } else if (attributes.approachRate < 8.0) {
-            approachRateFactor += 0.01 * (8.0 - attributes.approachRate)
+            approachRateFactor += 0.025 * (8.0 - attributes.approachRate)
         }
-        aimValue *= 1.0 + min(approachRateFactor, approachRateFactor * totalHits / 1000.0)
+        //aimValue *= 1.0 + min(approachRateFactor, approachRateFactor * totalHits / 1000.0)
+
+        val approachRateTotalHitsFactor: Double = 1.0 / (1.0 + exp(-(0.007 * (totalHits - 400))))
+        val approachRateBonus = 1.0 + (0.03 + 0.37 * approachRateTotalHitsFactor) * approachRateFactor
 
         // HD bonus
         if (this.mods.hd()) {
@@ -180,12 +183,18 @@ class PPCalculator private constructor(
         }
 
         // FL bonus
+        var flashlightBonus = 1.0
         if (this.mods.fl()) {
-            aimValue *= 1.0 +
+            flashlightBonus *= 1.0 +
                 0.35 * min(totalHits / 200.0, 1.0) +
-                (if(totalHits > 200) 1.0 else 0.0) * 0.3 * min((totalHits - 200.0) / 300.0, 1.0) +
-                (if(totalHits > 500) 1.0 else 0.0) * (totalHits - 500.0) / 1200.0
+                    (if (totalHits > 200)
+                        (0.3 * min(1.0, (totalHits - 200) / 300.0) + ( if (totalHits > 500)
+                                (totalHits - 500) / 1200.0
+                        else 0.0))
+                    else 0.0)
         }
+
+        aimValue *= max(approachRateBonus, flashlightBonus)
 
         // Scale with accuracy
         aimValue *= 0.5 + this.acc.get() / 2.0
@@ -197,41 +206,47 @@ class PPCalculator private constructor(
     private fun calculateSpeed(totalHits: Double) : Double {
         val attributes = this.attributes.get()
 
-        var speedValue = (5.0 * max(attributes.speedStrain / 0.0675, 1.0) - 4.0).pow(3) / 100_000.0
+        var speedValue = (5.0 * 1.0.coerceAtLeast(attributes.speedStrain / 0.0675) - 4.0).pow(3.0) / 100000.0
 
         // Longer maps are worth more
-        val lenBonus = 0.95 + 0.4 * min(totalHits / 2000.0, 1.0) +
+        val lenBonus = 0.95 + 0.4 * (totalHits / 2000.0).coerceAtMost(1.0) +
                 (if(totalHits > 2000.0) 1.0 else 0.0) * 0.5 * log10(totalHits / 2000.0)
         speedValue *= lenBonus
 
         // Penalize misses
         if (this.nMisses > 0) {
-            speedValue *= 0.97 * (1.0 - (this.nMisses / totalHits).pow(0.775)).pow(this.nMisses).pow(0.875)
+            speedValue *= 0.97 * (1 - (this.nMisses.toDouble() / totalHits).pow(0.775)).pow(
+                this.nMisses.toDouble().pow(.875)
+            )
         }
 
         // Combo scaling
         this.combo.filter { attributes.maxCombo > 0 }.ifPresent { combo ->
-            speedValue *= min((combo.toDouble() / attributes.maxCombo.toDouble()).pow(0.8), 1.0)
+            speedValue *= (combo.toDouble().pow(0.8) / attributes.maxCombo.toDouble().pow(0.8)).coerceAtMost(1.0)
         }
 
         // AR bonus
+        var approachRateFactor = 0.0
         if (attributes.approachRate > 10.33) {
-            val approachRateFactor = 0.4 * (attributes.approachRate - 10.33)
-            speedValue *= 1.0 + min(approachRateFactor, approachRateFactor * totalHits / 1000.0)
+            approachRateFactor = 0.4 * (attributes.approachRate - 10.33)
         }
+        val approachRateTotalHitsFactor: Double = 1.0 / (1.0 + exp(-(0.007 * (totalHits - 400))))
+        speedValue *= 1.0 + (0.03 + 0.37 * approachRateTotalHitsFactor) * approachRateFactor
+
 
         // HD bonus
         if (this.mods.hd()) {
             speedValue *= 1.0 + 0.04 * (12.0 - attributes.approachRate)
         }
 
-        // Scaling the speed value with accuracy and OD
-        val overallDifficultyFactor = 0.95 + attributes.overallDifficulty.pow(2) / 750.0
-        val accuracyFactor = this.acc.get().pow((14.5 - max(attributes.overallDifficulty,8.0)) / 2.0)
-        speedValue *= overallDifficultyFactor * accuracyFactor
-
-        // Penalize n50s
-        speedValue *= 0.98.pow(max(this.n50.orElse(0).toDouble() - totalHits / 500.0, 0.0))
+        // Scale the speed value with accuracy and OD
+        speedValue *= (0.95 + attributes.overallDifficulty.pow(2.0) / 750) * this.acc.get()
+            .pow((14.5 - attributes.overallDifficulty.coerceAtLeast(8.0)) / 2)
+        // Scale the speed value with # of 50s to punish double tapping.
+        speedValue *= 0.98.pow(
+            (if (this.n50.orElse(0) < totalHits / 500.0) 0 else this.n50.orElse(0) - totalHits / 500.0)
+                .toDouble()
+        )
 
         return speedValue
     }
