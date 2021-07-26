@@ -31,6 +31,6 @@ suspend fun User.Companion.getOsuIdSuspend(qq: Long) = Database.suspendQuery {
     User.find { OsuUserInfo.qq eq qq }.singleOrNull() ?.osuId
 }
 
-suspend fun User.Companion.getOsuId(qq: Long) = Database.query {
-    User.find { OsuUserInfo.qq eq qq }.singleOrNull() ?.osuId
+suspend fun User.Companion.getOsuIdAndName(qq: Long) = Database.suspendQuery {
+    User.find { OsuUserInfo.qq eq qq }.singleOrNull() ?.run { osuId to osuName }
 }
