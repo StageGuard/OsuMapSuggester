@@ -41,7 +41,7 @@ val regularFont = typeface("Regular")
 val semiBoldFont = typeface("SemiBold")
 val boldFont = typeface("Bold")
 
-val format = DecimalFormat("#######0.00")
+val format = DecimalFormat("#######0.0")
 
 fun drawBestPerformancesImage(
     result: OrderResult
@@ -166,7 +166,7 @@ fun drawNormalSingleCard(
             ), paint
         )
         //draw pp text
-        val ppValueText = TextLine.make(round(entry.score.pp).toString(), Font(boldFont, 20f))
+        val ppValueText = TextLine.make(round(entry.score.pp).toInt().toString(), Font(boldFont, 20f))
         val ppText = TextLine.make("pp", Font(semiBoldFont, 16f))
         val totalWidth = ppValueText.width + ppText.width
         drawTextLine(ppValueText,

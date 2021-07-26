@@ -52,14 +52,13 @@ data class OrderResult(
 suspend fun orderScores(
     scores: Pair<List<ScoreDTO>, List<ScoreDTO>?>,
     analyzeDetail: Boolean = false
-) : Result<OrderResult> = scores.second.let { secList ->
+) : Either<OrderResult, IllegalStateException> = scores.second.let { secList ->
     if(secList == null) {
         if(!analyzeDetail) {
-            Result.success(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
+            Either.Left(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
         } else {
             scores.first.mapIndexed { idx, score ->
-                val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)
-                when(beatmap) {
+                when(val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)) {
                     is Either.Left -> {
                         val recalculatedPp = PPCalculator.of(beatmap.value)
                             .accuracy(score.accuracy * 100.0)
@@ -72,8 +71,10 @@ suspend fun orderScores(
                                     "HR" -> Mod.HardRock
                                     "SD" -> Mod.SuddenDeath
                                     "DT" -> Mod.DoubleTime
+                                    "NC" -> Mod.NightCore
                                     "HD" -> Mod.Hidden
                                     "FL" -> Mod.Flashlight
+                                    "SO" -> Mod.SpunOut
                                     else -> Mod.None //scorev2 cannot appears in best performance
                                 }
                             }.ifEmpty { listOf(Mod.None) }).calculate()
@@ -87,7 +88,7 @@ suspend fun orderScores(
                         )
                     }
                     is Either.Right -> {
-                        return@let Result.failure(IllegalStateException("CALCULATE_ERROR:${beatmap.value}"))
+                        return@let Either.Right(IllegalStateException("CALCULATE_ERROR:${beatmap.value}"))
                     }
                 }
             }.sortedByDescending { it.recalculatedPp }.mapIndexed { idx, it ->
@@ -99,7 +100,7 @@ suspend fun orderScores(
                     score = it.score
                 )
             }.run {
-                Result.success(OrderResult(this))
+                Either.Left(OrderResult(this))
             }
         }
     } else {
@@ -136,7 +137,7 @@ suspend fun orderScores(
             currentId = it.userId
             currentBottomPP = it.pp
         }
-        Result.success(OrderResult(resultList))
+        Either.Left(OrderResult(resultList))
     }
 }
 
@@ -176,7 +177,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
         }
 
-        val orderResult = orderScores(
+        when(val orderResult = orderScores(
             when(val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)) {
                 is Either.Left -> myBpScores.value
                 is Either.Right -> {
@@ -190,11 +191,9 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
                     return@startsWith
                 }
             }
-        )
-        orderResult.onSuccess {
-            processData(it)
-        }.onFailure {
-            atReply("Cannot process score data: $it")
+        )) {
+            is Either.Left -> processData(orderResult.value)
+            is Either.Right -> atReply("Cannot process score data: ${orderResult.value}")
         }
     }
 
@@ -208,25 +207,23 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             true
         } else false
 
-        if(analyzeDetail) atReply("Recalculating all performance point of your best perforamnces, this mmy take a while...")
+        if(analyzeDetail) atReply("Recalculating all performance point of your best perforamnces, this may take a while...")
 
         regex.matchEntire(msg)?.groupValues?.run {
             limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1
             offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
         }
 
-        val orderResult = orderScores(
+        when(val orderResult = orderScores(
             when(val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)) {
                 is Either.Left -> myBpScores.value
                 is Either.Right -> {
                     atReply("Cannot fetch your best performance scores: ${myBpScores.value}")
                     return@startsWith
                 }
-            } to null, analyzeDetail)
-        orderResult.onSuccess {
-            processData(it)
-        }.onFailure {
-            atReply("Cannot process score data: $it")
+            } to null, analyzeDetail)) {
+            is Either.Left -> processData(orderResult.value)
+            is Either.Right -> atReply("Cannot process score data: ${orderResult.value}")
         }
     }
 }
