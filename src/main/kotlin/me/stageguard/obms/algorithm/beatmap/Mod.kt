@@ -23,9 +23,10 @@ class ModCombination private constructor(private val value: Int) {
     fun hd() = value and Mod.Hidden.value > 0
     fun hr() = value and Mod.HardRock.value > 0
     fun dt() = value and Mod.DoubleTime.value > 0
+    fun nc() = value and Mod.NightCore.value > 0
     fun rx() = value and Mod.Relax.value > 0
     fun ht() = value and Mod.HalfTime.value > 0
-    fun fl() = value and Mod.NoFail.value > 0
+    fun fl() = value and Mod.Flashlight.value > 0
     fun so() = value and Mod.SpunOut.value > 0
     fun ap() = value and Mod.Perfect.value > 0
     fun v2() = value and Mod.ScoreV2.value > 0
