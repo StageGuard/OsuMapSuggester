@@ -16,6 +16,7 @@ import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.events.BotOnlineEvent
+import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 
 object OsuMapSuggester : KotlinPlugin(
@@ -30,8 +31,8 @@ object OsuMapSuggester : KotlinPlugin(
         logger.info { "Connecting to database ${PluginConfig.database.address}." }
         val connectionAsync = async {
             retry(5, exceptionBlock = {
-                logger.info { "Failed to connect database: $it." }
-                logger.info { "Retry to connect database in 10 seconds." }
+                logger.error { "Failed to connect database: $it." }
+                logger.error { "Retry to connect database in 10 seconds." }
                 delay(10000L)
             }) {
                 Database.connect()
