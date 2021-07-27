@@ -2,7 +2,6 @@ package me.stageguard.obms.algorithm.pp
 
 import me.stageguard.obms.algorithm.beatmap.DifficultyObject
 import java.lang.Math.PI
-import java.lang.Math.pow
 import java.util.*
 import kotlin.math.*
 
@@ -19,7 +18,7 @@ class Skill(
     private val AIM_SKILL_MULTIPLIER: Double = 26.25
     private val AIM_STRAIN_DECAY_BASE: Double = 0.15
     private val DECAY_WEIGHT: Double = 0.9
-    private val SINGLE_SPACING_TRESHOLD: Double = 125.0
+    private val SINGLE_SPACING_THRESHOLD: Double = 125.0
     private val SPEED_ANGLE_BONUS_BEGIN: Double = 5.0 * PI / 6.0
     private val PI_OVER_4: Double = PI / 4.0
     private val PI_OVER_2: Double = PI / 2.0
@@ -86,7 +85,7 @@ class Skill(
                                 max(current.jumpDist - scale, 0.0)
                     )
 
-                    result = 1.5 * applyDiminishingExp(max(angleBonus, 0.0)) / max(TIMING_THRESHOLD, prevStrainTime)
+                    result = 1.4 * applyDiminishingExp(max(angleBonus, 0.0)) / max(TIMING_THRESHOLD, prevStrainTime)
                 }
             }
 
@@ -98,14 +97,13 @@ class Skill(
             max(result + distExp / max(current.strainTime, TIMING_THRESHOLD), distExp / current.strainTime)
         }
         SkillType.Speed -> if (current.base.isSpinner) { 0.0 } else {
-            val dist = min(SINGLE_SPACING_TRESHOLD, current.travelDist + current.jumpDist)
+            val dist = min(SINGLE_SPACING_THRESHOLD, current.travelDist + current.jumpDist)
             val deltaTime = max(MAX_SPEED_BONUS, current.delta)
 
             var speedBonus = 1.0
 
             if (deltaTime < MIN_SPEED_BONUS) {
-                val expBase = (MIN_SPEED_BONUS - deltaTime) / SPEED_BALANCING_FACTOR
-                speedBonus = 1.0 + expBase * expBase
+                speedBonus = 1.0 + ((MIN_SPEED_BONUS - deltaTime) / SPEED_BALANCING_FACTOR).pow(2)
             }
 
             var angleBonus = 1.0
@@ -128,7 +126,7 @@ class Skill(
             }
             (1.0 + (speedBonus - 1.0) * 0.75) *
                     angleBonus *
-                    (0.95 + speedBonus * (dist / SINGLE_SPACING_TRESHOLD).pow(3.5)) /
+                    (0.95 + speedBonus * (dist / SINGLE_SPACING_THRESHOLD).pow(3.5)) /
                     current.strainTime
         }
     }
