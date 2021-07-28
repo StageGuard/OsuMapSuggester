@@ -22,38 +22,16 @@ object NettyHttpServer : CoroutineScope {
     @OptIn(ExperimentalCoroutinesApi::class)
     override val coroutineContext: CoroutineContext
         get() = CoroutineExceptionHandler {
-                _, throwable -> logger.error("Http server occurred an error", throwable)
+                _, throwable -> OsuMapSuggester.logger.error("Http server occurred an error", throwable)
         }
 
     private lateinit var server: NettyApplicationEngine
-
-    private val logger = if (PluginManager.plugins.any {
-            it.description.id == "net.mamoe.mirai.mirai-slf4j-bridge"
-        } || runCatching {
-            // library mode
-            Class.forName(
-                "org.slf4j.impl.StaticLoggerBinder",
-                false,
-                Logger::class.java.classLoader
-            )
-        }.isSuccess)
-        LoggerFactory.getLogger(OsuMapSuggester.description.name)
-    else synchronized(System.err) {
-        try {
-            System.setErr(PrintStream(object : OutputStream() {
-                override fun write(b: Int) {}
-                override fun write(b: ByteArray) {}
-                override fun write(b: ByteArray, off: Int, len: Int) {}
-            }))
-            LoggerFactory.getLogger(OsuMapSuggester.description.name)
-        } finally { System.setErr(System.err) }
-    }
 
 
     fun start(host: String, port: Int) {
         server = embeddedServer(Netty, applicationEngineEnvironment {
             parentCoroutineContext = coroutineContext
-            log = logger
+            log = OsuMapSuggester.moduleLogger
             connector {
                 this.host = host
                 this.port = port
@@ -62,10 +40,9 @@ object NettyHttpServer : CoroutineScope {
                 authCallback()
             }
         }).also { OsuMapSuggester.launch {
-            (it as ApplicationEngine).start(true)
-            OsuMapSuggester.logger.info { "Http frontend server started at http://${PluginConfig.frontend.host}:${PluginConfig.frontend.port}" }
+            (it as ApplicationEngine).start(false)
         } }
     }
 
-    fun stop() = server.stop(5000, 5000)
+    fun stop() = server.stop(500, 1000)
 }

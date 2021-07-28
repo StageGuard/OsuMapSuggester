@@ -10,6 +10,7 @@ import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 import net.mamoe.mirai.utils.verbose
 import net.mamoe.mirai.utils.warning
+import okhttp3.internal.closeQuietly
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.statements.StatementContext
@@ -26,6 +27,7 @@ object Database {
     }
 
     private lateinit var db : Database
+    private lateinit var hikariSource : HikariDataSource
     private var connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED
 
     fun <T> query(block: Transaction.() -> T) : T? = if(connectionStatus == ConnectionStatus.DISCONNECTED) {
@@ -39,7 +41,7 @@ object Database {
     } else newSuspendedTransaction(context = Dispatchers.IO, db = db) { block(this) }
 
     fun connect() {
-        db = Database.connect(hikariDataSourceProvider())
+        db = Database.connect(hikariDataSourceProvider().also { hikariSource = it })
         connectionStatus = ConnectionStatus.CONNECTED
         initDatabase()
         OsuMapSuggester.logger.info { "Database ${PluginConfig.database.table} is connected." }
@@ -50,12 +52,17 @@ object Database {
     private fun initDatabase() { query {
         addLogger(object : SqlLogger {
             override fun log(context: StatementContext, transaction: Transaction) {
-                OsuMapSuggester.logger.info { "SQL: ${context.expandArgs(transaction)}" }
+                OsuMapSuggester.moduleLogger.info("SQL: ${context.expandArgs(transaction)}")
             }
         })
         SchemaUtils.create(OsuUserInfo)
 
     } }
+
+    fun close() {
+        connectionStatus = ConnectionStatus.DISCONNECTED
+        hikariSource.closeQuietly()
+    }
 
     private fun hikariDataSourceProvider() : HikariDataSource = HikariDataSource(HikariConfig().apply {
         when {
