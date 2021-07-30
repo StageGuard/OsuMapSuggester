@@ -1,4 +1,4 @@
-package me.stageguard.obms.utils
+package me.stageguard.obms.graph
 
 import me.stageguard.obms.OsuMapSuggester
 import org.jetbrains.skija.*
