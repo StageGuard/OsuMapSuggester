@@ -118,7 +118,7 @@ fun drawNormalSingleCard(
         //beatmap info
         val songText = TextLine.make("${entry.score.beatmapset!!.title} ", Font(semiBoldFont, 18f))
         val authorText = TextLine.make("by ${entry.score.beatmapset!!.artist}", Font(semiBoldFont, 16f))
-        val variant = TextLine.make(entry.score.beatmap!!.version, Font(regularFont, 16f))
+        val variant = TextLine.make("${entry.score.beatmap!!.difficultyRating} | ${entry.score.beatmap!!.version}", Font(regularFont, 16f))
         drawTextLine(songText,
             rankSvgImage.width * 2f,
             (cardHeight - songText.height / 2) / 2f + 2f,
@@ -277,8 +277,8 @@ fun drawDetailedSingleCard(
         }
         //beatmap info
         val songText = TextLine.make("${entry.score.beatmapset!!.title} ", Font(semiBoldFont, 18f))
-        val authorText = TextLine.make("by ${entry.score.beatmapset!!.artist}", Font(semiBoldFont, 16f))
-        val variant = TextLine.make(entry.score.beatmap!!.version, Font(regularFont, 16f))
+        val authorText = TextLine.make("by ${entry.score.beatmapset.artist}", Font(semiBoldFont, 16f))
+        val variant = TextLine.make("${entry.score.beatmap!!.difficultyRating} | ${entry.score.beatmap.version}", Font(regularFont, 16f))
         drawTextLine(songText,
             cardHeight + rankSvgImage.width * 2f,
             (cardHeight - songText.height / 2) / 2f + 2f,
