@@ -1,5 +1,9 @@
 package me.stageguard.obms.bot.route
 
+import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.newSingleThreadContext
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.algorithm.beatmap.Mod
 import me.stageguard.obms.algorithm.pp.PPCalculator
@@ -50,6 +54,7 @@ data class OrderResult(
     }
 }
 
+@OptIn(ObsoleteCoroutinesApi::class)
 suspend fun orderScores(
     scores: Pair<List<ScoreDTO>, List<ScoreDTO>?>,
     analyzeDetail: Boolean = false,
@@ -59,7 +64,10 @@ suspend fun orderScores(
         if(!analyzeDetail) {
             Either.Left(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
         } else {
-            scores.first.mapIndexed { idx, score ->
+            val atomicInt = atomic(0)
+            val calculatedList = mutableListOf<OrderResult.Entry.DetailAnalyze>()
+            scores.first.asFlow().flowOn(newSingleThreadContext("PPCalculationFlow")).map { score ->
+                val idx = atomicInt.getAndIncrement()
                 if(idx in rangeToRecalculate) {
                     when(val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)) {
                         is Either.Left -> {
@@ -91,7 +99,7 @@ suspend fun orderScores(
                             )
                         }
                         is Either.Right -> {
-                            return@let Either.Right(IllegalStateException("CALCULATE_ERROR:${beatmap.value}"))
+                            throw IllegalStateException("CALCULATE_ERROR:${beatmap.value}")
                         }
                     }
                 } else {
@@ -104,7 +112,10 @@ suspend fun orderScores(
                         score = score
                     )
                 }
-            }.sortedByDescending { it.recalculatedPp }.mapIndexed { idx, it ->
+            }.toCollection(calculatedList)
+            calculatedList.asSequence().sortedByDescending {
+                it.recalculatedPp
+            }.mapIndexed { idx, it ->
                 OrderResult.Entry.DetailAnalyze(
                     rankChange = it.drawLine - idx,
                     drawLine = idx, // now drawLine is as original rank
@@ -122,7 +133,7 @@ suspend fun orderScores(
                     score = it.score,
                     isRecalculated = it.isRecalculated,
                 )
-            }.run {
+            }.toList().run {
                 Either.Left(OrderResult(this))
             }
         }
@@ -252,9 +263,5 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             is Either.Left -> processData(orderResult.value)
             is Either.Right -> atReply("处理数据时发生了异常: ${orderResult.value}")
         }
-    }
-
-    startsWith(".help") {
-
     }
 }
