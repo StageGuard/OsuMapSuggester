@@ -27,6 +27,9 @@ class Skill(
     private val SPEED_BALANCING_FACTOR: Double = 40.0
     private val AIM_ANGLE_BONUS_BEGIN: Double = PI / 3.0
     private val TIMING_THRESHOLD: Double = 107.0
+    private val REDUCED_SECTION_COUNT: Int = 10
+    private val REDUCED_STRAIN_BASELINE: Double = 0.75
+    private val DIFFICULTY_MULTIPLIER: Double = 1.06
 
     private val strainDecayBase get() = when(kind) {
         SkillType.Aim -> AIM_STRAIN_DECAY_BASE
@@ -44,12 +47,20 @@ class Skill(
 
         strainPeaks.sortDescending()
 
+        for (i in 0 until strainPeaks.size.coerceAtMost(REDUCED_SECTION_COUNT)) {
+            val scale: Double =
+                log10(lerp(1.0, 10.0, max(0.0, min(i.toDouble() / REDUCED_SECTION_COUNT, 1.0))))
+            strainPeaks[i] *= lerp(REDUCED_STRAIN_BASELINE, 1.0, scale)
+        }
+
+        strainPeaks.sortDescending()
+
         for (strain in strainPeaks) {
             difficulty += strain * weight
             weight *= DECAY_WEIGHT
         }
 
-        difficulty
+        difficulty * DIFFICULTY_MULTIPLIER
     }
 
     fun saveCurrentPeak() {
@@ -135,7 +146,10 @@ class Skill(
     private inline fun applyDiminishingExp(value: Double) = value.pow(0.99)
 }
 
-
+@Suppress("NOTHING_TO_INLINE")
+inline fun lerp(v0: Double, v1: Double, t: Double): Double {
+    return (1 - t) * v0 + t * v1
+}
 
 
 enum class SkillType {

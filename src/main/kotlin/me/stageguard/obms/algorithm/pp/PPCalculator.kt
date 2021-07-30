@@ -168,7 +168,7 @@ class PPCalculator private constructor(
         // AR bonus
         var approachRateFactor = 0.0
         if (attributes.approachRate > 10.33) {
-            approachRateFactor += 0.4 * (attributes.approachRate - 10.33)
+            approachRateFactor += attributes.approachRate - 10.33
         } else if (attributes.approachRate < 8.0) {
             approachRateFactor += 0.025 * (8.0 - attributes.approachRate)
         }
@@ -304,7 +304,8 @@ class PPCalculator private constructor(
             total = pp,
             aim = aimValue,
             speed = speedValue,
-            accuracy = accValue
+            accuracy = accValue,
+            attributes = this.attributes.get()
         )
     }
 
@@ -318,5 +319,6 @@ data class PPResult(
     val total: Double,
     val aim: Double,
     val speed: Double,
-    val accuracy: Double
+    val accuracy: Double,
+    val attributes: DifficultyAttributes
 )
