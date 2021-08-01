@@ -19,6 +19,7 @@ class PPCalculator private constructor(
     private var n50: Optional<Int> = Optional.empty()
     private var nMisses: Int = 0
     private var passedObjects: Optional<Int> = Optional.empty()
+    private var useOutdatedAlgorithm: Boolean = false
 
     private val totalHits get() = kotlin.run {
         val nObjects = this.passedObjects.orElse(this.beatmap.hitObjects.size)
@@ -36,6 +37,7 @@ class PPCalculator private constructor(
     @Suppress("unused") fun n50(n: Int) = this.also { this.n50 = Optional.of(n) }
     @Suppress("unused") fun misses(n: Int) = this.also { this.nMisses = n }
     @Suppress("unused") fun passedObjects(n: Int) = this.also { this.passedObjects = Optional.of(n) }
+    @Suppress("unused") fun outdatedAlgorithm() = this.also { this.useOutdatedAlgorithm = true }
     @Suppress("unused") fun accuracy(acc: Double) = this.also {
         val nObjects = this.passedObjects.orElse(beatmap.hitObjects.size)
 
@@ -277,7 +279,7 @@ class PPCalculator private constructor(
 
     fun calculate() : PPResult {
         if(this.attributes.isEmpty) {
-            this.attributes = Optional.of(beatmap.stars(this.mods, this.passedObjects))
+            this.attributes = Optional.of(beatmap.stars(this.mods, this.passedObjects, this.useOutdatedAlgorithm))
         }
         assertHitResults()
 

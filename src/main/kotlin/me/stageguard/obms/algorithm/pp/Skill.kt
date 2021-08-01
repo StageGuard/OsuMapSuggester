@@ -41,26 +41,28 @@ class Skill(
         SkillType.Speed -> SPEED_SKILL_MULTIPLIER
     }
 
-    val difficultyValue get() = run {
+    fun difficultyValue(useOutdatedAlgorithm: Boolean = false) = run {
         var difficulty = 0.0
         var weight = 1.0
 
         strainPeaks.sortDescending()
 
-        for (i in 0 until strainPeaks.size.coerceAtMost(REDUCED_SECTION_COUNT)) {
-            val scale: Double =
-                log10(lerp(1.0, 10.0, max(0.0, min(i.toDouble() / REDUCED_SECTION_COUNT, 1.0))))
-            strainPeaks[i] *= lerp(REDUCED_STRAIN_BASELINE, 1.0, scale)
-        }
+        if(!useOutdatedAlgorithm) {
+            for (i in 0 until strainPeaks.size.coerceAtMost(REDUCED_SECTION_COUNT)) {
+                val scale: Double =
+                    log10(lerp(1.0, 10.0, max(0.0, min(i.toDouble() / REDUCED_SECTION_COUNT, 1.0))))
+                strainPeaks[i] *= lerp(REDUCED_STRAIN_BASELINE, 1.0, scale)
+            }
 
-        strainPeaks.sortDescending()
+            strainPeaks.sortDescending()
+        }
 
         for (strain in strainPeaks) {
             difficulty += strain * weight
             weight *= DECAY_WEIGHT
         }
 
-        difficulty * DIFFICULTY_MULTIPLIER
+        if(useOutdatedAlgorithm) difficulty else difficulty * DIFFICULTY_MULTIPLIER
     }
 
     fun saveCurrentPeak() {

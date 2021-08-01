@@ -18,7 +18,8 @@ const val STACK_DISTANCE = 3.0
 
 fun Beatmap.stars(
     mods: ModCombination,
-    passedObjects: Optional<Int> = Optional.empty()
+    passedObjects: Optional<Int> = Optional.empty(),
+    useOutdatedAlgorithm: Boolean = false
 ) : DifficultyAttributes {
     val take = passedObjects.orElse(hitObjects.size)
     val mapAttributesWithMod = attribute.withMod(mods)
@@ -132,8 +133,8 @@ fun Beatmap.stars(
     aim.saveCurrentPeak()
     speed.saveCurrentPeak()
 
-    val aimStrain = sqrt(aim.difficultyValue) * DIFFICULTY_MULTIPLIER
-    val speedStrain = sqrt(speed.difficultyValue) * DIFFICULTY_MULTIPLIER
+    val aimStrain = sqrt(aim.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
+    val speedStrain = sqrt(speed.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
 
     return initialAttributes.also {
         it.nCircles = this.nCircles

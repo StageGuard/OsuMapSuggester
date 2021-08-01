@@ -1,5 +1,6 @@
 package me.stageguard.obms.graph.item
 
+import me.stageguard.obms.bot.route.AnalyzeDetailType
 import me.stageguard.obms.bot.route.OrderResult
 import me.stageguard.obms.graph.image
 import me.stageguard.obms.graph.svgDom
@@ -340,8 +341,12 @@ fun drawDetailedSingleCard(
                 }
             )
         } else {
-            val beforeRecalculatePPValue = TextLine.make(round(entry.score.pp).toInt().toString(), Font(boldFont, 20f))
-            val afterRecalculatePPValue = TextLine.make(round(entry.recalculatedPp).toInt().toString(), Font(boldFont, 20f))
+            val beforeRecalculatePPValue = TextLine.make(round(
+                if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) entry.recalculatedPp else entry.score.pp
+            ).toInt().toString(), Font(boldFont, 20f))
+            val afterRecalculatePPValue = TextLine.make(round(
+                if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) entry.score.pp else entry.recalculatedPp
+            ).toInt().toString(), Font(boldFont, 20f))
             val rightArrow = svgDom("svg/arrow-right.svg").run {
                 toScaledImage(beforeRecalculatePPValue.height * 0.8.toFloat() / root!!.height.value)
             }
@@ -350,7 +355,9 @@ fun drawDetailedSingleCard(
                 detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f,
                 cardHeight / 2f + beforeRecalculatePPValue.height / 4f,
                 paint.apply {
-                    color = beforeRecalculatePpColor
+                    color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                        if(entry.recalculatedPp > entry.score.pp) ppColor else beforeRecalculatePpColor
+                    } else { ppColor }
                 }
             )
             drawTextLine(ppText,
@@ -358,22 +365,24 @@ fun drawDetailedSingleCard(
                         + beforeRecalculatePPValue.width,
                 cardHeight / 2f + beforeRecalculatePPValue.height / 4f,
                 paint.apply {
-                    color = beforeRecalculatePpTextColor
+                    color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                        if(entry.recalculatedPp > entry.score.pp) ppTextColor else beforeRecalculatePpTextColor
+                    } else { ppTextColor }
                 }
             )
             drawImage(rightArrow,
                 detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f +
                         beforeRecalculatePPValue.width + ppText.width + 10.toFloat(),
                 (cardHeight - rightArrow.height) / 2,
-                paint.apply {
-                    color = ppColor
-                })
+                paint)
             drawTextLine(afterRecalculatePPValue,
                 detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f +
                         beforeRecalculatePPValue.width + ppText.width + rightArrow.width + 20.toFloat(),
                 cardHeight / 2f + afterRecalculatePPValue.height / 4f,
                 paint.apply {
-                    color = ppColor
+                    color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                        if(entry.recalculatedPp > entry.score.pp) beforeRecalculatePpColor else ppColor
+                    } else { beforeRecalculatePpColor }
                 }
             )
             drawTextLine(ppText,
@@ -381,7 +390,9 @@ fun drawDetailedSingleCard(
                         beforeRecalculatePPValue.width + ppText.width + rightArrow.width + afterRecalculatePPValue.width + 20.toFloat(),
                 cardHeight / 2f + afterRecalculatePPValue.height / 4f,
                 paint.apply {
-                    color = ppTextColor
+                    color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                        if(entry.recalculatedPp > entry.score.pp) beforeRecalculatePpTextColor else ppTextColor
+                    } else { beforeRecalculatePpTextColor }
                 }
             )
         }

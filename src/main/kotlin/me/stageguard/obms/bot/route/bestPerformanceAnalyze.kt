@@ -38,6 +38,7 @@ data class OrderResult(
         open val drawLine: Int
     ) {
         class DetailAnalyze(
+            val analyzeDetailType: AnalyzeDetailType,
             var rankChange: Int,
             drawLine: Int,
             val recalculatedPp: Double,
@@ -54,11 +55,17 @@ data class OrderResult(
     }
 }
 
+enum class AnalyzeDetailType {
+    IfFullCombo,
+    OutdatedAlgorithm
+}
+
 @OptIn(ObsoleteCoroutinesApi::class)
 suspend fun orderScores(
     scores: Pair<List<ScoreDTO>, List<ScoreDTO>?>,
     analyzeDetail: Boolean = false,
-    rangeToRecalculate: IntRange = 0..25,
+    analyzeType: AnalyzeDetailType = AnalyzeDetailType.IfFullCombo,
+    rangeToAnalyze: IntRange = 0..25
 ) : Either<OrderResult, IllegalStateException> = scores.second.let { secList ->
     if(secList == null) {
         if(!analyzeDetail) {
@@ -68,12 +75,12 @@ suspend fun orderScores(
             val calculatedList = mutableListOf<OrderResult.Entry.DetailAnalyze>()
             scores.first.asFlow().flowOn(newSingleThreadContext("PPCalculationFlow")).map { score ->
                 val idx = atomicInt.getAndIncrement()
-                if(idx in rangeToRecalculate) {
+                if(idx in rangeToAnalyze) {
                     when(val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)) {
                         is Either.Left -> {
                             val recalculatedPp = PPCalculator.of(beatmap.value)
                                 .accuracy(score.accuracy * 100.0)
-                                .passedObjects(score.statistics.count100 + score.statistics.count300 + score.statistics.count50)
+                                .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
                                 .mods(score.mods.map {
                                     when(it) {
                                         "EZ" -> Mod.Easy
@@ -87,9 +94,21 @@ suspend fun orderScores(
                                         "SO" -> Mod.SpunOut
                                         else -> Mod.None //scorev2 cannot appears in best performance
                                     }
-                                }.ifEmpty { listOf(Mod.None) }).calculate()
+                                }.ifEmpty { listOf(Mod.None) }).run {
+                                    when(analyzeType) {
+                                        AnalyzeDetailType.IfFullCombo -> this
+                                        AnalyzeDetailType.OutdatedAlgorithm -> {
+                                            outdatedAlgorithm()
+                                                .misses(score.statistics.countMiss)
+                                                .combo(score.maxCombo)
+                                                .n100(score.statistics.count100)
+                                                .n50(score.statistics.count50)
+                                        }
+                                    }
+                                }.calculate()
 
                             OrderResult.Entry.DetailAnalyze(
+                                analyzeDetailType = analyzeType,
                                 rankChange = 0,
                                 drawLine = idx, // now drawLine is as original rank
                                 recalculatedPp = recalculatedPp.total,
@@ -102,8 +121,9 @@ suspend fun orderScores(
                             throw IllegalStateException("CALCULATE_ERROR:${beatmap.value}")
                         }
                     }
-                } else {
+                } else { // not in recalculate range, will be filtered later
                     OrderResult.Entry.DetailAnalyze(
+                        analyzeDetailType = analyzeType,
                         rankChange = 0,
                         drawLine = idx, // now drawLine is as original rank
                         recalculatedPp = score.pp,
@@ -117,6 +137,7 @@ suspend fun orderScores(
                 it.recalculatedPp
             }.mapIndexed { idx, it ->
                 OrderResult.Entry.DetailAnalyze(
+                    analyzeDetailType = analyzeType,
                     rankChange = it.drawLine - idx,
                     drawLine = idx, // now drawLine is as original rank
                     recalculatedPp = it.recalculatedPp,
@@ -126,6 +147,7 @@ suspend fun orderScores(
                 )
             }.filterIndexed { _, it -> it.isRecalculated }.mapIndexed { idx, it ->
                 OrderResult.Entry.DetailAnalyze(
+                    analyzeDetailType = analyzeType,
                     rankChange = it.rankChange,
                     drawLine = idx, // now drawLine is as original rank
                     recalculatedPp = it.recalculatedPp,
@@ -236,17 +258,31 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         var (limit, offset) = 25 to 0
 
         var msg = message.filterIsInstance<PlainText>().joinToString("").substringAfter(".bpa").trim()
-        val analyzeDetail = if (msg.startsWith("fc")) {
+        var analyzeDetail = false
+        var analyzeDetailType = AnalyzeDetailType.IfFullCombo
+
+        if (msg.startsWith("fc")) {
             msg = msg.substringAfter("fc").trim()
-            true
-        } else false
+            analyzeDetailType = AnalyzeDetailType.IfFullCombo
+            analyzeDetail = true
+        } else if (msg.startsWith("old")) {
+            msg = msg.substringAfter("old").trim()
+            analyzeDetailType = AnalyzeDetailType.OutdatedAlgorithm
+            analyzeDetail = true
+        }
 
         regex.matchEntire(msg)?.groupValues?.run {
             limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1
             offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
         }
 
-        if(analyzeDetail) atReply("正在重新计算你 Best Performance 中 ${offset + 1} 到 ${offset + limit} 的成绩...")
+        if(analyzeDetail) {
+            if(analyzeDetailType == AnalyzeDetailType.IfFullCombo) {
+                atReply("正在以 Full Combo 重新计算你 Best Performance 中 ${offset + 1} 到 ${offset + limit} 的成绩...")
+            } else if(analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                atReply("正在计算 Best Performance 中 ${offset + 1} 到 ${offset + limit} 的 PP 削减...")
+            }
+        }
 
         when(val orderResult = orderScores(
             when(val myBpScores = OsuWebApi.userScore(
@@ -258,7 +294,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
                     atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${myBpScores.value}")
                     return@startsWith
                 }
-            } to null, analyzeDetail, offset..(limit + offset))
+            } to null, analyzeDetail, analyzeDetailType, offset..(limit + offset))
         ) {
             is Either.Left -> processData(orderResult.value)
             is Either.Right -> atReply("处理数据时发生了异常: ${orderResult.value}")
