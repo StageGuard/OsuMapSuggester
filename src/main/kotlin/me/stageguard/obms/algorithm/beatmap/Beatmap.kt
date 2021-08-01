@@ -41,11 +41,9 @@ class Beatmap private constructor(
 
         fun parse(reader: Reader) = buildBeatmap {
             val lines = reader.readLines().filterNot {
-                it.startsWith("//") || it.startsWith("_") ||
-                        it.startsWith(" ") || it.isEmpty() || it.isBlank()
+                it.startsWith("//") || it.startsWith("_") || it.isEmpty() || it.isBlank()
             }.map {
-                it.trim { c -> c == '﻿' }
-                it
+                it.trim { c -> c == '﻿' || c.isWhitespace() }
             }
             lines.first {
                 it.startsWith("osu file format v")
@@ -83,6 +81,8 @@ class Beatmap private constructor(
                                 "SliderMultiplier" -> sliderMultiplier = it.second.toDouble()
                                 "SliderTickRate" -> sliderTickRate = it.second.toDouble()
                             }
+                            //for old beatmap
+                            if(approachRate == -1.0) approachRate = overallDifficulty
                         }
                     }
                     "TimingPoints" -> {
@@ -153,7 +153,7 @@ class Beatmap private constructor(
                                     when {
                                         pathType == Linear && curvePoints.size % 2 == 0 -> {
                                             if(isValidLinearPoint(curvePoints)) {
-                                                for((idx, _) in (2 until curvePoints.size).reversed().withIndex()) {
+                                                for(idx in (2 until curvePoints.size - 1).reversed()) {
                                                     if(idx % 2 == 0) curvePoints.removeAt(idx)
                                                 }
                                             } else {
