@@ -76,8 +76,8 @@ fun Beatmap.stars(
         it
     }.iterator()
 
-    val aim = Skill(SkillType.Aim)
-    val speed = Skill(SkillType.Speed)
+    val aim = AimSkill()
+    val speed = SpeedSkill()
 
     var currentSectionEnd = ceil(hitObjects[0].startTime / sectionLength) * sectionLength
     var prevPrev: Optional<OsuStdObject> = Optional.empty()

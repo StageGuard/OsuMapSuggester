@@ -35,6 +35,11 @@ inline fun cpn(p: Int, n: Int) : Double {
 }
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun lerp(v0: Double, v1: Double, t: Double): Double {
+    return (1 - t) * v0 + t * v1
+}
+
+@Suppress("NOTHING_TO_INLINE")
 fun getCircumCircle(
     p0: HitObjectPosition,
     p1: HitObjectPosition,
