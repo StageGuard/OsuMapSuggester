@@ -1,6 +1,6 @@
 package me.stageguard.obms.algorithm.pp.skill
 
-import me.stageguard.obms.algorithm.beatmap.DifficultyObject
+import me.stageguard.obms.algorithm.pp.DifficultyObject
 import me.stageguard.obms.algorithm.pp.Skill
 import kotlin.math.max
 import kotlin.math.min

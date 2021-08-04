@@ -1,5 +1,6 @@
-package me.stageguard.obms.algorithm.beatmap
+package me.stageguard.obms.algorithm.pp
 
+import me.stageguard.obms.algorithm.beatmap.OsuStdObject
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.atan2
