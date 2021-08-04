@@ -279,7 +279,9 @@ class PPCalculator private constructor(
 
     fun calculate() : PPResult {
         if(this.attributes.isEmpty) {
-            this.attributes = Optional.of(beatmap.stars(this.mods, this.passedObjects, this.useOutdatedAlgorithm))
+            this.attributes = Optional.of(
+                beatmap.calculateDifficultyAttributes(this.mods, this.passedObjects, this.useOutdatedAlgorithm)
+            )
         }
         assertHitResults()
 

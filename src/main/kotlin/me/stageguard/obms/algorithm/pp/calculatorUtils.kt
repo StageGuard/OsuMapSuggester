@@ -16,7 +16,7 @@ const val NORMALIZED_RADIUS = 52.0
 const val DIFFICULTY_MULTIPLIER = 0.0675
 const val STACK_DISTANCE = 3.0
 
-fun Beatmap.stars(
+fun Beatmap.calculateDifficultyAttributes(
     mods: ModCombination,
     passedObjects: Optional<Int> = Optional.empty(),
     useOutdatedAlgorithm: Boolean = false
