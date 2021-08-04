@@ -1,6 +1,8 @@
 package me.stageguard.obms.algorithm.pp
 
 import me.stageguard.obms.algorithm.beatmap.*
+import me.stageguard.obms.algorithm.pp.skill.AimSkill
+import me.stageguard.obms.algorithm.pp.skill.SpeedSkill
 import java.util.*
 import kotlin.math.*
 
