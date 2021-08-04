@@ -1,6 +1,6 @@
 package me.stageguard.obms.algorithm.pp
 
-data class DifficultyAttributes(
+open class DifficultyAttributes(
     var stars: Double,
     var approachRate: Double,
     var overallDifficulty: Double,

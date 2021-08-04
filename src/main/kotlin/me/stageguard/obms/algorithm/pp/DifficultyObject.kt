@@ -7,7 +7,7 @@ import kotlin.math.atan2
 import kotlin.math.max
 import kotlin.properties.Delegates
 
-class DifficultyObject constructor(
+open class DifficultyObject constructor(
     val base: OsuStdObject,
     prev: OsuStdObject,
     prevVals: Optional<Pair<Double, Double>>, // (jump_dist, strain_time)

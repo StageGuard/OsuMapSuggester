@@ -2,12 +2,13 @@
 
 package me.stageguard.obms.algorithm.pp
 
+import me.stageguard.obms.algorithm.beatmap.ModCombination
 import me.stageguard.obms.utils.lerp
 import java.util.*
 import kotlin.math.*
 
 @Suppress("PrivatePropertyName")
-abstract class Skill {
+abstract class Skill<DO : DifficultyObject>(val mods: ModCombination) {
     private val DECAY_WEIGHT: Double = 0.9
     private val REDUCED_SECTION_COUNT: Int = 10
     private val REDUCED_STRAIN_BASELINE: Double = 0.75
@@ -53,7 +54,7 @@ abstract class Skill {
         currentSectionPeak = peakStrain(time - prevTime.get())
     }
 
-    fun process(current: DifficultyObject) {
+    fun process(current: DO) {
         currentStrain *= strainDecay(current.delta)
         currentStrain += strainValueOf(current) * skillMultiplier
         currentSectionPeak = max(currentSectionPeak, currentStrain)
@@ -64,7 +65,7 @@ abstract class Skill {
 
     private fun peakStrain(deltaTime: Double) = currentStrain * strainDecay(deltaTime)
 
-    abstract fun strainValueOf(current: DifficultyObject) : Double
+    abstract fun strainValueOf(current: DO) : Double
 
     @Suppress("NOTHING_TO_INLINE")
     inline fun applyDiminishingExp(value: Double) = value.pow(0.99)

@@ -36,13 +36,6 @@ fun Beatmap.calculateDifficultyAttributes(
 
     if(take < 2) return initialAttributes
 
-    val rawApproachRate = attribute.approachRate.let {
-        if(mods.hr()) it * 1.4 else if(mods.ez()) it * 0.5 else it
-    }
-
-
-    val timePreempt = difficultyRange(rawApproachRate, OSU_AR_MAX, OSU_AR_AVG, OSU_AR_MIN)
-
     val sectionLength = SECTION_LEN * mapAttributesWithMod.clockRate
     val scale = (1.0 - 0.7 * (mapAttributesWithMod.circleSize - 5.0) / 5.0) / 2.0
     val radius = OBJECT_RADIUS * scale
@@ -54,12 +47,15 @@ fun Beatmap.calculateDifficultyAttributes(
     val sliderState = SliderState(this)
     val ticksBuf = mutableListOf<Double>()
 
-    val stackThreshold = timePreempt * stackLeniency
+    val stackThreshold = difficultyRange(mapAttributesWithMod.approachRate.let {
+        if(mods.hr()) it * 1.4 else if(mods.ez()) it * 0.5 else it
+    }, OSU_AR_MAX, OSU_AR_AVG, OSU_AR_MIN) * stackLeniency
 
     val hitObjectMappedIterator = hitObjects.take(take).map { ho ->
         OsuStdObject(
             h = ho,
             beatmap = this,
+            mods = mods,
             radius = radius,
             scalingFactor = scalingFactor,
             ticks = ticksBuf,
@@ -78,8 +74,8 @@ fun Beatmap.calculateDifficultyAttributes(
         it
     }.iterator()
 
-    val aim = AimSkill()
-    val speed = SpeedSkill()
+    val aim = AimSkill(mods)
+    val speed = SpeedSkill(mods)
 
     var currentSectionEnd = ceil(hitObjects[0].startTime / sectionLength) * sectionLength
     var prevPrev: Optional<OsuStdObject> = Optional.empty()

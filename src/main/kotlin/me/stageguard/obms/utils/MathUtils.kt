@@ -1,9 +1,10 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package me.stageguard.obms.utils
 
 import me.stageguard.obms.algorithm.beatmap.HitObjectPosition
 import kotlin.math.*
 
-@Suppress("NOTHING_TO_INLINE")
 inline fun isValidLinearPoint(points: List<HitObjectPosition>) : Boolean {
     for ((index, value) in points.drop(1).zip(points.drop(2)).withIndex()) {
         if(index % 2 == 0 && value.first != value.second) {
@@ -13,11 +14,9 @@ inline fun isValidLinearPoint(points: List<HitObjectPosition>) : Boolean {
     return true
 }
 
-@Suppress("NOTHING_TO_INLINE")
 inline fun isLinearPoints(p0: HitObjectPosition, p1: HitObjectPosition, p2: HitObjectPosition) =
     abs((p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x)) <= 1.19209290e-07
 
-@Suppress("NOTHING_TO_INLINE")
 inline fun cpn(p: Int, n: Int) : Double {
     if (p < 0 || p > n) {
         return 0.0
@@ -34,18 +33,16 @@ inline fun cpn(p: Int, n: Int) : Double {
     return out
 }
 
-@Suppress("NOTHING_TO_INLINE")
 inline fun lerp(v0: Double, v1: Double, t: Double): Double {
     return (1 - t) * v0 + t * v1
 }
 
-@Suppress("NOTHING_TO_INLINE")
-fun getCircumCircle(
+inline fun getCircumCircle(
     p0: HitObjectPosition,
     p1: HitObjectPosition,
     p2: HitObjectPosition
 ) : Pair<HitObjectPosition, Double> {
-    val a = 2.0 * (p0.x * (p1.y - p2.y) - p0.y * (p1.x - p2.x) + p1.x * p2.y - p2.x * p1.y);
+    val a = 2.0 * (p0.x * (p1.y - p2.y) - p0.y * (p1.x - p2.x) + p1.x * p2.y - p2.x * p1.y)
 
     val q0 = p0.lengthSquared()
     val q1 = p1.lengthSquared()
@@ -59,7 +56,7 @@ fun getCircumCircle(
     return Pair(HitObjectPosition(cx, cy), r)
 }
 
-fun rotate(
+inline fun rotate(
     center: HitObjectPosition, origin: HitObjectPosition, theta: Double
 ) : HitObjectPosition {
     val (sin, cos) = sin(theta) to cos(theta)
@@ -71,10 +68,9 @@ fun rotate(
     return center + offset
 }
 
-fun isLeft(p0: HitObjectPosition, p1: HitObjectPosition, p2: HitObjectPosition) =
+inline fun isLeft(p0: HitObjectPosition, p1: HitObjectPosition, p2: HitObjectPosition) =
     ((p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x)) < 0.0
 
-@Suppress("NOTHING_TO_INLINE")
 inline fun pointAtDistance(points: List<HitObjectPosition>, dist: Double) : HitObjectPosition {
     if(points.size < 2) {
         return HitObjectPosition.zero()
@@ -101,3 +97,22 @@ inline fun pointAtDistance(points: List<HitObjectPosition>, dist: Double) : HitO
 
     return preLast + (last - preLast) * (remainingDist / newDist)
 }
+
+inline fun transitionToTrue(value: Double, transitionStart: Double, transitionInterval: Double): Double {
+    if (value <= transitionStart) return 0.0
+    return if (value >= transitionStart + transitionInterval) 1.0 else {
+        (-cos((value - transitionStart) * Math.PI / transitionInterval) + 1) / 2.0
+    }
+}
+
+inline fun transitionToFalse(value: Double, transitionStart: Double, transitionInterval: Double): Double {
+    if (value <= transitionStart) return 1.0
+    return if (value >= transitionStart + transitionInterval) 0.0 else {
+        (cos((value - transitionStart) * Math.PI / transitionInterval) + 1) / 2
+    }
+}
+
+inline fun isRatioEqualGreater(ratio: Double, a: Double, b: Double) = a + 5 > ratio * b
+inline fun isRatioEqualLess(ratio: Double, a: Double, b: Double) = a - 5 < ratio * b
+inline fun isRoughlyEqual(a: Double, b: Double) = a * 1.25 > b && a / 1.25 < b
+inline fun isRatioEqual(ratio: Double, a: Double, b: Double) = a + 5 > ratio * b && a - 5 < ratio * b

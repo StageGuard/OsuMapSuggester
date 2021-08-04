@@ -1,6 +1,6 @@
 package me.stageguard.obms.algorithm.beatmap
 
-import me.stageguard.obms.algorithm.pp.DifficultyAttributes
+import me.stageguard.obms.algorithm.pp.*
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.properties.Delegates
@@ -9,6 +9,7 @@ import kotlin.properties.Delegates
 class OsuStdObject constructor(
     h: HitObject,
     beatmap: Beatmap,
+    mods: ModCombination,
     radius: Double,
     scalingFactor: Double,
     ticks: MutableList<Double>,
@@ -21,7 +22,9 @@ class OsuStdObject constructor(
     var time by Delegates.notNull<Double>()
     lateinit var position: HitObjectPosition
     var stackHeight by Delegates.notNull<Double>()
-    private var kind: OsuStdObjectType = OsuStdObjectType.Hold
+    var kind: OsuStdObjectType = OsuStdObjectType.Hold
+    var timePreempt by Delegates.notNull<Double>()
+    var radius by Delegates.notNull<Double>()
 
     val travelDist get() = when(val kind = kind) {
         is OsuStdObjectType.Slider -> kind.travelDist
@@ -57,6 +60,10 @@ class OsuStdObject constructor(
     init {
         attributes.maxCombo ++
         val stackHeight = 0.0
+
+        timePreempt = difficultyRange(attributes.approachRate.let {
+            if(mods.hr()) it * 1.4 else if(mods.ez()) it * 0.5 else it
+        }, OSU_AR_MAX, OSU_AR_AVG, OSU_AR_MIN)
 
         when(h.kind) {
             is HitObjectType.Circle -> {

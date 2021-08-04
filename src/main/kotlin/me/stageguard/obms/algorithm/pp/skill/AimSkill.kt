@@ -1,5 +1,6 @@
 package me.stageguard.obms.algorithm.pp.skill
 
+import me.stageguard.obms.algorithm.beatmap.ModCombination
 import me.stageguard.obms.algorithm.pp.DifficultyObject
 import me.stageguard.obms.algorithm.pp.Skill
 import kotlin.math.max
@@ -7,7 +8,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class AimSkill : Skill() {
+class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
     private val AIM_SKILL_MULTIPLIER: Double = 26.25
     private val AIM_STRAIN_DECAY_BASE: Double = 0.15
 
