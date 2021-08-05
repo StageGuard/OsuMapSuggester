@@ -47,12 +47,12 @@ sealed class HitObjectType {
     }
 }
 
-enum class SliderPathType(i: Int) {
-    Catmull(0),
-    Bezier(1),
-    Linear(2),
-    PerfectCurve(3),
-    Unknown(-1);
+enum class SliderPathType {
+    Catmull,
+    Bezier,
+    Linear,
+    PerfectCurve,
+    Unknown;
     companion object {
         fun parse(input: String) = when(input) {
             "L" -> Linear

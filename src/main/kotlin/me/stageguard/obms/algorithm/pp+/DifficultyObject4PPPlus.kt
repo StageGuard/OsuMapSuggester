@@ -26,7 +26,7 @@ class DifficultyObject4PPPlus(
 ) : DifficultyObject(base, prev, prevVals, prevPrev, clockRate, scalingFactor) {
     var rawJumpDist by Delegates.notNull<Double>()
     var preempt by Delegates.notNull<Double>()
-    var angleLeniency by Delegates.notNull<Double>()
+    var angleLeniency = 0.0
     var baseFlow by Delegates.notNull<Double>()
     var flow by Delegates.notNull<Double>()
     var lastTwoStrainTime by Delegates.notNull<Double>()

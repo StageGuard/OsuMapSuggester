@@ -8,6 +8,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 
+@Suppress("PrivatePropertyName")
 class SpeedSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
     private val SPEED_SKILL_MULTIPLIER: Double = 1400.0
     private val SPEED_STRAIN_DECAY_BASE: Double = 0.3

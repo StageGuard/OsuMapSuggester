@@ -22,7 +22,7 @@ abstract class Skill<DO : DifficultyObject>(val mods: ModCombination) {
     abstract val strainDecayBase: Double
     abstract val skillMultiplier: Double
 
-    fun difficultyValue(useOutdatedAlgorithm: Boolean = false) = run {
+    open fun difficultyValue(useOutdatedAlgorithm: Boolean = false) = run {
         var difficulty = 0.0
         var weight = 1.0
 
@@ -54,7 +54,7 @@ abstract class Skill<DO : DifficultyObject>(val mods: ModCombination) {
         currentSectionPeak = peakStrain(time - prevTime.get())
     }
 
-    fun process(current: DO) {
+    open fun process(current: DO) {
         currentStrain *= strainDecay(current.delta)
         currentStrain += strainValueOf(current) * skillMultiplier
         currentSectionPeak = max(currentSectionPeak, currentStrain)

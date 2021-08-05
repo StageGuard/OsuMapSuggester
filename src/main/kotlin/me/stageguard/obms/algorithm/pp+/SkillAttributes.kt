@@ -4,7 +4,7 @@ package me.stageguard.obms.algorithm.`pp+`
 
 import me.stageguard.obms.algorithm.pp.DifficultyAttributes
 
-class DifficultyAttributes4PPPlus(
+class SkillAttributes(
     stars: Double,
     approachRate: Double,
     overallDifficulty: Double,
@@ -21,4 +21,15 @@ class DifficultyAttributes4PPPlus(
 ) : DifficultyAttributes(
     stars, approachRate, overallDifficulty,
     speedStrain, aimStrain, maxCombo, nCircles, nSpinners
-)
+) {
+    override fun toString(): String {
+        return "SkillAttributes(\n" +
+                "\taimStrain=$aimStrain, \n" +
+                "\tspeedStrain=$speedStrain, \n" +
+                "\tjumpAimStrain=$jumpAimStrain, \n" +
+                "\tflowAimStrain=$flowAimStrain, \n" +
+                "\tprecisionStrain=$precisionStrain, \n" +
+                "\tstaminaStrain=$staminaStrain, \n" +
+                "\taccuracyStrain=$accuracyStrain\n)"
+    }
+}

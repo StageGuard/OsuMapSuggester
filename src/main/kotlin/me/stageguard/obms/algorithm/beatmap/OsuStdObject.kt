@@ -10,7 +10,7 @@ class OsuStdObject constructor(
     h: HitObject,
     beatmap: Beatmap,
     mods: ModCombination,
-    radius: Double,
+    var radius: Double,
     scalingFactor: Double,
     ticks: MutableList<Double>,
     attributes: DifficultyAttributes,
@@ -24,7 +24,6 @@ class OsuStdObject constructor(
     var stackHeight by Delegates.notNull<Double>()
     var kind: OsuStdObjectType = OsuStdObjectType.Hold
     var timePreempt by Delegates.notNull<Double>()
-    var radius by Delegates.notNull<Double>()
 
     val travelDist get() = when(val kind = kind) {
         is OsuStdObjectType.Slider -> kind.travelDist
