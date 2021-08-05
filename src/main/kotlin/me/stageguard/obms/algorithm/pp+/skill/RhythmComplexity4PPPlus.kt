@@ -57,7 +57,7 @@ class RhythmComplexity4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPP
             if (isPreviousOffbeat && isRatioEqualGreater(1.5, current.gapTime, previous.gapTime)) {
                 rhythmBonus = 5.0
                 if(previousDoubles.isNotEmpty()) {
-                    previousDoubles.subList(0.coerceAtLeast(previousDoubles.size - 10), previousDoubles.lastIndex)
+                    previousDoubles.drop(0.coerceAtLeast(previousDoubles.size - 10))
                         .forEach { previousDouble ->
                             if (previousDouble > 0)
                                 rhythmBonus *= 1 - 0.5 * 0.9.pow(noteIndex - previousDouble)

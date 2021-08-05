@@ -33,7 +33,7 @@ class DifficultyObject4PPPlus(
     var gapTime by Delegates.notNull<Double>()
 
     private val streamBpm: Double
-        get() = 15000 / strainTime
+        get() = 15000.0 / strainTime
 
     init {
         this.preempt = base.timePreempt / clockRate
@@ -42,9 +42,7 @@ class DifficultyObject4PPPlus(
             100.0.coerceAtLeast((base.time - prevPrev.get().time) / clockRate)
         }
 
-        this.rawJumpDist = if (base.isSpinner) {
-            0.0
-        } else {
+        this.rawJumpDist = if (base.isSpinner) 0.0 else {
             (base.position - prev.lazyEndPosition).length()
         }
 
