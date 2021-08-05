@@ -177,6 +177,8 @@ fun Beatmap.calculateSkills(
     val starRating = (aimStrain.pow(3) + speedStrain.coerceAtLeast(staminaStrain).pow(3)).pow(1 / 3.0) * 1.6
 
     return skillAttributes.also {
+        it.nCircles = this.nCircles
+        it.nSpinners = this.nSpinners
         it.stars = starRating
         it.aimStrain = aimStrain
         it.jumpAimStrain = jumpAimStrain
