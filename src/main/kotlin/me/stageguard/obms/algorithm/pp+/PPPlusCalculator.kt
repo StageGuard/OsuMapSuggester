@@ -71,12 +71,10 @@ class PPPlusCalculator private constructor(
     override fun calculate() : PPPlusResult {
         if(this.attributes.isEmpty) {
             this.attributes = Optional.of(
-                beatmap.calculateSkills(this.mods, this.passedObjects, this.useOutdatedAlgorithm)
+                beatmap.calculateSkills(this.mods, this.passedObjects)
             )
         }
         assertHitResults()
-
-        val totalHits = this.totalHits.toDouble()
         var multiplier = 1.12
 
         // NF penalty
@@ -91,12 +89,12 @@ class PPPlusCalculator private constructor(
 
         val normalisedHitError: OptionalDouble = calculateNormalisedHitError(
             this.attributes.get().overallDifficulty,
-            totalHits.toInt(), this.attributes.get().nCircles, this.n300.get()
+            totalHits, this.attributes.get().nCircles, this.n300.get()
         )
         val missWeight = calculateMissWeight(this.nMisses)
         val aimWeight = calculateAimWeight(
             missWeight, normalisedHitError, this.combo.orElse(this.attributes.get().maxCombo), this.attributes.get().maxCombo,
-            totalHits.toInt(), this.mods
+            totalHits, this.mods
         )
         val speedWeight = calculateSpeedWeight(
             missWeight, normalisedHitError, this.combo.orElse(this.attributes.get().maxCombo),
@@ -145,7 +143,7 @@ class PPPlusResult(
     accuracy: Double,
     val stamina: Double,
     val precision: Double,
-    attributes: SkillAttributes
+    attributes: SkillAttributes? = null
 ) : PPResult<SkillAttributes>(
     total, aim, speed, accuracy, attributes
 ) {

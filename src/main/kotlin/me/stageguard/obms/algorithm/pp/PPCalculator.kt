@@ -191,7 +191,7 @@ open class PPResult<ATTR : DifficultyAttributes>(
     val aim: Double,
     val speed: Double,
     val accuracy: Double,
-    val attributes: ATTR
+    val attributes: ATTR? = null
 ) {
     override fun toString(): String {
         return "PPResult(total=$total, aim=$aim, speed=$speed, accuracy=$accuracy, attributes=$attributes)"
