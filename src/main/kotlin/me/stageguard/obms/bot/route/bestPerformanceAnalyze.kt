@@ -81,20 +81,7 @@ suspend fun orderScores(
                             val recalculatedPp = PPCalculator.of(beatmap.value)
                                 .accuracy(score.accuracy * 100.0)
                                 .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
-                                .mods(score.mods.map {
-                                    when(it) {
-                                        "EZ" -> Mod.Easy
-                                        "NF" -> Mod.NoFail
-                                        "HT" -> Mod.HalfTime
-                                        "HR" -> Mod.HardRock
-                                        "SD" -> Mod.SuddenDeath
-                                        "DT", "NC" -> Mod.DoubleTime
-                                        "HD" -> Mod.Hidden
-                                        "FL" -> Mod.Flashlight
-                                        "SO" -> Mod.SpunOut
-                                        else -> Mod.None //scorev2 cannot appears in best performance
-                                    }
-                                }.ifEmpty { listOf(Mod.None) }).run {
+                                .mods(score.mods.parseMods()).run {
                                     when(analyzeType) {
                                         AnalyzeDetailType.IfFullCombo -> this
                                         AnalyzeDetailType.OutdatedAlgorithm -> {
@@ -208,6 +195,21 @@ suspend fun GroupMessageEvent.processData(orderResult: OrderResult) {
     externalResource.close()
     atReply(image.toMessageChain())
 }
+
+fun List<String>.parseMods() = map {
+    when(it) {
+        "EZ" -> Mod.Easy
+        "NF" -> Mod.NoFail
+        "HT" -> Mod.HalfTime
+        "HR" -> Mod.HardRock
+        "SD" -> Mod.SuddenDeath
+        "DT", "NC" -> Mod.DoubleTime
+        "HD" -> Mod.Hidden
+        "FL" -> Mod.Flashlight
+        "SO" -> Mod.SpunOut
+        else -> Mod.None //scorev2 cannot appears in best performance
+    }
+}.ifEmpty { listOf(Mod.None) }
 
 @Suppress("SpellCheckingInspection")
 fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
