@@ -11,15 +11,16 @@ import kotlin.math.*
 @Suppress("DuplicatedCode")
 fun Beatmap.calculateSkills(
     mods: ModCombination,
-    passedObjects: Optional<Int> = Optional.empty(),
-    useOutdatedAlgorithm: Boolean = false
+    passedObjects: Optional<Int> = Optional.empty()
 ) : SkillAttributes {
     val take = passedObjects.orElse(hitObjects.size)
     val mapAttributesWithMod = attribute.withMod(mods)
 
     val skillAttributes = SkillAttributes(
-        stars = 0.0, approachRate = mapAttributesWithMod.approachRate,
-        overallDifficulty = 0.0, maxCombo = 0, nCircles = 0, nSpinners = 0,
+        stars = 0.0,
+        approachRate = mapAttributesWithMod.approachRate,
+        overallDifficulty = mapAttributesWithMod.overallDifficulty,
+        maxCombo = 0, nCircles = this.nCircles, nSpinners = this.nSpinners,
         speedStrain = 0.0,
         aimStrain = 0.0,
         jumpAimStrain = 0.0,
@@ -163,22 +164,20 @@ fun Beatmap.calculateSkills(
     rawAimSkill.saveCurrentPeak()
     speedSkill.saveCurrentPeak()
 
-    val aimStrain = sqrt(aimSkill.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
-    val jumpAimStrain = sqrt(jumpAimSkill.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
-    val flowAimStrain = sqrt(flowAimSkill.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
-    val speedStrain = sqrt(speedSkill.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
-    val staminaStrain = sqrt(staminaSkill.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
+    val aimStrain = sqrt(aimSkill.difficultyValue(true)) * DIFFICULTY_MULTIPLIER
+    val jumpAimStrain = sqrt(jumpAimSkill.difficultyValue(true)) * DIFFICULTY_MULTIPLIER
+    val flowAimStrain = sqrt(flowAimSkill.difficultyValue(true)) * DIFFICULTY_MULTIPLIER
+    val speedStrain = sqrt(speedSkill.difficultyValue(true)) * DIFFICULTY_MULTIPLIER
+    val staminaStrain = sqrt(staminaSkill.difficultyValue(true)) * DIFFICULTY_MULTIPLIER
     val precisionStrain = sqrt(
         0.0.coerceAtLeast(
-            aimSkill.difficultyValue(useOutdatedAlgorithm) - rawAimSkill.difficultyValue(useOutdatedAlgorithm)
+            aimSkill.difficultyValue(true) - rawAimSkill.difficultyValue(true)
         )
     ) * DIFFICULTY_MULTIPLIER
-    val accuracyStrain = rhythmComplexity.difficultyValue(useOutdatedAlgorithm)
+    val accuracyStrain = rhythmComplexity.difficultyValue(true)
     val starRating = (aimStrain.pow(3) + speedStrain.coerceAtLeast(staminaStrain).pow(3)).pow(1 / 3.0) * 1.6
 
     return skillAttributes.also {
-        it.nCircles = this.nCircles
-        it.nSpinners = this.nSpinners
         it.stars = starRating
         it.aimStrain = aimStrain
         it.jumpAimStrain = jumpAimStrain
