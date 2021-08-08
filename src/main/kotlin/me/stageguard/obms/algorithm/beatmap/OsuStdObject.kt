@@ -17,8 +17,6 @@ class OsuStdObject constructor(
     sliderState: SliderState,
 ) {
 
-    private val LEGACY_LAST_TICK_OFFSET = 36.0
-
     var time by Delegates.notNull<Double>()
     lateinit var position: HitObjectPosition
     var stackHeight by Delegates.notNull<Double>()
@@ -152,9 +150,8 @@ class OsuStdObject constructor(
                 val finalSpanStartTime = h.startTime + finalSpanIndex.toDouble() * spanDuration
                 val finalSpanEndTime = max(
                     h.startTime + duration / 2.0,
-                    finalSpanStartTime + spanDuration - LEGACY_LAST_TICK_OFFSET
+                    finalSpanStartTime + spanDuration/* - LEGACY_LAST_TICK_OFFSET*/
                 )
-
                 computeVertex(finalSpanEndTime)
                 ticks.clear()
                 travelDist *= scalingFactor

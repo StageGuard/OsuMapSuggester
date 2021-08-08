@@ -35,6 +35,9 @@ class DifficultyObject4PPPlus(
     private val streamBpm: Double
         get() = 15000.0 / strainTime
 
+    val startTime : Double
+        get() = base.time
+
     init {
         this.preempt = base.timePreempt / clockRate
 

@@ -6,7 +6,10 @@ import me.stageguard.obms.algorithm.`pp+`.DifficultyObject4PPPlus
 import me.stageguard.obms.algorithm.beatmap.ModCombination
 
 class RawAimSkill4PPPlus(mods: ModCombination) : AimSkill4PPPlus(mods) {
-    override fun calculateAimValue(current: DifficultyObject4PPPlus): Double {
-        return calculateFlowAimValue(current) + calculateJumpAimValue(current)
+    override fun strainValueOf(current: DifficultyObject4PPPlus): Double {
+        val rawAimValue = calculateFlowAimValue(current) + calculateJumpAimValue(current)
+        val readingMultiplier = calculateReadingMultiplier(current)
+
+        return rawAimValue * readingMultiplier
     }
 }

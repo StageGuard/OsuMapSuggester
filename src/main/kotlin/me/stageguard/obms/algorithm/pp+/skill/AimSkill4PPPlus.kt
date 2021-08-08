@@ -30,18 +30,13 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         get() = AIM_SKILL_MULTIPLIER
 
     override fun strainValueOf(current: DifficultyObject4PPPlus): Double {
-        val aimValue = calculateAimValue(current)
-        val readingMultiplier = calculateReadingMultiplier(current)
-
-        return aimValue * readingMultiplier
-    }
-
-    open fun calculateAimValue(current: DifficultyObject4PPPlus) : Double
-    {
         val jumpAim = calculateJumpAimValue(current)
         val flowAim = calculateFlowAimValue(current)
 
-        return (jumpAim + flowAim) * calculateSmallCircleBonus(current.base.radius)
+        val aimValue =  (jumpAim + flowAim) * calculateSmallCircleBonus(current.base.radius)
+        val readingMultiplier = calculateReadingMultiplier(current)
+
+        return aimValue * readingMultiplier
     }
 
     protected fun calculateJumpAimValue(current: DifficultyObject4PPPlus) : Double {
@@ -63,13 +58,11 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
             current.prevDifficultyObject.run { if(this.isPresent) this.get().jumpDist else 0.0 }
         )
         val patternWeight = calculateJumpPatternWeight(current,
-            if(current.prevPrevDifficultyObject.isEmpty && current.prevDifficultyObject.isEmpty)
-                listOf()
-            else if(current.prevPrevDifficultyObject.isEmpty && current.prevDifficultyObject.isPresent)
-                listOf(current.prevDifficultyObject.get(), current)
-            else listOf(current.prevPrevDifficultyObject.get(), current.prevDifficultyObject.get())
+            mutableListOf<DifficultyObject4PPPlus>().also { list ->
+                current.prevPrevDifficultyObject.ifPresent { list.add(it) }
+                current.prevDifficultyObject.ifPresent { list.add(it) }
+            }
         )
-
         val jumpAim = jumpAimBase * angleWeight * patternWeight * locationWeight
         return jumpAim * (1.0 - current.flow)
     }
@@ -95,8 +88,8 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         return flowAim * current.flow
     }
 
-    private fun calculateReadingMultiplier(current: DifficultyObject4PPPlus) : Double {
-        while (preemptHitObjects.isNotEmpty() && preemptHitObjects.last().strainTime < current.strainTime - current.preempt) {
+    protected fun calculateReadingMultiplier(current: DifficultyObject4PPPlus) : Double {
+        while (preemptHitObjects.isNotEmpty() && preemptHitObjects.last().startTime < current.startTime - current.preempt) {
             preemptHitObjects.removeLast()
         }
 
@@ -119,7 +112,7 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
 
     private fun calculateJumpPatternWeight(current: DifficultyObject4PPPlus, previousTwoObjects: List<DifficultyObject4PPPlus>) : Double {
         var jumpPatternWeight = 1.0
-        previousTwoObjects.forEachIndexed { i, previousObject ->
+        previousTwoObjects.asReversed().forEachIndexed { i, previousObject ->
             var velocityWeight = 1.05
             if (previousObject.jumpDist > 0) {
                 val velocityRatio = (current.jumpDist / current.strainTime) / (previousObject.jumpDist / previousObject.strainTime) - 1.0
@@ -145,8 +138,8 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         if (previousTwoObjects.isNotEmpty()) {
             distanceRequirement = calculateDistanceRequirement(
                 current.strainTime,
-                previousTwoObjects[0].strainTime,
-                previousTwoObjects[0].jumpDist
+                previousTwoObjects.last().strainTime,
+                previousTwoObjects.last().jumpDist
             )
         }
 
