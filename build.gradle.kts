@@ -3,15 +3,16 @@ plugins {
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 
-    id("net.mamoe.mirai-console") version "2.7-M2"
+    id("net.mamoe.mirai-console") version "2.7-RC-dev-3"
 }
 
 group = "me.stageguard"
-version = "1.2"
+version = "1.3"
 
 repositories {
     maven("https://maven.aliyun.com/repository/public")
-    maven ("https://packages.jetbrains.team/maven/p/skija/maven")
+    maven("https://packages.jetbrains.team/maven/p/skija/maven")
+    mavenLocal()
     mavenCentral()
     gradlePluginPortal()
 }
@@ -19,8 +20,9 @@ repositories {
 val exposedVersion = "0.32.1"
 val hikariVersion = "5.0.0"
 val mysqlVersion = "8.0.25"
-val miraiSlf4jBridgeVersion = "1.1.0"
+val miraiSlf4jBridgeVersion = "1.2.0"
 val skijaVersion = "0.92.15"
+val ktorServerVersion = "1.6.2"
 
 dependencies {
     //test suite
@@ -38,11 +40,22 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("mysql:mysql-connector-java:$mysqlVersion")
     implementation("com.zaxxer:HikariCP:$hikariVersion")
-    implementation("io.ktor:ktor-server-netty:1.6.2")
+    implementation("io.ktor:ktor-server-netty:$ktorServerVersion")
     //mirai
     implementation("net.mamoe:mirai-slf4j-bridge:$miraiSlf4jBridgeVersion")
     //apache commons
     implementation("commons-io:commons-io:2.6")
     implementation("org.apache.commons:commons-math3:3.6.1")
 
+}
+
+kotlin {
+    sourceSets {
+        all {
+            languageSettings {
+                useExperimentalAnnotation("kotlin.RequiresOptIn")
+                useExperimentalAnnotation("kotlin.ExperimentalStdlibApi")
+            }
+        }
+    }
 }
