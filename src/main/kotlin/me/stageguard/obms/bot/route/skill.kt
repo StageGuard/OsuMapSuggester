@@ -3,15 +3,11 @@ package me.stageguard.obms.bot.route
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.algorithm.`pp+`.PPPlusCalculator
 import me.stageguard.obms.algorithm.`pp+`.PPPlusResult
-import me.stageguard.obms.algorithm.beatmap.Mod
 import me.stageguard.obms.api.osu.OsuWebApi
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.cache.BeatmapPool
 import me.stageguard.obms.utils.Either
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
-import net.mamoe.mirai.message.data.toMessageChain
-import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
-import java.io.File
 import kotlin.math.pow
 
 fun GroupMessageSubscribersBuilder.skill() {
