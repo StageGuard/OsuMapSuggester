@@ -30,7 +30,7 @@ open class DifficultyObject constructor(
         val travelDist = prev.travelDist
         val prevCursorPos = prev.lazyEndPosition
 
-        val jumpDist = if (base.isSpinner) { 0.0 } else { ((pos - prevCursorPos) * scalingFactor).length() }
+        val jumpDist = ((pos - prevCursorPos) * scalingFactor).length()
 
         val angle = prevPrev.map {
             val prevPrevCursorPos = it.lazyEndPosition
