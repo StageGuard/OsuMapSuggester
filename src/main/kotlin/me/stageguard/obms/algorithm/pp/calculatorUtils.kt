@@ -143,60 +143,59 @@ fun Beatmap.calculateDifficultyAttributes(
     }
 }
 
+const val stackDistance = 3.0
+
 fun List<OsuStdObject>.stacking(stackThreshold: Double) {
     var extendedStartIndex = 0
     val extendedEndIndex = size - 1
 
-
     for (i in (1..extendedEndIndex).reversed()) {
         var n = i
 
-        if (get(i).stackHeight != 0.0 || !get(i).isSlider) {
-            continue
-        }
+        var objectI = get(i)
+        if(objectI.stackHeight != 0.0 || objectI.isSpinner) continue
 
-        if (get(i).isCircle) {
-            var outerIndex = i
-            kotlin.run breakRepeat@ {
-                repeat(Int.MAX_VALUE) {
-                    n = if(n - 1 < 0) return@breakRepeat else n - 1
+        if(objectI.isCircle) {
+            while (--n >= 0) {
+                val objectN = get(n)
+                if(objectN.isSpinner) continue
 
-                    if (get(n).isSpinner) {
-                        return@breakRepeat
-                    } else if (n < extendedStartIndex) {
-                        get(n).stackHeight = 0.0
-                        extendedStartIndex = n
-                    }
+                val endTime = objectN.endTime
 
-                    if (get(n).isSlider && get(n).endPosition.distance(get(outerIndex).position) < STACK_DISTANCE) {
-                        val offset = get(outerIndex).stackHeight - get(n).stackHeight + 1.0
+                if (objectI.time - endTime > stackThreshold) break
 
-                        for (j in n + 1 until outerIndex) {
-                            if (get(n).position.distance(get(j).position) < STACK_DISTANCE) {
-                                get(j).stackHeight -= offset
-                            }
+                if (n < extendedStartIndex) {
+                    get(n).stackHeight = 0.0
+                    extendedStartIndex = n
+                }
+
+                if(objectN.isSlider && objectN.endPosition.distance(objectI.position) < stackDistance) {
+                    val offset = objectI.stackHeight - objectN.stackHeight + 1
+
+                    for(j in (n + 1)..i) {
+                        val objectJ = get(j)
+                        if(objectN.endPosition.distance(objectJ.position) < stackDistance) {
+                            get(j).stackHeight -= offset
                         }
-                        return@breakRepeat
-                    } else if (get(n).position.distance(get(outerIndex).position) < STACK_DISTANCE) {
-                        get(n).stackHeight = get(outerIndex).stackHeight + 1.0
-                        outerIndex = n
                     }
+                    break
+                }
+
+                if(objectN.position.distance(objectI.position) < stackDistance) {
+                    get(n).stackHeight = objectI.stackHeight + 1
+                    objectI = objectN
                 }
             }
-        } else if (get(i).isSlider) {
-            var outerIndex = i
-            kotlin.run breakRepeat@ {
-                repeat(Int.MAX_VALUE) continueRepeat@ {
-                    n = if(n - 1 < 0) return@breakRepeat else n - 1
+        } else if(objectI.isSlider) {
+            while (--n >= 0) {
+                val objectN = get(n)
+                if(objectN.isSpinner) continue
 
-                    if (get(n).isSpinner) {
-                        return@continueRepeat
-                    } else if (get(outerIndex).time - get(n).time > stackThreshold) {
-                        return@breakRepeat
-                    } else if (get(n).endPosition.distance(get(outerIndex).position) < STACK_DISTANCE) {
-                        get(n).stackHeight = get(outerIndex).stackHeight + 1.0
-                        outerIndex = n
-                    }
+                if (objectI.time - objectN.time > stackThreshold) break
+
+                if(objectN.endPosition.distance(objectI.position) < stackDistance) {
+                    get(n).stackHeight = objectI.stackHeight + 1
+                    objectI = objectN
                 }
             }
         }
