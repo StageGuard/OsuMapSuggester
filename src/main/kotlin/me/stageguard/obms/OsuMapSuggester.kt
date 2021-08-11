@@ -29,7 +29,7 @@ object OsuMapSuggester : KotlinPlugin(
     JvmPluginDescription(
         id = "me.stageguard.obms.OsuMapSuggester",
         name = "OsuMapSuggester",
-        version = "1.2",
+        version = "1.3",
     ) { author("StageGuard") }
 ) {
     val moduleLogger: Logger = if (PluginManager.plugins.any {
