@@ -1,6 +1,7 @@
 package me.stageguard.obms.cache
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Beatmap
@@ -30,13 +31,16 @@ object BeatmapPool {
             }
         } else withContext(Dispatchers.IO) {
             file.parentFile.mkdirs()
-            @Suppress("BlockingMethodInNonBlockingContext") file.createNewFile()
-            OsuWebApi.getBeatmap(bid).use {
-                @Suppress("BlockingMethodInNonBlockingContext") file.writeBytes(it.readAllBytes())
+            val beatmap = OsuWebApi.getBeatmap(bid)
+            runInterruptible {
+                file.createNewFile()
+                beatmap.use {
+                    file.writeBytes(it.readAllBytes())
+                }
             }
-            val beatmap: Either<Beatmap, IllegalStateException>
+            val result: Either<Beatmap, IllegalStateException>
             file.bomReader().use {
-                beatmap = try {
+                result = try {
                     Either.Left(Beatmap.parse(it))
                 } catch (ex: Exception) {
                     if(tryCount <= 4) {
@@ -46,7 +50,7 @@ object BeatmapPool {
                     }
                 }
             }
-            beatmap
+            result
         }
     }
 }

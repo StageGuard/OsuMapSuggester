@@ -1,5 +1,6 @@
 package me.stageguard.obms.bot.route
 
+import kotlinx.coroutines.runInterruptible
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.bot.MessageRoute.atReply
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
@@ -14,7 +15,7 @@ fun GroupMessageSubscribersBuilder.help() {
 
         val externalResource = File(helpImagePath).toExternalResource("png")
         val image = group.uploadImage(externalResource)
-        @Suppress("BlockingMethodInNonBlockingContext") externalResource.close()
+        runInterruptible { externalResource.close() }
         atReply(image.toMessageChain())
     }
 }

@@ -4,6 +4,7 @@ import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runInterruptible
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.algorithm.pp.PPCalculator
@@ -192,7 +193,7 @@ suspend fun GroupMessageEvent.processData(orderResult: OrderResult) {
     output.export(outputFile, EncodedImageFormat.PNG)
     val externalResource = File(outputFile).toExternalResource("png")
     val image = group.uploadImage(externalResource)
-    @Suppress("BlockingMethodInNonBlockingContext") externalResource.close()
+    runInterruptible { externalResource.close() }
     atReply(image.toMessageChain())
 }
 
