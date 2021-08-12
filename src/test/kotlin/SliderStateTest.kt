@@ -1,9 +1,9 @@
 package me.stageguard.obms
 
-import me.stageguard.obms.algorithm.beatmap.Beatmap
-import me.stageguard.obms.algorithm.beatmap.DifficultyPoint
-import me.stageguard.obms.algorithm.beatmap.SliderState
-import me.stageguard.obms.algorithm.beatmap.TimingPoint
+import me.stageguard.obms.osu.processor.beatmap.Beatmap
+import me.stageguard.obms.osu.processor.beatmap.DifficultyPoint
+import me.stageguard.obms.osu.processor.beatmap.SliderState
+import me.stageguard.obms.osu.processor.beatmap.TimingPoint
 import kotlin.test.assertEquals
 
 fun main() {

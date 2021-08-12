@@ -1,9 +1,8 @@
 package me.stageguard.obms.bot.route
 
-import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.algorithm.`pp+`.PPPlusCalculator
-import me.stageguard.obms.algorithm.`pp+`.PPPlusResult
-import me.stageguard.obms.api.osu.OsuWebApi
+import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusCalculator
+import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusResult
+import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.cache.BeatmapPool
 import me.stageguard.obms.utils.Either
@@ -38,10 +37,12 @@ fun GroupMessageSubscribersBuilder.skill() {
                 .misses(score.statistics.countMiss)
                 .calculate()
 
-        }.foldIndexed(PPPlusResult(
+        }.foldIndexed(
+            PPPlusResult(
             total = 0.0, aim = 0.0, jumpAim = 0.0, flowAim = 0.0,
             speed = 0.0, accuracy = 0.0, stamina = 0.0, precision = 0.0
-        )) { idx, last, cur ->
+        )
+        ) { idx, last, cur ->
             PPPlusResult(
                 total = last.total + cur.total * 0.95.pow(idx),
                 aim = last.aim + cur.aim * 0.95.pow(idx),

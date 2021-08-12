@@ -1,7 +1,6 @@
 package me.stageguard.obms.bot.route
 
 import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.api.osu.oauth.OAuthManager
 import me.stageguard.obms.bot.MessageRoute.atReply
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.data.toMessageChain
@@ -15,7 +14,7 @@ fun GroupMessageSubscribersBuilder.help() {
 
         val externalResource = File(helpImagePath).toExternalResource("png")
         val image = group.uploadImage(externalResource)
-        externalResource.close()
+        @Suppress("BlockingMethodInNonBlockingContext") externalResource.close()
         atReply(image.toMessageChain())
     }
 }

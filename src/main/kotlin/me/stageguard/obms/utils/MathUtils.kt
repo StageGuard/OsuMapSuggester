@@ -2,7 +2,7 @@
 
 package me.stageguard.obms.utils
 
-import me.stageguard.obms.algorithm.beatmap.HitObjectPosition
+import me.stageguard.obms.osu.processor.beatmap.HitObjectPosition
 import kotlin.math.*
 
 inline fun isValidLinearPoint(points: List<HitObjectPosition>) : Boolean {

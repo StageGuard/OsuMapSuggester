@@ -3,8 +3,7 @@ package me.stageguard.obms
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import me.stageguard.obms.PluginConfig
-import me.stageguard.obms.api.osu.OsuWebApi
+import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.bot.MessageRoute
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.frontend.NettyHttpServer

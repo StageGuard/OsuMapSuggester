@@ -1,6 +1,6 @@
 package me.stageguard.obms.bot.route
 
-import me.stageguard.obms.api.osu.oauth.OAuthManager
+import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.database.model.User
 import me.stageguard.obms.database.model.getOsuIdAndName

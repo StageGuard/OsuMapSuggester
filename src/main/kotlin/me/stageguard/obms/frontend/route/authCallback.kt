@@ -4,10 +4,10 @@ import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.response.*
 import io.ktor.routing.*
-import me.stageguard.obms.api.osu.oauth.OAuthManager
+import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.bot.MessageRoute
 import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.api.osu.oauth.BindResult
+import me.stageguard.obms.osu.api.oauth.BindResult
 import net.mamoe.mirai.contact.getMember
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.buildMessageChain

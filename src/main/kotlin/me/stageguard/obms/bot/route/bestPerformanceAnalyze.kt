@@ -5,10 +5,10 @@ import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.newSingleThreadContext
 import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.algorithm.beatmap.Mod
-import me.stageguard.obms.algorithm.pp.PPCalculator
-import me.stageguard.obms.api.osu.OsuWebApi
-import me.stageguard.obms.api.osu.dto.ScoreDTO
+import me.stageguard.obms.osu.processor.beatmap.Mod
+import me.stageguard.obms.osu.algorithm.pp.PPCalculator
+import me.stageguard.obms.osu.api.OsuWebApi
+import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.cache.BeatmapPool
 import me.stageguard.obms.graph.item.drawBestPerformancesImage
@@ -192,7 +192,7 @@ suspend fun GroupMessageEvent.processData(orderResult: OrderResult) {
     output.export(outputFile, EncodedImageFormat.PNG)
     val externalResource = File(outputFile).toExternalResource("png")
     val image = group.uploadImage(externalResource)
-    externalResource.close()
+    @Suppress("BlockingMethodInNonBlockingContext") externalResource.close()
     atReply(image.toMessageChain())
 }
 
