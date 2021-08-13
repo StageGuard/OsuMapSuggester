@@ -100,13 +100,12 @@ Also, if you have any good idea, welcome to contribute to this project or open a
 
 ## Library
 
-- [mirai](https://github.com/mamoe/mirai/) - High-performance bot framework for Tencent QQ.
-- [mirai-console](https://github.com/mamoe/mirai-console) - headless frontend for mirai.
-- [Exposed](https://github.com/JetBrains/Exposed) - A Kotlin SQL Framework.
-- [HikariCP](https://github.com/brettwooldridge/HikariCP) - 光 HikariCP ・ A solid, high-performance, JDBC connection pool at last.
-- [peace-performance](https://github.com/Pure-Peace/peace-performance) - osu! pp & stars calculation algorithm.
-- [ktor](https://github.com/ktorio/ktor) - Framework for quickly creating connected applications in Kotlin with minimal effort
-- [skija](https://github.com/JetBrains/skija) - Skia bindings for Java
+- Mirai Framework: [mirai](https://github.com/mamoe/mirai/), [mirai-console](https://github.com/mamoe/mirai-console), [mirai-slf4j-bridge](https://github.com/project-mirai/mirai-slf4j-bridge)
+- Database: [Exposed](https://github.com/JetBrains/Exposed), [HikariCP](https://github.com/brettwooldridge/HikariCP)
+- Web Server: [ktor](https://github.com/ktorio/ktor)
+- Graphics: [skija](https://github.com/JetBrains/skija)
+- osu! Related: [peace-performance](https://github.com/Pure-Peace/peace-performance), [pp+ algorithm](https://github.com/Syriiin/osu), [osuReplayAnalyzer](https://github.com/firedigger/osuReplayAnalyzer)
+- Utilities: apache utilities(commons-io, commons-math3, commons-compress), [xz](https://tukaani.org/xz/java.html)
 
 ## LICENSE of this project and mirai
 
