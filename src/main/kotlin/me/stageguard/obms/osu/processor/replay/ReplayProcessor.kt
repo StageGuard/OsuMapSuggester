@@ -3,6 +3,7 @@ package me.stageguard.obms.osu.processor.replay
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.util.ReferenceCountUtil
+import me.stageguard.obms.osu.processor.beatmap.HitObjectPosition
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.utils.readCompressedLzmaContent
 import me.stageguard.obms.utils.readNullableString
@@ -31,9 +32,9 @@ class ReplayProcessor(replayFile: File) {
     var isPerfect by Delegates.notNull<Boolean>()
     lateinit var mods : ModCombination
 
-    val lifeFrames : MutableList<LifeFrame> = mutableListOf()
-    var seed by Delegates.notNull<Int>()
-    val replayFrames : MutableList<ReplayFrame> = mutableListOf()
+    private val lifeFrames : MutableList<LifeFrame> = mutableListOf()
+    private var seed : Int = -1
+    private val replayFrames : MutableList<ReplayFrame> = mutableListOf()
 
     private fun readHeader() {
         if(isHeaderRead) return
@@ -95,9 +96,11 @@ class ReplayProcessor(replayFile: File) {
                 replayFrames.add(ReplayFrame(
                     timeDiff = split[0].toInt(),
                     time = split[0].toInt() + lastTime,
-                    x = split[1].toDouble(),
-                    y = split[2].toDouble(),
-                    keys = Keys.parse(split[3].toInt())
+                    position = HitObjectPosition(
+                        x = split[1].toDouble(),
+                        y = split[2].toDouble()
+                    ),
+                    keys = Key.parse(split[3].toInt())
                 ))
 
                 lastTime = replayFrames.last().time
@@ -108,8 +111,13 @@ class ReplayProcessor(replayFile: File) {
         isBodyRead = true
     }
 
-    fun process() {
+    fun process(readFully: Boolean) : ReplayData {
         readHeader()
-        readBody()
+        if(readFully) readBody()
+        return ReplayData(
+            gameMode, fileFormat, mapHash, player, replayHash,
+            n300, n100, n50, nMiss, totalScore, maxCombo,
+            isPerfect, mods, seed, lifeFrames, replayFrames
+        )
     }
 }

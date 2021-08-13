@@ -1,6 +1,6 @@
 package me.stageguard.obms.osu.processor.replay
 
-enum class Keys {
+enum class Key {
     None,
     M1,
     M2,
@@ -8,7 +8,7 @@ enum class Keys {
     K2;
 
     companion object {
-        fun parse(v: Int) : List<Keys> = when(v) {
+        fun parse(v: Int) : List<Key> = when(v) {
             0 -> listOf(None)
             1 -> listOf(M1)
             2 -> listOf(M2)
