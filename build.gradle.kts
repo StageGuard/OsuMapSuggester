@@ -43,9 +43,11 @@ dependencies {
     implementation("io.ktor:ktor-server-netty:$ktorServerVersion")
     //mirai
     implementation("net.mamoe:mirai-slf4j-bridge:$miraiSlf4jBridgeVersion")
-    //apache commons
+    //apache utilities
     implementation("commons-io:commons-io:2.6")
     implementation("org.apache.commons:commons-math3:3.6.1")
+    implementation("org.apache.commons:commons-compress:1.21")
+    implementation("org.tukaani:xz:1.9")
 
 }
 
