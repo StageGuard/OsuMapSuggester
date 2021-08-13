@@ -2,6 +2,7 @@ package me.stageguard.obms.osu.processor.replay
 
 import me.stageguard.obms.osu.processor.beatmap.Beatmap
 import me.stageguard.obms.osu.processor.beatmap.HitObject
+import me.stageguard.obms.osu.processor.beatmap.HitObjectPosition
 import me.stageguard.obms.osu.processor.beatmap.HitObjectType
 import kotlin.math.abs
 
@@ -11,7 +12,7 @@ class ReplayAnalyzer(
     private val replay = replayProcessor.process(true)
     private val beatmapAttribute = beatmap.attribute.withMod(replay.mods)
 
-    val circleRadius = 54.42 - 4.48 * beatmapAttribute.circleSize
+    private val circleRadius = 54.42 - 4.48 * beatmapAttribute.circleSize
     private val hitTimeWindow = -12 * beatmapAttribute.overallDifficulty + 259.5
 
     val hits : MutableList<HitFrame> = mutableListOf()
@@ -23,6 +24,7 @@ class ReplayAnalyzer(
 
     init {
         associateHits()
+        calculateHitPointAndOffset()
     }
 
     private fun associateHits() {
@@ -87,6 +89,15 @@ class ReplayAnalyzer(
                 hitCount = 0
                 effortlessMissedNotes.add(note)
             }
+        }
+    }
+
+    private fun calculateHitPointAndOffset() {
+        hits.forEach {
+            val circleCenter = HitObjectPosition(circleRadius, circleRadius)
+            val relativePosition = it.frame.position - (it.hitObject.pos - circleCenter)
+            val percentage = relativePosition / (circleRadius * 2)
+            it.hitPointPercentage = percentage.x to percentage.y
         }
     }
 }
