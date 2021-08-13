@@ -1,9 +1,11 @@
 package me.stageguard.obms.osu.processor.beatmap
 
 import me.stageguard.obms.osu.processor.beatmap.SliderPathType.*
+import me.stageguard.obms.utils.bomReader
 import me.stageguard.obms.utils.isLinearPoints
 import java.io.Reader
 import me.stageguard.obms.utils.isValidLinearPoint
+import java.io.File
 import java.lang.IllegalStateException
 import kotlin.math.max
 import kotlin.math.min
@@ -38,6 +40,8 @@ class Beatmap private constructor(
 
         private const val CURVE_POINT_THRESHOLD = 256
         private const val MAX_COORDINATE_VALUE = 131_072.0
+
+        fun parse(file: File) : Beatmap = parse(file.bomReader())
 
         fun parse(reader: Reader) = buildBeatmap {
             val lines = reader.readLines().filterNot {
