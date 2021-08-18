@@ -25,7 +25,9 @@ object OsuWebApi {
     const val BASE_URL_V1 = "https://osu.ppy.sh/api"
     const val BASE_URL_OLD = "https://old.ppy.sh"
 
-    val client = HttpClient(OkHttp)
+    val client = HttpClient(OkHttp) {
+        expectSuccess = false
+    }
     val json = Json { ignoreUnknownKeys = true }
 
     private const val MAX_IN_ONE_REQ = 50
