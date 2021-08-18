@@ -70,7 +70,7 @@ data class UserDTO(
     @SerialName("id")
     val id: Int,
     @SerialName("last_visit")
-    val lastVisit: String,
+    val lastVisit: String? = null,
     @SerialName("username")
     val username: String
 )
