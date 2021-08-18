@@ -20,6 +20,8 @@ fun Beatmap.calculateSkills(
         stars = 0.0,
         approachRate = mapAttributesWithMod.approachRate,
         overallDifficulty = mapAttributesWithMod.overallDifficulty,
+        hpDrain = mapAttributesWithMod.hpDrainRate,
+        circleSize = mapAttributesWithMod.circleSize,
         maxCombo = 0, nCircles = this.nCircles, nSpinners = this.nSpinners,
         speedStrain = 0.0,
         aimStrain = 0.0,

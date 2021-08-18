@@ -4,6 +4,8 @@ open class DifficultyAttributes(
     var stars: Double,
     var approachRate: Double,
     var overallDifficulty: Double,
+    var hpDrain: Double,
+    var circleSize: Double,
     var speedStrain: Double,
     var aimStrain: Double,
     var maxCombo: Int,

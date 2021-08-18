@@ -30,6 +30,7 @@ fun Beatmap.calculateDifficultyAttributes(
 
     val initialAttributes = DifficultyAttributes(
         stars = 0.0, approachRate = mapAttributesWithMod.approachRate,
+        circleSize = mapAttributesWithMod.circleSize, hpDrain = mapAttributesWithMod.hpDrainRate,
         overallDifficulty = od, speedStrain = 0.0, aimStrain = 0.0,
         maxCombo = 0, nCircles = 0, nSpinners = 0
     )

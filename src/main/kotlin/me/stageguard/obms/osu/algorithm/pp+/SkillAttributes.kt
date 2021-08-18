@@ -8,6 +8,8 @@ class SkillAttributes(
     stars: Double,
     approachRate: Double,
     overallDifficulty: Double,
+    hpDrain: Double,
+    circleSize: Double,
     speedStrain: Double,
     aimStrain: Double,
     var jumpAimStrain: Double,
@@ -19,7 +21,7 @@ class SkillAttributes(
     nCircles: Int,
     nSpinners: Int
 ) : DifficultyAttributes(
-    stars, approachRate, overallDifficulty,
+    stars, approachRate, overallDifficulty, hpDrain, circleSize,
     speedStrain, aimStrain, maxCombo, nCircles, nSpinners
 ) {
     override fun toString(): String {
