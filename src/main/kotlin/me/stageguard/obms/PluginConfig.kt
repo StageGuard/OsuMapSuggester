@@ -27,6 +27,7 @@ data class OsuAuthConfig(
     val clientId: Int = 0,
     val secret: String = "",
     val authCallbackBaseUrl: String = "http://localhost:8081",
+    val v1ApiKey: String = ""
 )
 
 @Serializable

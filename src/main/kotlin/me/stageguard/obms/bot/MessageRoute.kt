@@ -2,10 +2,7 @@ package me.stageguard.obms.bot
 
 import kotlinx.coroutines.launch
 import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.bot.route.bestPerformanceAnalyze
-import me.stageguard.obms.bot.route.bindAccount
-import me.stageguard.obms.bot.route.help
-import me.stageguard.obms.bot.route.skill
+import me.stageguard.obms.bot.route.*
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.subscribeGroupMessages
@@ -22,6 +19,7 @@ object MessageRoute {
             bestPerformanceAnalyze()
             help()
             skill()
+            recentScore()
         }
         OsuMapSuggester.logger.info { "Subscribed group and friend messages." }
     }

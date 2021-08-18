@@ -3,6 +3,13 @@ import kotlinx.serialization.Serializable
 
 import kotlinx.serialization.SerialName
 
+@Serializable
+data class BeatmapUserScoreDTO(
+    @SerialName("position")
+    val position: Int,
+    @SerialName("score")
+    val score: ScoreDTO
+)
 
 @Serializable
 data class ScoreDTO(
@@ -13,7 +20,7 @@ data class ScoreDTO(
     @SerialName("beatmapset")
     val beatmapset: BeatmapsetDTO? = null,
     @SerialName("best_id")
-    val bestId: Long,
+    val bestId: Long? = null,
     @SerialName("created_at")
     val createdAt: String,
     @SerialName("id")
@@ -31,7 +38,7 @@ data class ScoreDTO(
     @SerialName("perfect")
     val perfect: Boolean,
     @SerialName("pp")
-    val pp: Double,
+    val pp: Double? = null,
     @SerialName("rank")
     val rank: String,
     @SerialName("rank_global")
@@ -41,15 +48,31 @@ data class ScoreDTO(
     @SerialName("replay")
     val replay: Boolean,
     @SerialName("score")
-    val score: Int,
+    val score: Long,
     @SerialName("statistics")
     val statistics: ScoreStatisticsDTO,
     @SerialName("user_id")
     val userId: Int,
     @SerialName("weight")
-    val weight: WeightDTO? = null
+    val weight: WeightDTO? = null,
+    @SerialName("user")
+    val user: UserDTO? = null
     /*@SerialName("match")
     val match: String? = null*/
+)
+
+@Serializable
+data class UserDTO(
+    @SerialName("avatar_url")
+    val avatarUrl: String,
+    @SerialName("country_code")
+    val countryCode: String,
+    @SerialName("id")
+    val id: Int,
+    @SerialName("last_visit")
+    val lastVisit: String,
+    @SerialName("username")
+    val username: String
 )
 
 @Serializable

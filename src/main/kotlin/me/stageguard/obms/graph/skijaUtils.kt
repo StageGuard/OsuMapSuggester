@@ -14,18 +14,13 @@ fun typeface(variant: String) = Typeface.makeFromFile(resourcePath("font/Torus-$
 fun image(path: String) = Image.makeFromEncoded(resourceStream(path).readAllBytes())
 fun svgDom(path: String) = SVGDOM(Data.makeFromBytes(resourceStream(path).readAllBytes()))
 
-fun Surface.export(
-    path: String,
+fun Surface.bytes(
     format: EncodedImageFormat = EncodedImageFormat.WEBP
-) {
+) : ByteArray {
     val image = makeImageSnapshot()
     val imgData = image.encodeToData(format) ?.bytes!!
     try {
-        File(path).run {
-            File(parent).mkdirs()
-            createNewFile()
-            writeBytes(imgData)
-        }
+        return imgData
     } catch (ex: Exception) {
         throw IllegalStateException("DRAW_ERROR:$ex")
     }
@@ -40,11 +35,35 @@ fun Canvas.drawSvg(dom: SVGDOM, x: Float, y: Float, scale: Float = 1.0f, paint: 
     drawImage(surface.makeImageSnapshot(), x, y, paint)
 }
 
-fun SVGDOM.toScaledImage(scale: Float): Image = kotlin.run {
+fun SVGDOM.toScaledImage(ratio: Float): Image = kotlin.run {
     val surface = root!!.run {
-        Surface.makeRasterN32Premul(ceil(width.value * scale).toInt(), ceil(height.value * scale).toInt())
+        Surface.makeRasterN32Premul(ceil(width.value * ratio).toInt(), ceil(height.value * ratio).toInt())
     }
-    surface.canvas.setMatrix(Matrix33.makeScale(scale, scale))
+    surface.canvas.setMatrix(Matrix33.makeScale(ratio, ratio))
     render(surface.canvas)
     surface.makeImageSnapshot()
 }
+
+fun Image.scale(ratioX: Float, ratioY: Float = ratioX): Image =
+    Surface.makeRasterN32Premul(
+        ceil(width * ratioX).toInt(),
+        ceil(width * ratioY).toInt()
+    ).run {
+        canvas.setMatrix(Matrix33.makeScale(ratioX, ratioY))
+        canvas.drawImage(this@scale, 0F, 0F)
+        makeImageSnapshot()
+    }
+
+fun Image.cutCenter(remainXRatio: Float, remainYRatio: Float) =
+    Surface.makeRasterN32Premul(
+        ceil(width * remainXRatio).toInt(),
+        ceil(width * remainYRatio).toInt()
+    ).run {
+        val xOffset = imageInfo.width * (1.0 - remainXRatio) / 2
+        val yOffset = imageInfo.height * (1.0 - remainYRatio) / 2
+        canvas.save()
+        canvas.translate(-xOffset.toFloat(), -yOffset.toFloat())
+        canvas.drawImage(this@cutCenter, 0F, 0F)
+        canvas.restore()
+        makeImageSnapshot()
+    }

@@ -19,10 +19,12 @@ import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.success
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
-import java.lang.IllegalStateException
 
 object OsuWebApi {
-    const val BASE_URL = "https://osu.ppy.sh/api/v2"
+    const val BASE_URL_V2 = "https://osu.ppy.sh/api/v2"
+    const val BASE_URL_V1 = "https://osu.ppy.sh/api"
+    const val BASE_URL_OLD = "https://old.ppy.sh"
+
     val client = HttpClient(OkHttp)
     val json = Json { ignoreUnknownKeys = true }
 
@@ -30,7 +32,6 @@ object OsuWebApi {
     /**
      * Auth related
      */
-    @Suppress("HttpUrlsUsage")
     suspend fun getTokenWithCode(code: String): Result<GetAccessTokenResponseDTO> = postImpl(
         url = "https://osu.ppy.sh/oauth/token",
         token = null,
@@ -43,7 +44,6 @@ object OsuWebApi {
         )
     )
 
-    @Suppress("HttpUrlsUsage")
     suspend fun refreshToken(refToken: String): Result<GetAccessTokenResponseDTO> = postImpl(
         url = "https://osu.ppy.sh/oauth/token",
         token = null,
@@ -56,20 +56,36 @@ object OsuWebApi {
         )
     )
 
-    suspend fun getSelfProfileAfterVerifyToken(token: String): Result<GetUserDTO> = getImpl(
-        url = "$BASE_URL/me",
-        token = token,
-        parameters = mapOf()
-    )
+    suspend fun getSelfProfileAfterVerifyToken(token: String): Result<GetUserDTO> = getImpl<String, Result<GetUserDTO>>(
+        url = "$BASE_URL_V2/me",
+        parameters = mapOf(),
+        headers = mapOf("Authorization" to token)
+    ) { json.decodeFromString(this) }
 
     /**
      * Api function related
      */
 
     suspend fun getBeatmap(bid: Int) = openStream(
-        url = "https://old.ppy.sh/osu/$bid",
-        parameters = mapOf()
-    ) { this }
+        url = "$BASE_URL_OLD/osu/$bid",
+        parameters = mapOf(),
+        headers = mapOf()
+    )
+
+    suspend fun getReplay(
+        user: Long, bid: Int,
+        mode: Int = 0, mod: Int = 0
+    ) = openStream(
+        url = "$BASE_URL_V1/get_replay",
+        parameters = mapOf(
+            "k" to PluginConfig.osuAuth.v1ApiKey,
+            "u" to User.getOsuIdSuspend(user).toString(),
+            "b" to bid.toString(),
+            "m" to mode.toString(),
+            "mods" to mod.toString()
+        ),
+        headers = mapOf()
+    )
 
     suspend fun users(user: Long): Result<GetUserDTO> = get("/users/${kotlin.run {
         User.getOsuIdSuspend(user) ?: return Result.failure(IllegalStateException("NOT_BIND"))
@@ -114,27 +130,111 @@ object OsuWebApi {
         return if(result.isSuccess) Either.Left(initialList.toList()) else Either.Right(result.exceptionOrNull()!! as IllegalStateException)
     }
 
+    suspend fun userBeatmapScore(
+        user: Long, beatmapId: Int, mode: String = "osu"
+    ) : Either<BeatmapUserScoreDTO, IllegalStateException> {
+        val userId = User.getOsuIdSuspend(user) ?: return Either.Right(IllegalStateException("NOT_BIND"))
+        val resp = get<BeatmapUserScoreDTO>(
+            path = "/beatmaps/$beatmapId/scores/users/$userId",
+            parameters = mapOf("mode" to mode), user = user
+        )
+        return if(resp.isSuccess) {
+            Either.Left(resp.getOrThrow())
+        } else {
+            Either.Right(IllegalStateException(resp.exceptionOrNull()))
+        }
+    }
+
     suspend fun me(user: Long): Result<GetUserDTO> = get("/me", user = user)
 
 
     /**
      * implementations
      */
-    private suspend inline fun <reified REQ, reified RESP> post(
+    suspend inline fun <reified REQ, reified RESP> post(
         path: String, user: Long, body: @Serializable REQ
     ): Result<RESP> = postImpl(
-        url = BASE_URL + path,
+        url = BASE_URL_V2 + path,
         token = OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow(),
         body = body
     )
 
     suspend inline fun <reified RESP> get(
         path: String, user: Long, parameters: Map<String, String> = mapOf()
-    ): Result<RESP> = getImpl(
-        url = BASE_URL + path,
-        token = OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow(),
+    ): Result<RESP> = getImpl<HttpResponse, Result<RESP>>(
+        url = BASE_URL_V2 + path,
+        headers = mapOf("Authorization" to "Bearer ${OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow()}"),
         parameters = parameters
-    )
+    ) {
+        if(status.isSuccess()) {
+            val content = content.run { buildString {
+                var line = readUTF8Line()
+                while(line != null) {
+                    append(line)
+                    line = readUTF8Line()
+                }
+            } }
+            if(content.startsWith("[")) Result.success(
+                json.decodeFromString<ArrayResponseWrapper<RESP>>("""
+                    { "array": $content }
+                """.trimIndent()).data) else Result.success(json.decodeFromString(content))
+        } else {
+            Result.failure(IllegalStateException("BAD_RESPONSE:${status.value}"))
+        }
+    }
+
+    @Suppress("DuplicatedCode")
+    suspend inline fun openStream(
+        url: String,
+        parameters: Map<String, String>,
+        headers: Map<String, String>,
+    ) = getImpl<InputStream, InputStream>(url, parameters, headers) { this }
+
+    @Suppress("DuplicatedCode")
+    suspend inline fun getReturnFullResponse(
+        url: String,
+        parameters: Map<String, String>,
+        headers: Map<String, String>
+    ) = getImpl<HttpResponse, HttpResponse>(url, parameters, headers) { this }
+
+    @Suppress("DuplicatedCode")
+    suspend inline fun <reified RESP, R> getImpl(
+        url: String,
+        parameters: Map<String, String>,
+        headers: Map<String, String>,
+        consumer: RESP.() -> R
+    ) = client.get<RESP> {
+        url(url.also {
+            OsuMapSuggester.logger.info {
+                "GET: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
+                    if(isNotEmpty()) "?$this" else ""
+                }}"
+            }
+        })
+        headers.forEach {
+            header(it.key, it.value)
+        }
+        parameters.forEach {
+            parameter(it.key, it.value)
+        }
+    }.run(consumer)
+
+    @Suppress("DuplicatedCode")
+    suspend inline fun head(
+        url: String,
+        parameters: Map<String, String>,
+        headers: Map<String, String>
+    ) = client.head<HttpStatement> {
+        url(url.also {
+            OsuMapSuggester.logger.info {
+                "HEAD: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
+                    if(isNotEmpty()) "?$this" else ""
+                }}"
+            }
+        })
+        headers.forEach { header(it.key, it.value) }
+        parameters.forEach { parameter(it.key, it.value) }
+    }.execute { it.headers }
 
     @OptIn(ExperimentalSerializationApi::class)
     @Suppress("DuplicatedCode")
@@ -161,56 +261,6 @@ object OsuWebApi {
             Result.failure(IllegalStateException("BAD_RESPONSE:${it.status.value}"))
         }
     }
-
-    @OptIn(ExperimentalStdlibApi::class, ExperimentalSerializationApi::class)
-    @Suppress("DuplicatedCode")
-    suspend inline fun <reified RESP> getImpl(
-        url: String, token: String, parameters: Map<String, String>
-    ) : Result<RESP> = client.get<HttpStatement> {
-        url(url.also {
-            OsuMapSuggester.logger.info {
-                "GET: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
-                    if(isNotEmpty()) "?$this" else ""
-                }}"
-            }
-        })
-        header("Authorization", "Bearer $token")
-        parameters.forEach {
-            parameter(it.key, it.value)
-        }
-    }.execute {
-        if(it.status.isSuccess()) {
-            val content = it.content.run { buildString {
-                var line = readUTF8Line()
-                while(line != null) {
-                    append(line)
-                    line = readUTF8Line()
-                }
-            } }
-            if(content.startsWith("[")) Result.success(
-                json.decodeFromString<ArrayResponseWrapper<RESP>>("""
-                    { "array": $content }
-                """.trimIndent()).data) else Result.success(json.decodeFromString(content))
-        } else {
-            Result.failure(IllegalStateException("BAD_RESPONSE:${it.status.value}"))
-        }
-    }
-
-    @Suppress("DuplicatedCode")
-    suspend inline fun <R> openStream(
-        url: String, parameters: Map<String, String>, consumer: InputStream.() -> R
-    ) = client.get<InputStream> {
-        url(url.also {
-            OsuMapSuggester.logger.info {
-                "GET: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run { 
-                    if(isNotEmpty()) "?$this" else ""
-                }}"
-            }
-        })
-        parameters.forEach {
-            parameter(it.key, it.value)
-        }
-    }.run(consumer)
 
     fun closeClient() = client.close()
 }

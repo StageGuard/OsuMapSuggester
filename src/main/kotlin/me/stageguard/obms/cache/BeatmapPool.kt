@@ -16,14 +16,14 @@ object BeatmapPool {
     private inline fun beatmapFile(bid: Int) =
         File(OsuMapSuggester.dataFolder.absolutePath + File.separator + "beatmap" + File.separator + bid + ".osu")
 
-    suspend fun getBeatmap(bid: Int, tryCount: Int = 1) : Either<Beatmap, IllegalStateException> {
+    suspend fun getBeatmap(bid: Int, maxTryCount: Int = 4, tryCount: Int = 1) : Either<Beatmap, IllegalStateException> {
         val file = beatmapFile(bid)
         return if(file.run { exists() && isFile }) try {
             withContext(Dispatchers.IO) {
                 Either.Left(Beatmap.parse(file.bomReader()))
             }
         } catch (ex: Exception) {
-            if(tryCount <= 4) {
+            if(tryCount <= maxTryCount) {
                 file.delete()
                 getBeatmap(bid, tryCount + 1)
             } else {

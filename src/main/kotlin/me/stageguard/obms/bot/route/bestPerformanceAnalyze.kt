@@ -5,16 +5,15 @@ import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runInterruptible
-import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.cache.BeatmapPool
-import me.stageguard.obms.graph.item.drawBestPerformancesImage
+import me.stageguard.obms.graph.bytes
+import me.stageguard.obms.graph.item.BestPerformanceDetail
 import me.stageguard.obms.utils.Either
-import me.stageguard.obms.graph.export
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.At
@@ -22,9 +21,6 @@ import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
-import java.io.File
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 import kotlin.math.pow
 
 val regex = Regex("(\\d+)[\\-_→](\\d+)")
@@ -114,7 +110,7 @@ suspend fun orderScores(
                         analyzeDetailType = analyzeType,
                         rankChange = 0,
                         drawLine = idx, // now drawLine is as original rank
-                        recalculatedPp = score.pp,
+                        recalculatedPp = score.pp!!,
                         recalculatedWeightedPp = 0.0,
                         isRecalculated = false,
                         score = score
@@ -157,11 +153,11 @@ suspend fun orderScores(
         var currentRowItemCount = 1
         var currentRow = 0
         var currentId = combined.first().userId
-        var currentBottomPP = combined.first().pp
+        var currentBottomPP = combined.first().pp!!
         resultList.add(OrderResult.Entry.Versus(leftUserId == currentId, currentRow, combined.first()))
         combined.drop(1).forEach {
             when {
-                it.pp + diffInOneLine < currentBottomPP -> {
+                it.pp!! + diffInOneLine < currentBottomPP -> {
                     currentRow ++
                     currentRowItemCount = 1
                 }
@@ -185,13 +181,10 @@ suspend fun orderScores(
     }
 }
 
-suspend fun GroupMessageEvent.processData(orderResult: OrderResult) {
-    val output = drawBestPerformancesImage(orderResult)
-    val outputFile = OsuMapSuggester.dataFolder.absolutePath + "${File.separator}img${File.separator}${
-        LocalDateTime.now().toEpochSecond(ZoneOffset.UTC).toString() + (100..999).random().toString() + sender.id.toString()
-    }.png"
-    output.export(outputFile, EncodedImageFormat.PNG)
-    val externalResource = File(outputFile).toExternalResource("png")
+suspend fun GroupMessageEvent.processOrderResultAndSend(orderResult: OrderResult) {
+    val surfaceOutput = BestPerformanceDetail.drawBestPerformancesImage(orderResult)
+    val bytes = surfaceOutput.bytes(EncodedImageFormat.PNG)
+    val externalResource = bytes.toExternalResource("png")
     val image = group.uploadImage(externalResource)
     runInterruptible { externalResource.close() }
     atReply(image.toMessageChain())
@@ -251,7 +244,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
                 }
             }
         )) {
-            is Either.Left -> processData(orderResult.value)
+            is Either.Left -> processOrderResultAndSend(orderResult.value)
             is Either.Right -> atReply("处理数据时发生了异常: ${orderResult.value}")
         }
     }
@@ -299,7 +292,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
                 }
             } to null, analyzeDetail, analyzeDetailType, offset..(limit + offset))
         ) {
-            is Either.Left -> processData(orderResult.value)
+            is Either.Left -> processOrderResultAndSend(orderResult.value)
             is Either.Right -> atReply("处理数据时发生了异常: ${orderResult.value}")
         }
     }

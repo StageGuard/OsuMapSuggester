@@ -18,19 +18,19 @@ class ReplayProcessor(replayFile: File) {
     private var isBodyRead = false
 
     // replay info
-    var gameMode by Delegates.notNull<Int>()
-    var fileFormat by Delegates.notNull<Int>()
-    lateinit var mapHash : String
-    lateinit var player : String
-    lateinit var replayHash : String
-    var n300 by Delegates.notNull<Int>()
-    var n100 by Delegates.notNull<Int>()
-    var n50 by Delegates.notNull<Int>()
-    var nMiss by Delegates.notNull<Int>()
-    var totalScore by Delegates.notNull<Int>()
-    var maxCombo by Delegates.notNull<Int>()
-    var isPerfect by Delegates.notNull<Boolean>()
-    lateinit var mods : ModCombination
+    private var gameMode by Delegates.notNull<Int>()
+    private var fileFormat by Delegates.notNull<Int>()
+    private lateinit var mapHash : String
+    private lateinit var player : String
+    private lateinit var replayHash : String
+    private var n300 by Delegates.notNull<Int>()
+    private var n100 by Delegates.notNull<Int>()
+    private var n50 by Delegates.notNull<Int>()
+    private var nMiss by Delegates.notNull<Int>()
+    private var totalScore by Delegates.notNull<Int>()
+    private var maxCombo by Delegates.notNull<Int>()
+    private var isPerfect by Delegates.notNull<Boolean>()
+    private lateinit var mods : ModCombination
 
     private val lifeFrames : MutableList<LifeFrame> = mutableListOf()
     private var seed : Int = -1
