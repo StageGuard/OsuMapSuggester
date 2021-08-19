@@ -9,6 +9,8 @@ import me.stageguard.obms.graph.item.BestPerformanceDetail
 import me.stageguard.obms.graph.item.RecentPlay
 import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusCalculator
 import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusResult
+import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
+import me.stageguard.obms.osu.algorithm.`pp+`.calculateSkills
 import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
 import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.algorithm.pp.calculateDifficultyAttributes
@@ -24,6 +26,7 @@ import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import java.lang.Exception
+import java.util.*
 
 fun GroupMessageSubscribersBuilder.recentScore() {
     startsWith(".rep") {
@@ -33,6 +36,11 @@ fun GroupMessageSubscribersBuilder.recentScore() {
             val mods = score.mods.parseMods()
             val ppCurvePoints = (mutableListOf<Pair<Double, Double>>() to mutableListOf<Pair<Double, Double>>()).also { p ->
                 if(beatmap is Either.Left) {
+                    p.first.add(score.accuracy * 100 to PPCalculator.of(beatmap.value).mods(mods)
+                        .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
+                        .misses(score.statistics.countMiss)
+                        .combo(score.maxCombo)
+                        .accuracy(score.accuracy * 100).calculate().total)
                     (900..1000 step 5).forEach { step ->
                         val acc = step / 10.0
                         p.second.add(acc to PPCalculator.of(beatmap.value).mods(mods).accuracy(acc).calculate().total)
@@ -46,17 +54,11 @@ fun GroupMessageSubscribersBuilder.recentScore() {
                     }
                 }
             }
-            val ppPlus = kotlin.run {
+            val ppPlusStrain = kotlin.run {
                 if(beatmap is Either.Left) {
-                    Either.Left(
-                        PPPlusCalculator.of(beatmap.value)
-                            .mods(mods)
-                            .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
-                            .misses(score.statistics.countMiss)
-                            .combo(score.maxCombo)
-                            .accuracy(score.accuracy * 100.0)
-                            .calculate()
-                    )
+                    Either.Left(beatmap.value.calculateSkills(
+                        ModCombination.of(mods), Optional.of(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
+                    ))
                 } else Either.Right<Exception>(IllegalStateException())
             }
             val modCombination = ModCombination.of(mods)
@@ -70,7 +72,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
 
             val userBestScore = OsuWebApi.userBeatmapScore(sender.id, score.beatmap.id)
 
-            processRecentPlayData(score, modCombination, difficultyAttribute, ppCurvePoints, ppPlus, userBestScore)
+            processRecentPlayData(score, modCombination, difficultyAttribute, ppCurvePoints, ppPlusStrain, userBestScore)
         }.onFailure {
             atReply("从服务器获取最近成绩时发生了异常：$it")
         }
@@ -103,10 +105,10 @@ suspend fun GroupMessageEvent.processRecentPlayData(
     scoreDTO: ScoreDTO, mods: ModCombination,
     attribute: Either<DifficultyAttributes, Exception>,
     ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-    ppPlusData: Either<PPPlusResult, Exception>,
+    skillAttributes: Either<SkillAttributes, Exception>,
     userBestScore: Either<BeatmapUserScoreDTO, Exception>
 ) {
-    val surfaceOutput = RecentPlay.drawRecentPlayCard(scoreDTO, mods, attribute, ppCurvePoints, ppPlusData, userBestScore)
+    val surfaceOutput = RecentPlay.drawRecentPlayCard(scoreDTO, mods, attribute, ppCurvePoints, skillAttributes, userBestScore)
     val bytes = surfaceOutput.bytes(EncodedImageFormat.PNG)
     val externalResource = bytes.toExternalResource("png")
     val image = group.uploadImage(externalResource)
