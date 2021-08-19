@@ -5,8 +5,6 @@ import io.ktor.client.engine.okhttp.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.utils.io.*
-import io.netty.buffer.Unpooled
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.OsuMapSuggester
@@ -17,11 +15,10 @@ import me.stageguard.obms.database.model.getOsuIdSuspend
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.osu.api.dto.*
 import me.stageguard.obms.utils.Either
-import me.stageguard.obms.utils.success
+import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
 import java.lang.Exception
-import java.nio.charset.Charset
 
 object OsuWebApi {
     const val BASE_URL_V2 = "https://osu.ppy.sh/api/v2"
@@ -37,7 +34,9 @@ object OsuWebApi {
     /**
      * Auth related
      */
-    suspend fun getTokenWithCode(code: String): Result<GetAccessTokenResponseDTO> = postImpl(
+    suspend fun getTokenWithCode(
+        code: String
+    ): Either<GetAccessTokenResponseDTO, IllegalStateException> = postImpl(
         url = "https://osu.ppy.sh/oauth/token",
         token = null,
         body = GetAccessTokenRequestDTO(
@@ -49,7 +48,9 @@ object OsuWebApi {
         )
     )
 
-    suspend fun refreshToken(refToken: String): Result<GetAccessTokenResponseDTO> = postImpl(
+    suspend fun refreshToken(
+        refToken: String
+    ): Either<GetAccessTokenResponseDTO, IllegalStateException> = postImpl(
         url = "https://osu.ppy.sh/oauth/token",
         token = null,
         body = RefreshTokenRequestDTO(
@@ -61,11 +62,19 @@ object OsuWebApi {
         )
     )
 
-    suspend fun getSelfProfileAfterVerifyToken(token: String): Result<GetUserDTO> = getImpl<String, Result<GetUserDTO>>(
+    suspend fun getSelfProfileAfterVerifyToken(
+        token: String
+    ) = getImpl<String, Either<GetUserDTO, IllegalStateException>>(
         url = "$BASE_URL_V2/me",
         parameters = mapOf(),
-        headers = mapOf("Authorization" to token)
-    ) { json.decodeFromString(this) }
+        headers = mapOf("Authorization" to "Bearer $token")
+    ) {
+        try {
+            Either.Left(json.decodeFromString(this))
+        } catch (ex: IllegalStateException) {
+            Either.Right(ex)
+        }
+    }
 
     /**
      * Api function related
@@ -92,9 +101,10 @@ object OsuWebApi {
         headers = mapOf()
     )
 
-    suspend fun users(user: Long): Result<GetUserDTO> = get("/users/${kotlin.run {
-        User.getOsuIdSuspend(user) ?: return Result.failure(IllegalStateException("NOT_BIND"))
-    }}", user)
+    suspend fun users(user: Long): Either<GetUserDTO, IllegalStateException> =
+        get("/users/${kotlin.run {
+            User.getOsuIdSuspend(user) ?: return Either.Right(IllegalStateException("NOT_BIND"))
+        }}", user)
 
     suspend fun userScore(
         user: Long, mode: String = "osu",
@@ -104,7 +114,7 @@ object OsuWebApi {
     ): Either<List<ScoreDTO>, IllegalStateException> {
         val userId = User.getOsuIdSuspend(user) ?: return Either.Right(IllegalStateException("NOT_BIND"))
         val initialList: MutableList<ScoreDTO> = mutableListOf()
-        suspend fun getTailrec(current: Int = offset) : Result<Unit> {
+        suspend fun getTailrec(current: Int = offset) : Either<Unit, IllegalStateException> {
             if(current + MAX_IN_ONE_REQ < limit + offset) {
                 get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
                     "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
@@ -113,7 +123,7 @@ object OsuWebApi {
                     re.onSuccess { li ->
                         initialList.addAll(li)
                     }.onFailure {
-                        return Result.failure(it)
+                        return Either.Right(it)
                     }
                 }
                 getTailrec(current + MAX_IN_ONE_REQ)
@@ -125,17 +135,20 @@ object OsuWebApi {
                     re.onSuccess { li ->
                         initialList.addAll(li)
                     }.onFailure {
-                        return Result.failure(it)
+                        return Either.Right(it)
                     }
                 }
             }
-            return Result.success()
+            return Either.Left(Unit)
         }
-        return try {
-            val result = getTailrec()
-            if(result.isSuccess) Either.Left(initialList.toList()) else Either.Right(result.exceptionOrNull()!! as IllegalStateException)
+        try {
+            getTailrec().onSuccess {
+                return Either.Left(initialList)
+            }.run {
+                return Either.Right(exceptionOrNull()!!)
+            }
         } catch (ex: IllegalStateException) {
-            Either.Right(ex)
+            return Either.Right(ex)
         }
     }
 
@@ -144,21 +157,16 @@ object OsuWebApi {
     ) : Either<BeatmapUserScoreDTO, IllegalStateException> {
         val userId = User.getOsuIdSuspend(user) ?: return Either.Right(IllegalStateException("NOT_BIND"))
         return try {
-            val resp = get<BeatmapUserScoreDTO>(
+            get(
                 path = "/beatmaps/$beatmapId/scores/users/$userId",
                 parameters = mapOf("mode" to mode), user = user
             )
-            if(resp.isSuccess) {
-                Either.Left(resp.getOrThrow())
-            } else {
-                Either.Right(IllegalStateException(resp.exceptionOrNull()))
-            }
         } catch (ex: IllegalStateException) {
             Either.Right(ex)
         }
     }
 
-    suspend fun me(user: Long): Result<GetUserDTO> = get("/me", user = user)
+    suspend fun me(user: Long): Either<GetUserDTO, IllegalStateException> = get("/me", user = user)
 
 
     /**
@@ -166,7 +174,7 @@ object OsuWebApi {
      */
     suspend inline fun <reified REQ, reified RESP> post(
         path: String, user: Long, body: @Serializable REQ
-    ): Result<RESP> = postImpl(
+    ): Either<RESP, IllegalStateException> = postImpl(
         url = BASE_URL_V2 + path,
         token = OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow(),
         body = body
@@ -174,18 +182,19 @@ object OsuWebApi {
 
     suspend inline fun <reified RESP> get(
         path: String, user: Long, parameters: Map<String, String> = mapOf()
-    ): Result<RESP> = getImpl<String, Result<RESP>>(
+    ) = getImpl<String, Either<RESP, IllegalStateException>>(
         url = BASE_URL_V2 + path,
         headers = mapOf("Authorization" to "Bearer ${OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow()}"),
         parameters = parameters
     ) {
         try {
-            if(startsWith("[")) Result.success(
+            if(startsWith("[")) Either.Left(
                 json.decodeFromString<ArrayResponseWrapper<RESP>>("""
                     { "array": $this }
-                """.trimIndent()).data) else Result.success(json.decodeFromString(this))
+                """.trimIndent()).data) else Either.Left(json.decodeFromString(this))
         } catch(ex: Exception) {
-            Result.failure(IllegalStateException("BAD_RESPONSE:$this"))
+            OsuMapSuggester.logger.error { "Bad Response: $ex" }
+            Either.Right(IllegalStateException("BAD_RESPONSE:$this"))
         }
     }
 
@@ -195,13 +204,6 @@ object OsuWebApi {
         parameters: Map<String, String>,
         headers: Map<String, String>,
     ) = getImpl<InputStream, InputStream>(url, parameters, headers) { this }
-
-    @Suppress("DuplicatedCode")
-    suspend inline fun getReturnFullResponse(
-        url: String,
-        parameters: Map<String, String>,
-        headers: Map<String, String>
-    ) = getImpl<HttpResponse, HttpResponse>(url, parameters, headers) { this }
 
     @Suppress("DuplicatedCode")
     suspend inline fun <reified RESP, R> getImpl(
@@ -246,24 +248,21 @@ object OsuWebApi {
     @Suppress("DuplicatedCode")
     suspend inline fun <reified REQ, reified RESP> postImpl(
         url: String, token: String? = null, body: @Serializable REQ
-    ) : Result<RESP> = client.post<HttpStatement> {
-        url(url.also {
-            OsuMapSuggester.logger.info { "POST: $url" }
-        })
-        if(token != null) header("Authorization", "Bearer $token")
-        this.body = json.encodeToString(body)
-        contentType(ContentType.Application.Json)
-    }.execute {
-        if(it.status.isSuccess()) {
-            val content = it.content
-            Result.success(json.decodeFromString(
-                Unpooled.buffer().array().run {
-                    content.readAvailable(this)
-                    toString(Charset.forName("utf-8"))
-                }
-            ))
-        } else {
-            Result.failure(IllegalStateException("BAD_RESPONSE:${it.status.value}"))
+    ) : Either<RESP, IllegalStateException> {
+        val responseText = client.post<String> {
+            url(url.also {
+                OsuMapSuggester.logger.info { "POST: $url" }
+            })
+            if(token != null) header("Authorization", "Bearer $token")
+            this.body = json.encodeToString(body)
+            contentType(ContentType.Application.Json)
+        }
+
+        return try {
+            Either.Left(json.decodeFromString(responseText))
+        } catch (ex: Exception) {
+            OsuMapSuggester.logger.info { "Post received a bad response: $responseText" }
+            Either.Right(IllegalStateException("BAD_RESPONSE:$responseText"))
         }
     }
 
