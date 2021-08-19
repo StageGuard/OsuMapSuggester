@@ -261,7 +261,7 @@ object OsuWebApi {
         return try {
             Either.Left(json.decodeFromString(responseText))
         } catch (ex: Exception) {
-            OsuMapSuggester.logger.info { "Post received a bad response: $responseText" }
+            OsuMapSuggester.logger.error { "Post received a bad response: $responseText" }
             Either.Right(IllegalStateException("BAD_RESPONSE:$responseText"))
         }
     }
