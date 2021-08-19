@@ -22,7 +22,7 @@ val hikariVersion = "5.0.0"
 val mysqlVersion = "8.0.25"
 val miraiSlf4jBridgeVersion = "1.2.0"
 val skijaVersion = "0.92.15"
-val ktorServerVersion = "1.6.2"
+val ktorServerVersion = "1.4.0"
 
 dependencies {
     //test suite
