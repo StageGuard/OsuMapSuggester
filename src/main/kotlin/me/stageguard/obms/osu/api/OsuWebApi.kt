@@ -6,6 +6,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.utils.io.*
+import io.netty.buffer.Unpooled
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.OsuMapSuggester
@@ -19,6 +20,8 @@ import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.success
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
+import java.lang.Exception
+import java.nio.charset.Charset
 
 object OsuWebApi {
     const val BASE_URL_V2 = "https://osu.ppy.sh/api/v2"
@@ -163,25 +166,18 @@ object OsuWebApi {
 
     suspend inline fun <reified RESP> get(
         path: String, user: Long, parameters: Map<String, String> = mapOf()
-    ): Result<RESP> = getImpl<HttpResponse, Result<RESP>>(
+    ): Result<RESP> = getImpl<String, Result<RESP>>(
         url = BASE_URL_V2 + path,
         headers = mapOf("Authorization" to "Bearer ${OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow()}"),
         parameters = parameters
     ) {
-        if(status.isSuccess()) {
-            val content = content.run { buildString {
-                var line = readUTF8Line()
-                while(line != null) {
-                    append(line)
-                    line = readUTF8Line()
-                }
-            } }
-            if(content.startsWith("[")) Result.success(
+        try {
+            if(startsWith("[")) Result.success(
                 json.decodeFromString<ArrayResponseWrapper<RESP>>("""
-                    { "array": $content }
-                """.trimIndent()).data) else Result.success(json.decodeFromString(content))
-        } else {
-            Result.failure(IllegalStateException("BAD_RESPONSE:${status.value}"))
+                    { "array": $this }
+                """.trimIndent()).data) else Result.success(json.decodeFromString(this))
+        } catch(ex: Exception) {
+            Result.failure(IllegalStateException("BAD_RESPONSE:$this"))
         }
     }
 
@@ -252,13 +248,12 @@ object OsuWebApi {
     }.execute {
         if(it.status.isSuccess()) {
             val content = it.content
-            Result.success(json.decodeFromString(buildString {
-                var line = content.readUTF8Line()
-                while(line != null) {
-                    append(line)
-                    line = content.readUTF8Line()
+            Result.success(json.decodeFromString(
+                Unpooled.buffer().array().run {
+                    content.readAvailable(this)
+                    toString(Charset.forName("utf-8"))
                 }
-            }))
+            ))
         } else {
             Result.failure(IllegalStateException("BAD_RESPONSE:${it.status.value}"))
         }
