@@ -131,22 +131,30 @@ object OsuWebApi {
             }
             return Result.success()
         }
-        val result = getTailrec()
-        return if(result.isSuccess) Either.Left(initialList.toList()) else Either.Right(result.exceptionOrNull()!! as IllegalStateException)
+        return try {
+            val result = getTailrec()
+            if(result.isSuccess) Either.Left(initialList.toList()) else Either.Right(result.exceptionOrNull()!! as IllegalStateException)
+        } catch (ex: IllegalStateException) {
+            Either.Right(ex)
+        }
     }
 
     suspend fun userBeatmapScore(
         user: Long, beatmapId: Int, mode: String = "osu"
     ) : Either<BeatmapUserScoreDTO, IllegalStateException> {
         val userId = User.getOsuIdSuspend(user) ?: return Either.Right(IllegalStateException("NOT_BIND"))
-        val resp = get<BeatmapUserScoreDTO>(
-            path = "/beatmaps/$beatmapId/scores/users/$userId",
-            parameters = mapOf("mode" to mode), user = user
-        )
-        return if(resp.isSuccess) {
-            Either.Left(resp.getOrThrow())
-        } else {
-            Either.Right(IllegalStateException(resp.exceptionOrNull()))
+        return try {
+            val resp = get<BeatmapUserScoreDTO>(
+                path = "/beatmaps/$beatmapId/scores/users/$userId",
+                parameters = mapOf("mode" to mode), user = user
+            )
+            if(resp.isSuccess) {
+                Either.Left(resp.getOrThrow())
+            } else {
+                Either.Right(IllegalStateException(resp.exceptionOrNull()))
+            }
+        } catch (ex: IllegalStateException) {
+            Either.Right(ex)
         }
     }
 
