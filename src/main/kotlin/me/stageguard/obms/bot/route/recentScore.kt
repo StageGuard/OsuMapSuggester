@@ -1,14 +1,10 @@
 package me.stageguard.obms.bot.route
 
-
 import kotlinx.coroutines.runInterruptible
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.cache.BeatmapPool
 import me.stageguard.obms.graph.bytes
-import me.stageguard.obms.graph.item.BestPerformanceDetail
 import me.stageguard.obms.graph.item.RecentPlay
-import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusCalculator
-import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusResult
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
 import me.stageguard.obms.osu.algorithm.`pp+`.calculateSkills
 import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
@@ -17,7 +13,6 @@ import me.stageguard.obms.osu.algorithm.pp.calculateDifficultyAttributes
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
 import me.stageguard.obms.osu.api.dto.ScoreDTO
-import me.stageguard.obms.osu.processor.beatmap.BeatmapAttribute
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.utils.Either
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder

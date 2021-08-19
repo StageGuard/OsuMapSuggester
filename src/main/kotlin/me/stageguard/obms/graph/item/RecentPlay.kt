@@ -766,7 +766,6 @@ object RecentPlay {
 
                 val maxValue = ppCurvePoints.second.last().second
                 val minValue = ppCurvePoints.first[2].second
-                println("$minValue, $maxValue")
                 val interval = ((maxValue - minValue) / lineRow).run {
                     val div = this.toInt() % 10
                     when {
