@@ -55,7 +55,7 @@ fun Application.authCallback() {
                         }
                     }
                     is BindResult.AlreadyBound -> {
-                        context.respond(HttpStatusCode.Forbidden, "You have already bound your qq to ${get.osuName}(${get.osuId}). Please do not bind repeatedly.")
+                        context.respond(HttpStatusCode.OK, "Successfully updated oAuth token of ${get.osuName}(${get.osuId}).")
                     }
                 }
             }.onFailure {
