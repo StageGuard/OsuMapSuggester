@@ -10,6 +10,7 @@ import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.cache.BeatmapPool
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.BestPerformanceDetail
@@ -229,23 +230,21 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
         }
 
-        when(val orderResult = orderScores(
-            when(val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)) {
-                is Either.Left -> myBpScores.value
-                is Either.Right -> {
-                    atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${myBpScores.value}")
-                    return@startsWith
+        val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)
+        val targetBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset)
+
+        myBpScores.onSuccess { my ->
+            targetBpScores.onSuccess { target ->
+                orderScores(my to target).onSuccess {
+                    processOrderResultAndSend(it)
+                }.onFailure {
+                    atReply("处理数据时发生了异常: ${parseExceptions(it)}")
                 }
-            } to when(val myBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset)) {
-                is Either.Left -> myBpScores.value
-                is Either.Right -> {
-                    atReply("从服务器获取对方的 Best Performance 信息时发生了异常: ${myBpScores.value}")
-                    return@startsWith
-                }
+            }.onFailure {
+                atReply("从服务器获取对方的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
             }
-        )) {
-            is Either.Left -> processOrderResultAndSend(orderResult.value)
-            is Either.Right -> atReply("处理数据时发生了异常: ${orderResult.value}")
+        }.onFailure {
+            atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
         }
     }
 
@@ -280,20 +279,20 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             }
         }
 
-        when(val orderResult = orderScores(
-            when(val myBpScores = OsuWebApi.userScore(
-                user = sender.id, type = "best",
-                limit = if(analyzeDetail) 100 else limit, offset = if(analyzeDetail) 0 else offset
-            )) {
-                is Either.Left -> myBpScores.value
-                is Either.Right -> {
-                    atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${myBpScores.value}")
-                    return@startsWith
-                }
-            } to null, analyzeDetail, analyzeDetailType, offset..(limit + offset))
-        ) {
-            is Either.Left -> processOrderResultAndSend(orderResult.value)
-            is Either.Right -> atReply("处理数据时发生了异常: ${orderResult.value}")
+        OsuWebApi.userScore(
+            user = sender.id, type = "best",
+            limit = if(analyzeDetail) 100 else limit, offset = if(analyzeDetail) 0 else offset
+        ).onSuccess { list ->
+            orderScores(
+                list to null, analyzeDetail,
+                analyzeDetailType, offset..(limit + offset)
+            ).onSuccess {
+                processOrderResultAndSend(it)
+            }.onFailure {
+                atReply("处理数据时发生了异常: ${parseExceptions(it)}")
+            }
+        }.onFailure {
+            atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
         }
     }
 }

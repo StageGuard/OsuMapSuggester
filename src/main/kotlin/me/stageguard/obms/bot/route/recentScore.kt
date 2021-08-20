@@ -2,6 +2,7 @@ package me.stageguard.obms.bot.route
 
 import kotlinx.coroutines.runInterruptible
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.cache.BeatmapPool
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.RecentPlay
@@ -20,7 +21,6 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
-import java.lang.Exception
 import java.util.*
 
 fun GroupMessageSubscribersBuilder.recentScore() {
@@ -69,28 +69,29 @@ fun GroupMessageSubscribersBuilder.recentScore() {
 
             processRecentPlayData(score, modCombination, difficultyAttribute, ppCurvePoints, ppPlusStrain, userBestScore)
         }.onFailure {
-            atReply("从服务器获取最近成绩时发生了异常：$it")
+            atReply("从服务器获取最近成绩时发生了异常：${parseExceptions(it as Exception)}")
         }
     }
 }
 
 tailrec suspend fun GroupMessageEvent.getLastScore(
     maxTryCount: Int,
-    triedCount: Int = 0
+    triedCount: Int = 0,
+    lastException: Exception? = null
 ) : Result<ScoreDTO> {
     return when(val score = OsuWebApi.userScore(user = sender.id, limit = 1, offset = triedCount, includeFails = true)) {
         is Either.Left -> {
             val single = score.value.single()
             return if(single.mode != "osu") {
                 if(maxTryCount == triedCount + 1) {
-                    Result.failure(IllegalStateException("NO_RECENT_GRADE"))
-                } else getLastScore(maxTryCount, triedCount + 1)
+                    Result.failure(lastException!!)
+                } else getLastScore(maxTryCount, triedCount + 1, IllegalStateException("NO_RECENT_SCORE"))
             } else Result.success(single)
         }
         is Either.Right -> {
             if(maxTryCount == triedCount + 1) {
                 Result.failure(score.value)
-            } else getLastScore(maxTryCount, triedCount + 1)
+            } else getLastScore(maxTryCount, triedCount + 1, IllegalStateException("FAILED_AFTER_N_TRIES:${score.value}"))
         }
     }
 }

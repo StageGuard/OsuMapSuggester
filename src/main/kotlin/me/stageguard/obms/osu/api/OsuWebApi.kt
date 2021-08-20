@@ -15,7 +15,6 @@ import me.stageguard.obms.database.model.getOsuIdSuspend
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.osu.api.dto.*
 import me.stageguard.obms.utils.Either
-import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
 import java.lang.Exception
@@ -143,7 +142,11 @@ object OsuWebApi {
         }
         try {
             getTailrec().onSuccess {
-                return Either.Left(initialList)
+                return if(initialList.isNotEmpty()) {
+                    Either.Left(initialList)
+                } else {
+                    Either.Right(IllegalStateException("SCORE_LIST_EMPTY"))
+                }
             }.run {
                 return Either.Right(exceptionOrNull()!!)
             }
@@ -193,7 +196,6 @@ object OsuWebApi {
                     { "array": $this }
                 """.trimIndent()).data) else Either.Left(json.decodeFromString(this))
         } catch(ex: Exception) {
-            OsuMapSuggester.logger.error { "Bad Response: $ex" }
             Either.Right(IllegalStateException("BAD_RESPONSE:$this"))
         }
     }
@@ -261,7 +263,6 @@ object OsuWebApi {
         return try {
             Either.Left(json.decodeFromString(responseText))
         } catch (ex: Exception) {
-            OsuMapSuggester.logger.error { "Post received a bad response: $responseText" }
             Either.Right(IllegalStateException("BAD_RESPONSE:$responseText"))
         }
     }

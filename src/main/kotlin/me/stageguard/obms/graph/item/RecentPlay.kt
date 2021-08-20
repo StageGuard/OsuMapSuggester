@@ -727,12 +727,12 @@ object RecentPlay {
                     drawTextLineWithShadow(skillName,
                         (sin(relativeToCoord / 180 * PI) * radius * 1.4 - skillWidth / 2).toFloat() + (skillWidth - skillName.width) / 2,
                         (cos(relativeToCoord / 180 * PI) * radius * 1.4 - skillHeight / 2).toFloat() + skillName.capHeight,
-                        paint.setColor(colorGray), 1f
+                        paint.setColor(colorWhite), 1f
                     )
                     drawTextLineWithShadow(skillValue,
                         (sin(relativeToCoord / 180 * PI) * radius * 1.4 - skillWidth / 2).toFloat() + (skillWidth - skillValue.width) / 2,
                         (cos(relativeToCoord / 180 * PI) * radius * 1.4 - skillHeight / 2).toFloat() + skillName.capHeight + 5f + skillValue.capHeight,
-                        paint.setColor(colorGray), 1f
+                        paint.setColor(colorWhite), 1f
                     )
 
                     restore()
