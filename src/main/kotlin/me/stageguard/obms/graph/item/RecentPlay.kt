@@ -7,8 +7,11 @@ import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
 import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
-import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.ValueOrIllegalStateException
 import me.stageguard.obms.utils.lerp
+import net.mamoe.mirai.utils.Either.Companion.ifRight
+import net.mamoe.mirai.utils.Either.Companion.isRight
+import net.mamoe.mirai.utils.Either.Companion.right
 import org.jetbrains.skija.*
 import java.lang.Exception
 import java.util.*
@@ -60,10 +63,10 @@ object RecentPlay {
 
     suspend fun drawRecentPlayCard(
         scoreDTO: ScoreDTO, mods: ModCombination,
-        attribute: Either<DifficultyAttributes, Exception>,
+        attribute: ValueOrIllegalStateException<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-        skillAttributes: Either<SkillAttributes, Exception>,
-        userBestScore: Either<BeatmapUserScoreDTO, Exception>
+        skillAttributes: ValueOrIllegalStateException<SkillAttributes>,
+        userBestScore: ValueOrIllegalStateException<BeatmapUserScoreDTO>
     ) : Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
         val songCover = ImageCache.getImageAsSkijaImage(scoreDTO.beatmapset!!.covers.cover2x)
@@ -78,10 +81,10 @@ object RecentPlay {
     @Suppress("DuplicatedCode")
     private fun drawRecentPlayCardImpl(
         scoreDTO: ScoreDTO, mods: ModCombination,
-        attribute: Either<DifficultyAttributes, Exception>,
+        attribute: ValueOrIllegalStateException<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-        skillAttributes: Either<SkillAttributes, Exception>,
-        userBestScore: Either<BeatmapUserScoreDTO, Exception>,
+        skillAttributes: ValueOrIllegalStateException<SkillAttributes>,
+        userBestScore: ValueOrIllegalStateException<BeatmapUserScoreDTO>,
         playerAvatar: Image, songCover: Result<Image>, songHeadImage: Result<Image>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt())
@@ -182,10 +185,10 @@ object RecentPlay {
             translate(0f, mapperAvatarEdgeLength + 23f)
 
             //difficulty rating
-            val actualDifficultyRating = when(attribute) {
-                is Either.Left -> format2DFix.format(attribute.value.stars).toDouble()
-                is Either.Right -> scoreDTO.beatmap.difficultyRating
-            }
+            val actualDifficultyRating = attribute.ifRight {
+                format2DFix.format(it.stars).toDouble()
+            } ?: scoreDTO.beatmap.difficultyRating
+
             val versionText = TextLine.make(kotlin.run {
                 val version = scoreDTO.beatmap.version
                 if(version.length > 25) version.take(22).plus("...") else version
@@ -297,22 +300,18 @@ object RecentPlay {
             drawTextLineWithShadow(overallDifficultyText, 0f, circleSizeText.capHeight + circleSizeText.capHeight + hpDrainText.capHeight + approachRateText.capHeight + 39f, paint, 1f)
 
 
-            val circleSize = TextLine.make(when(attribute) {
-                is Either.Left -> format1DFix.format(attribute.value.circleSize)
-                is Either.Right -> scoreDTO.beatmap.cs
-            }.toString(), Font(boldFont, 18f))
-            val hpDrain = TextLine.make(when(attribute) {
-                is Either.Left -> format1DFix.format(attribute.value.hpDrain)
-                is Either.Right -> scoreDTO.beatmap.drain
-            }.toString(), Font(boldFont, 18f))
-            val approachRate = TextLine.make(when(attribute) {
-                is Either.Left -> format1DFix.format(attribute.value.approachRate)
-                is Either.Right -> scoreDTO.beatmap.ar
-            }.toString(), Font(boldFont, 18f))
-            val overallDifficulty = TextLine.make(when(attribute) {
-                is Either.Left -> format1DFix.format(attribute.value.overallDifficulty)
-                is Either.Right -> scoreDTO.beatmap.accuracy
-            }.toString(), Font(boldFont, 18f))
+            val circleSize = TextLine.make(attribute.ifRight {
+                format1DFix.format(it.circleSize)
+            } ?: scoreDTO.beatmap.cs.toString(), Font(boldFont, 18f))
+            val hpDrain = TextLine.make(attribute.ifRight {
+                format1DFix.format(it.hpDrain)
+            } ?: scoreDTO.beatmap.drain.toString(), Font(boldFont, 18f))
+            val approachRate = TextLine.make(attribute.ifRight {
+                format1DFix.format(it.approachRate)
+            } ?: scoreDTO.beatmap.ar.toString(), Font(boldFont, 18f))
+            val overallDifficulty = TextLine.make(attribute.ifRight {
+                format1DFix.format(it.overallDifficulty)
+            } ?: scoreDTO.beatmap.accuracy.toString(), Font(boldFont, 18f))
 
             val maxAttributeWidth = max(max(circleSize.width, hpDrain.width), max(approachRate.width, overallDifficulty.width))
 
@@ -351,7 +350,7 @@ object RecentPlay {
             )
             drawLine(
                 0f, circleSize.capHeight / 2,
-                attributeBarLength * ((if(attribute is Either.Left) attribute.value.circleSize else scoreDTO.beatmap.cs) / 11.0).toFloat(), circleSize.capHeight / 2,
+                attributeBarLength * ((attribute.ifRight { it.circleSize } ?: scoreDTO.beatmap.cs) / 11.0).toFloat(), circleSize.capHeight / 2,
                 paint.setColor(if(mods.hr() || mods.ez()) colorYellow else colorWhite)
             )
             //hpDrain
@@ -362,7 +361,7 @@ object RecentPlay {
             )
             drawLine(
                 0f, circleSize.capHeight + hpDrain.capHeight / 2 + 13f,
-                attributeBarLength * ((if(attribute is Either.Left) attribute.value.hpDrain else scoreDTO.beatmap.drain) / 11.0).toFloat(), circleSize.capHeight + hpDrain.capHeight / 2 + 13f,
+                attributeBarLength * ((attribute.ifRight { it.hpDrain } ?: scoreDTO.beatmap.drain) / 11.0).toFloat(), circleSize.capHeight + hpDrain.capHeight / 2 + 13f,
                 paint.setColor(if(mods.hr() || mods.ez()) colorYellow else colorWhite)
             )
             //approachRate
@@ -373,7 +372,7 @@ object RecentPlay {
             )
             drawLine(
                 0f, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight / 2 + 26f,
-                attributeBarLength * ((if(attribute is Either.Left) attribute.value.approachRate else scoreDTO.beatmap.ar) / 11.0).toFloat(),
+                attributeBarLength * ((attribute.ifRight { it.approachRate } ?: scoreDTO.beatmap.ar) / 11.0).toFloat(),
                 circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight / 2 + 26f,
                 paint.setColor(if(mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite)
             )
@@ -385,7 +384,7 @@ object RecentPlay {
             )
             drawLine(
                 0f, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f,
-                attributeBarLength * ((if(attribute is Either.Left) attribute.value.overallDifficulty else scoreDTO.beatmap.accuracy) / 11.0).toFloat(),
+                attributeBarLength * ((attribute.ifRight { it.overallDifficulty } ?: scoreDTO.beatmap.accuracy) / 11.0).toFloat(),
                 circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f,
                 paint.setColor(if(mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite)
             )
@@ -548,10 +547,9 @@ object RecentPlay {
             val score = TextLine.make(scoreDTO.score.toString(), Font(boldFont, 28f))
             val accuracy = TextLine.make(format2DFix.format(scoreDTO.accuracy * 100.0) + "%", Font(boldFont, 28f))
             val maxCombo = TextLine.make(scoreDTO.maxCombo.toString(), Font(boldFont, 28f))
-            val perfectCombo = TextLine.make(when(attribute) {
-                is Either.Left -> " / ${attribute.value.maxCombo}"
-                else -> " / -"
-            }, Font(boldFont, 28f))
+            val perfectCombo = TextLine.make(attribute.ifRight { " / ${it.maxCombo}" } ?: " / -", Font(boldFont, 28f))
+
+
 
             val totalHeight = scoreText.capHeight + accuracyText.capHeight + maxComboText.capHeight +
                     score.capHeight + accuracy.capHeight + maxCombo.capHeight + 45f + 70f // 45f = 3 * 15f, 90f = 2 * 45f
@@ -578,8 +576,8 @@ object RecentPlay {
             )
             restoreToCount(otherInfoTextSavePoint)
 
-            if(userBestScore is Either.Left && userBestScore.value.score.createdAt != scoreDTO.createdAt) {
-                val unwrapped = userBestScore.value.score
+            if(userBestScore.isRight && userBestScore.right.score.createdAt != scoreDTO.createdAt) {
+                val unwrapped = userBestScore.right.score
 
                 val scoreDiff = (scoreDTO.score - unwrapped.score)
                 val bestScore = TextLine.make(" (${scoreDiff.run { if(this > 0) "+$this" else this.toString() }})", Font(semiBoldFont, 18f))
@@ -646,10 +644,9 @@ object RecentPlay {
                 drawTextLineWithShadow(maxCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2,
                     maxComboText.capHeight + 15f + maxCombo.capHeight,
-                    paint.setColor(when(attribute) {
-                        is Either.Left -> if(scoreDTO.maxCombo == attribute.value.maxCombo) colorGreen else colorWhite
-                        else -> colorWhite
-                    })
+                    paint.setColor(attribute.ifRight {
+                        if(scoreDTO.maxCombo == it.maxCombo) colorGreen else colorWhite
+                    } ?: colorWhite)
                 )
                 drawTextLineWithShadow(perfectCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2 + maxCombo.width,
@@ -676,8 +673,8 @@ object RecentPlay {
 
             translate(25f, 25f)
 
-            if(skillAttributes is Either.Left) {
-                val unwrapped = skillAttributes.value
+            if(skillAttributes.isRight) {
+                val unwrapped = skillAttributes.right
 
                 val ppPlusGraphText = TextLine.make("Strain skill of the beatmap", Font(semiBoldFont, 18f))
                 drawTextLine(ppPlusGraphText,

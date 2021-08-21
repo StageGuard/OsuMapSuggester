@@ -11,15 +11,21 @@ import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.parseExceptions
-import me.stageguard.obms.cache.BeatmapPool
+import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.BestPerformanceDetail
-import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.InferredEitherOrISE
+import me.stageguard.obms.utils.ValueOrIllegalStateException
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.message.data.toMessageChain
+import net.mamoe.mirai.utils.Either.Companion.leftOrNull
+import net.mamoe.mirai.utils.Either.Companion.onLeft
+import net.mamoe.mirai.utils.Either.Companion.onRight
+import net.mamoe.mirai.utils.Either.Companion.right
+import net.mamoe.mirai.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import kotlin.math.pow
@@ -64,48 +70,43 @@ suspend fun orderScores(
     analyzeDetail: Boolean = false,
     analyzeType: AnalyzeDetailType = AnalyzeDetailType.IfFullCombo,
     rangeToAnalyze: IntRange = 0..25
-) : Either<OrderResult, IllegalStateException> = scores.second.let { secList ->
+) : ValueOrIllegalStateException<OrderResult> = scores.second.let { secList ->
     if(secList == null) {
         if(!analyzeDetail) {
-            Either.Left(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
+            InferredEitherOrISE(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
         } else {
             val atomicInt = atomic(0)
             val calculatedList = mutableListOf<OrderResult.Entry.DetailAnalyze>()
             scores.first.asFlow().flowOn(newSingleThreadContext("PPCalculationFlow")).map { score ->
                 val idx = atomicInt.getAndIncrement()
                 if(idx in rangeToAnalyze) {
-                    when(val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)) {
-                        is Either.Left -> {
-                            val recalculatedPp = PPCalculator.of(beatmap.value)
-                                .accuracy(score.accuracy * 100.0)
-                                .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
-                                .mods(score.mods.parseMods()).run {
-                                    when(analyzeType) {
-                                        AnalyzeDetailType.IfFullCombo -> this
-                                        AnalyzeDetailType.OutdatedAlgorithm -> {
-                                            outdatedAlgorithm()
-                                                .misses(score.statistics.countMiss)
-                                                .combo(score.maxCombo)
-                                                .n100(score.statistics.count100)
-                                                .n50(score.statistics.count50)
-                                        }
+                    val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
+                    beatmap.rightOrNull?.run {
+                        val recalculatedPp = PPCalculator.of(beatmap.right)
+                            .accuracy(score.accuracy * 100.0)
+                            .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
+                            .mods(score.mods.parseMods()).run {
+                                when(analyzeType) {
+                                    AnalyzeDetailType.IfFullCombo -> this
+                                    AnalyzeDetailType.OutdatedAlgorithm -> {
+                                        outdatedAlgorithm()
+                                            .misses(score.statistics.countMiss)
+                                            .combo(score.maxCombo)
+                                            .n100(score.statistics.count100)
+                                            .n50(score.statistics.count50)
                                     }
-                                }.calculate()
-
-                            OrderResult.Entry.DetailAnalyze(
-                                analyzeDetailType = analyzeType,
-                                rankChange = 0,
-                                drawLine = idx, // now drawLine is as original rank
-                                recalculatedPp = recalculatedPp.total,
-                                recalculatedWeightedPp = 0.0,
-                                isRecalculated = true,
-                                score = score
-                            )
-                        }
-                        is Either.Right -> {
-                            throw IllegalStateException("CALCULATE_ERROR:${beatmap.value}")
-                        }
-                    }
+                                }
+                            }.calculate()
+                        return@map OrderResult.Entry.DetailAnalyze(
+                            analyzeDetailType = analyzeType,
+                            rankChange = 0,
+                            drawLine = idx, // now drawLine is as original rank
+                            recalculatedPp = recalculatedPp.total,
+                            recalculatedWeightedPp = 0.0,
+                            isRecalculated = true,
+                            score = score
+                        )
+                    } ?: throw throw IllegalStateException("CALCULATE_ERROR:${beatmap.leftOrNull}")
                 } else { // not in recalculate range, will be filtered later
                     OrderResult.Entry.DetailAnalyze(
                         analyzeDetailType = analyzeType,
@@ -117,7 +118,7 @@ suspend fun orderScores(
                         score = score
                     )
                 }
-            }.toCollection(calculatedList)
+            }.toList(calculatedList)
             calculatedList.asSequence().sortedByDescending {
                 it.recalculatedPp
             }.mapIndexed { idx, it ->
@@ -130,7 +131,7 @@ suspend fun orderScores(
                     isRecalculated = it.isRecalculated,
                     score = it.score
                 )
-            }.filterIndexed { _, it -> it.isRecalculated }.mapIndexed { idx, it ->
+            }.filter { it.isRecalculated }.mapIndexed { idx, it ->
                 OrderResult.Entry.DetailAnalyze(
                     analyzeDetailType = analyzeType,
                     rankChange = it.rankChange,
@@ -141,7 +142,7 @@ suspend fun orderScores(
                     isRecalculated = it.isRecalculated,
                 )
             }.toList().run {
-                Either.Left(OrderResult(this))
+                InferredEitherOrISE(OrderResult(this))
             }
         }
     } else {
@@ -178,7 +179,7 @@ suspend fun orderScores(
             currentId = it.userId
             currentBottomPP = it.pp
         }
-        Either.Left(OrderResult(resultList))
+        InferredEitherOrISE(OrderResult(resultList))
     }
 }
 
@@ -233,17 +234,17 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)
         val targetBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset)
 
-        myBpScores.onSuccess { my ->
-            targetBpScores.onSuccess { target ->
-                orderScores(my to target).onSuccess {
+        myBpScores.onRight { my ->
+            targetBpScores.onRight { target ->
+                orderScores(my to target).onRight {
                     processOrderResultAndSend(it)
-                }.onFailure {
+                }.onLeft {
                     atReply("处理数据时发生了异常: ${parseExceptions(it)}")
                 }
-            }.onFailure {
+            }.onLeft {
                 atReply("从服务器获取对方的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
             }
-        }.onFailure {
+        }.onLeft {
             atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
         }
     }
@@ -282,16 +283,16 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         OsuWebApi.userScore(
             user = sender.id, type = "best",
             limit = if(analyzeDetail) 100 else limit, offset = if(analyzeDetail) 0 else offset
-        ).onSuccess { list ->
+        ).onRight { list ->
             orderScores(
                 list to null, analyzeDetail,
                 analyzeDetailType, offset..(limit + offset)
-            ).onSuccess {
+            ).onRight {
                 processOrderResultAndSend(it)
-            }.onFailure {
+            }.onLeft {
                 atReply("处理数据时发生了异常: ${parseExceptions(it)}")
             }
-        }.onFailure {
+        }.onLeft {
             atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
         }
     }

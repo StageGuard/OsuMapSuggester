@@ -6,28 +6,29 @@ import kotlinx.coroutines.withContext
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Beatmap
 import me.stageguard.obms.osu.api.OsuWebApi
-import me.stageguard.obms.utils.Either
-import me.stageguard.obms.utils.bomReader
+import me.stageguard.obms.utils.*
+import net.mamoe.mirai.utils.Either
 import java.io.File
-import java.lang.IllegalStateException
 
-object BeatmapPool {
+object BeatmapCache {
     @Suppress("NOTHING_TO_INLINE")
     private inline fun beatmapFile(bid: Int) =
         File(OsuMapSuggester.dataFolder.absolutePath + File.separator + "beatmap" + File.separator + bid + ".osu")
 
-    suspend fun getBeatmap(bid: Int, maxTryCount: Int = 4, tryCount: Int = 1) : Either<Beatmap, IllegalStateException> {
+    suspend fun getBeatmap(
+        bid: Int, maxTryCount: Int = 4, tryCount: Int = 1
+    ) : ValueOrIllegalStateException<Beatmap> {
         val file = beatmapFile(bid)
         return if(file.run { exists() && isFile }) try {
             withContext(Dispatchers.IO) {
-                Either.Left(Beatmap.parse(file.bomReader()))
+                InferredEitherOrISE(Beatmap.parse(file.bomReader()))
             }
         } catch (ex: Exception) {
             if(tryCount <= maxTryCount) {
                 file.delete()
                 getBeatmap(bid, tryCount + 1)
             } else {
-                Either.Right(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
+                Either(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
             }
         } else withContext(Dispatchers.IO) {
             file.parentFile.mkdirs()
@@ -38,15 +39,15 @@ object BeatmapPool {
                     file.writeBytes(it.readAllBytes())
                 }
             }
-            val result: Either<Beatmap, IllegalStateException>
+            val result: ValueOrIllegalStateException<Beatmap>
             file.bomReader().use {
                 result = try {
-                    Either.Left(Beatmap.parse(it))
+                    Either<IllegalStateException, Beatmap>(Beatmap.parse(it))
                 } catch (ex: Exception) {
                     if(tryCount <= 4) {
                         getBeatmap(bid, tryCount + 1)
                     } else {
-                        Either.Right(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
+                        Either(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
                     }
                 }
             }

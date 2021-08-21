@@ -3,7 +3,7 @@ package me.stageguard.obms.bot.route
 import kotlinx.coroutines.runInterruptible
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.parseExceptions
-import me.stageguard.obms.cache.BeatmapPool
+import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.RecentPlay
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
@@ -15,61 +15,59 @@ import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
-import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.ValueOrIllegalStateException
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.toMessageChain
+import net.mamoe.mirai.utils.Either
+import net.mamoe.mirai.utils.Either.Companion.mapRight
+import net.mamoe.mirai.utils.Either.Companion.onLeft
+import net.mamoe.mirai.utils.Either.Companion.onRight
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
-import java.util.*
+import java.util.Optional
 
 fun GroupMessageSubscribersBuilder.recentScore() {
     startsWith(".rep") {
-        getLastScore(5).onSuccess { score ->
-            val beatmap = BeatmapPool.getBeatmap(score.beatmap!!.id)
+        getLastScore(5).onRight { score ->
+            val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
             //calculate pp, first: current miss, second: full combo
             val mods = score.mods.parseMods()
             val ppCurvePoints = (mutableListOf<Pair<Double, Double>>() to mutableListOf<Pair<Double, Double>>()).also { p ->
-                if(beatmap is Either.Left) {
-                    p.first.add(score.accuracy * 100 to PPCalculator.of(beatmap.value).mods(mods)
+                beatmap.onRight {
+                    p.first.add(score.accuracy * 100 to PPCalculator.of(it).mods(mods)
                         .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
                         .misses(score.statistics.countMiss)
                         .combo(score.maxCombo)
                         .accuracy(score.accuracy * 100).calculate().total)
                     (900..1000 step 5).forEach { step ->
                         val acc = step / 10.0
-                        p.second.add(acc to PPCalculator.of(beatmap.value).mods(mods).accuracy(acc).calculate().total)
+                        p.second.add(acc to PPCalculator.of(it).mods(mods).accuracy(acc).calculate().total)
                         p.first.add(acc to
-                            PPCalculator.of(beatmap.value).mods(mods)
-                                .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
-                                .misses(score.statistics.countMiss)
-                                .combo(score.maxCombo)
-                                .accuracy(acc).calculate().total
+                                PPCalculator.of(it).mods(mods)
+                                    .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
+                                    .misses(score.statistics.countMiss)
+                                    .combo(score.maxCombo)
+                                    .accuracy(acc).calculate().total
                         )
                     }
                 }
             }
-            val ppPlusStrain = kotlin.run {
-                if(beatmap is Either.Left) {
-                    Either.Left(beatmap.value.calculateSkills(
-                        ModCombination.of(mods), Optional.of(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
-                    ))
-                } else Either.Right<Exception>(IllegalStateException())
+            val ppPlusStrain = beatmap.mapRight {
+                it.calculateSkills(ModCombination.of(mods), Optional.of(
+                    score.statistics.count300 + score.statistics.count100 + score.statistics.count50
+                ))
             }
             val modCombination = ModCombination.of(mods)
-            val difficultyAttribute = kotlin.run {
-                if(beatmap is Either.Left) {
-                    Either.Left(beatmap.value.calculateDifficultyAttributes(modCombination))
-                } else {
-                    Either.Right<Exception>(IllegalStateException())
-                }
+            val difficultyAttribute = beatmap.mapRight {
+                it.calculateDifficultyAttributes(modCombination)
             }
 
             val userBestScore = OsuWebApi.userBeatmapScore(sender.id, score.beatmap.id)
 
             processRecentPlayData(score, modCombination, difficultyAttribute, ppCurvePoints, ppPlusStrain, userBestScore)
-        }.onFailure {
-            atReply("从服务器获取最近成绩时发生了异常：${parseExceptions(it as Exception)}")
+        }.onLeft {
+            atReply("从服务器获取最近成绩时发生了异常：${parseExceptions(it)}")
         }
     }
 }
@@ -77,32 +75,36 @@ fun GroupMessageSubscribersBuilder.recentScore() {
 tailrec suspend fun GroupMessageEvent.getLastScore(
     maxTryCount: Int,
     triedCount: Int = 0,
-    lastException: Exception? = null
-) : Result<ScoreDTO> {
-    return when(val score = OsuWebApi.userScore(user = sender.id, limit = 1, offset = triedCount, includeFails = true)) {
-        is Either.Left -> {
-            val single = score.value.single()
-            return if(single.mode != "osu") {
-                if(maxTryCount == triedCount + 1) {
-                    Result.failure(lastException!!)
-                } else getLastScore(maxTryCount, triedCount + 1, IllegalStateException("NO_RECENT_SCORE"))
-            } else Result.success(single)
+    lastException: IllegalStateException? = null
+) : ValueOrIllegalStateException<ScoreDTO> =
+    OsuWebApi.userScore(user = sender.id, limit = 1, offset = triedCount, includeFails = true).onLeft {
+        return if(maxTryCount == triedCount + 1) {
+            Either(it)
+        } else getLastScore(
+            maxTryCount,
+            triedCount + 1,
+            IllegalStateException("FAILED_AFTER_N_TRIES:${it}")
+        )
+    }.mapRight {
+        val single = it.single()
+        if(single.mode != "osu") {
+            return if(maxTryCount == triedCount + 1) {
+                Either(lastException!!)
+            } else getLastScore(
+                maxTryCount,
+                triedCount + 1,
+                IllegalStateException("NO_RECENT_SCORE"))
         }
-        is Either.Right -> {
-            if(maxTryCount == triedCount + 1) {
-                Result.failure(score.value)
-            } else getLastScore(maxTryCount, triedCount + 1, IllegalStateException("FAILED_AFTER_N_TRIES:${score.value}"))
-        }
+        single
     }
-}
 
 
 suspend fun GroupMessageEvent.processRecentPlayData(
     scoreDTO: ScoreDTO, mods: ModCombination,
-    attribute: Either<DifficultyAttributes, Exception>,
+    attribute: ValueOrIllegalStateException<DifficultyAttributes>,
     ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-    skillAttributes: Either<SkillAttributes, Exception>,
-    userBestScore: Either<BeatmapUserScoreDTO, Exception>
+    skillAttributes: ValueOrIllegalStateException<SkillAttributes>,
+    userBestScore: ValueOrIllegalStateException<BeatmapUserScoreDTO>
 ) {
     val surfaceOutput = RecentPlay.drawRecentPlayCard(scoreDTO, mods, attribute, ppCurvePoints, skillAttributes, userBestScore)
     val bytes = surfaceOutput.bytes(EncodedImageFormat.PNG)

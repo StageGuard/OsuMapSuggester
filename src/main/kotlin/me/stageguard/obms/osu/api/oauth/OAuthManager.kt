@@ -7,6 +7,7 @@ import me.stageguard.obms.database.model.User
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.utils.SimpleEncryptionUtils
+import net.mamoe.mirai.utils.Either.Companion.rightOrThrow
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import java.time.LocalDateTime
@@ -46,8 +47,8 @@ object OAuthManager {
         return try {
             val decrypted = SimpleEncryptionUtils.aesDecrypt(state, key).split("/")
             val qq = AuthCachePool.getQQ(decrypted[0])
-            val tokenResponse = OsuWebApi.getTokenWithCode(code).getOrThrow()
-            val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).getOrThrow()
+            val tokenResponse = OsuWebApi.getTokenWithCode(code).rightOrThrow
+            val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).rightOrThrow
             AuthCachePool.removeTokenCache(decrypted[0])
             Database.suspendQuery {
                 val find = User.find { OsuUserInfo.qq eq qq }
@@ -106,7 +107,7 @@ object OAuthManager {
             } else {
                 val item = single()
                 if (item.tokenExpireUnixSecond < LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)) {
-                    val response = OsuWebApi.refreshToken(item.refreshToken).getOrThrow()
+                    val response = OsuWebApi.refreshToken(item.refreshToken).rightOrThrow
                     item.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + response.expiresIn
                     item.refreshToken = response.refreshToken
                     item.token = response.accessToken

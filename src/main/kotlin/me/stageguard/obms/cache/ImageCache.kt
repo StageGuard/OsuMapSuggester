@@ -1,18 +1,12 @@
 package me.stageguard.obms.cache
 
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.utils.io.*
-import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.runInterruptible
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.api.OsuWebApi
-import me.stageguard.obms.utils.Either
 import org.jetbrains.skija.Image
 import java.io.File
 import java.io.InputStream
 import java.lang.Exception
-import java.security.MessageDigest
 
 object ImageCache {
     @Suppress("NOTHING_TO_INLINE")
