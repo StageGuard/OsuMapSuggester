@@ -24,9 +24,9 @@ object BeatmapCache {
                 InferredEitherOrISE(Beatmap.parse(file.bomReader()))
             }
         } catch (ex: Exception) {
-            if(tryCount <= maxTryCount) {
+            if(tryCount < maxTryCount) {
                 file.delete()
-                getBeatmap(bid, tryCount + 1)
+                getBeatmap(bid, maxTryCount, tryCount + 1)
             } else {
                 Either(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
             }
@@ -39,19 +39,17 @@ object BeatmapCache {
                     file.writeBytes(it.readAllBytes())
                 }
             }
-            val result: ValueOrIllegalStateException<Beatmap>
             file.bomReader().use {
-                result = try {
-                    Either<IllegalStateException, Beatmap>(Beatmap.parse(it))
+                try {
+                    InferredEitherOrISE(Beatmap.parse(it))
                 } catch (ex: Exception) {
-                    if(tryCount <= 4) {
-                        getBeatmap(bid, tryCount + 1)
+                    if(tryCount < maxTryCount) {
+                        getBeatmap(bid, maxTryCount, tryCount + 1)
                     } else {
                         Either(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
                     }
                 }
             }
-            result
         }
     }
 }
