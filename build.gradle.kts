@@ -1,9 +1,8 @@
 plugins {
+    id("net.mamoe.mirai-console") version "2.7-RC"
     val kotlinVersion = "1.5.20"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
-
-    id("net.mamoe.mirai-console") version "2.7-RC"
 }
 
 group = "me.stageguard"
@@ -45,6 +44,7 @@ dependencies {
     implementation("net.mamoe:mirai-slf4j-bridge:$miraiSlf4jBridgeVersion")
     //apache utilities
     implementation("commons-io:commons-io:2.6")
+    implementation("commons-codec:commons-codec:1.15")
     implementation("org.apache.commons:commons-math3:3.6.1")
     implementation("org.apache.commons:commons-compress:1.21")
     implementation("org.tukaani:xz:1.9")
