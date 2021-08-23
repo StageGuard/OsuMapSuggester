@@ -10,7 +10,7 @@ import net.mamoe.mirai.message.nextMessage
 val DEVELOPING_DEBUG = System.getProperty("me.stageguard.obms.developing_debug", false.toString()).toBoolean()
 fun GroupMessageSubscribersBuilder.bindAccount() {
     startsWith(".bind") {
-        if(false) {
+        if(DEVELOPING_DEBUG) {
             atReply("Bind account is unavailable in debug mode.")
             return@startsWith
         }

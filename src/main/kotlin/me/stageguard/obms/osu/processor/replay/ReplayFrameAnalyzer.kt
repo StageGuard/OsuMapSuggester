@@ -1,16 +1,14 @@
 package me.stageguard.obms.osu.processor.replay
 
-import me.stageguard.obms.osu.processor.beatmap.Beatmap
-import me.stageguard.obms.osu.processor.beatmap.HitObject
-import me.stageguard.obms.osu.processor.beatmap.HitObjectPosition
-import me.stageguard.obms.osu.processor.beatmap.HitObjectType
+import me.stageguard.obms.osu.processor.beatmap.*
 import kotlin.math.abs
 
-class ReplayAnalyzer(
-    private val beatmap: Beatmap, replayProcessor: ReplayProcessor
+class ReplayFrameAnalyzer(
+    private val beatmap: Beatmap,
+    private val frames: Array<ReplayFrame>,
+    private val mods: ModCombination
 ) {
-    private val replay = replayProcessor.process(true)
-    private val beatmapAttribute = beatmap.attribute.withMod(replay.mods)
+    private val beatmapAttribute = beatmap.attribute.withMod(mods)
 
     private val circleRadius = 54.42 - 4.48 * beatmapAttribute.circleSize
     private val hitTimeWindow = -12 * beatmapAttribute.overallDifficulty + 259.5
@@ -29,7 +27,7 @@ class ReplayAnalyzer(
 
     private fun associateHits() {
         var currentFrameIdx = 0
-        if(replay.mods.hr()) replay.flipObjects()
+        if(mods.hr()) flipObjects()
 
         var hitCount = 0
 
@@ -40,9 +38,9 @@ class ReplayAnalyzer(
             if(note.isSpinner()) return@continuePoint
 
             kotlin.run breakPoint@ {
-                (currentFrameIdx..replay.replayFrames.size).forEach { j ->
-                    val frame = replay.replayFrames[j]
-                    val lastKeys = if(j > 0) replay.replayFrames[j - 1].keys else listOf(Key.None)
+                (currentFrameIdx..frames.size).forEach { j ->
+                    val frame = frames[j]
+                    val lastKeys = if(j > 0) frames[j - 1].keys else listOf(Key.None)
 
                     val pressedKey = frame.keys.subtract(lastKeys).toList()
 
@@ -98,6 +96,12 @@ class ReplayAnalyzer(
             val relativePosition = it.frame.position - (it.hitObject.pos - circleCenter)
             val percentage = relativePosition / (circleRadius * 2)
             it.hitPointPercentage = percentage.x to percentage.y
+        }
+    }
+
+    private fun flipObjects() {
+        frames.forEach {
+            it.position = HitObjectPosition(it.position.x, 384 - it.position.y)
         }
     }
 }

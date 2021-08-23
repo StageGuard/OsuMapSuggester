@@ -33,10 +33,4 @@ data class ReplayData(
     val seed : Int,
     val lifeFrames : List<LifeFrame>,
     val replayFrames : List<ReplayFrame>
-) {
-    fun flipObjects() {
-        replayFrames.forEach {
-            it.position = HitObjectPosition(it.position.x, 384 - it.position.y)
-        }
-    }
-}
+)

@@ -2,14 +2,16 @@ package me.stageguard.obms.osu.processor.replay
 
 import me.stageguard.obms.osu.processor.beatmap.HitObject
 
-data class HitFrame(
-    val frame: ReplayFrame,
+class HitFrame(
+    frame: ReplayFrame,
     val hitObject: HitObject,
-    val keys: List<Key>,
+    keys: List<Key>
+) : ClickFrame(frame, keys) {
     var hitPointPercentage: Pair<Double, Double> = 0.0 to 0.0
-)
+    val timingDistribution = frame.time - hitObject.time
+}
 
-data class ClickFrame(
+open class ClickFrame(
     val frame: ReplayFrame,
     val keys: List<Key>
 )

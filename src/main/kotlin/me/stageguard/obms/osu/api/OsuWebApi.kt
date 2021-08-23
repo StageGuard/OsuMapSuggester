@@ -21,7 +21,6 @@ import net.mamoe.mirai.utils.Either.Companion.ifRight
 import net.mamoe.mirai.utils.Either.Companion.left
 import net.mamoe.mirai.utils.Either.Companion.onLeft
 import net.mamoe.mirai.utils.Either.Companion.onRight
-import net.mamoe.mirai.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
 
@@ -91,7 +90,7 @@ object OsuWebApi {
         headers = mapOf()
     )
 
-    suspend fun getReplay(scoreId: Int) = getImpl<String, ValueOrIllegalStateException<GetReplayDTO>>(
+    suspend fun getReplay(scoreId: Long) = getImpl<String, ValueOrIllegalStateException<GetReplayDTO>>(
         url = "$BASE_URL_V1/get_replay",
         parameters = mapOf(
             "k" to PluginConfig.osuAuth.v1ApiKey,
@@ -102,7 +101,7 @@ object OsuWebApi {
         if(contains("error")) {
             Either(IllegalStateException("REPLAY_NOT_AVAILABLE"))
         } else {
-            Either(json.decodeFromString(this))
+            InferredEitherOrISE(json.decodeFromString(this))
         }
     }
 
