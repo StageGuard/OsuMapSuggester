@@ -7,7 +7,7 @@ import me.stageguard.obms.database.model.User
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.utils.SimpleEncryptionUtils
-import net.mamoe.mirai.utils.Either.Companion.rightOrThrow
+import me.stageguard.obms.utils.Either.Companion.rightOrThrow
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import java.time.LocalDateTime

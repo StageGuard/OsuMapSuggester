@@ -21,11 +21,11 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.message.data.toMessageChain
-import net.mamoe.mirai.utils.Either.Companion.leftOrNull
-import net.mamoe.mirai.utils.Either.Companion.onLeft
-import net.mamoe.mirai.utils.Either.Companion.onRight
-import net.mamoe.mirai.utils.Either.Companion.right
-import net.mamoe.mirai.utils.Either.Companion.rightOrNull
+import me.stageguard.obms.utils.Either.Companion.leftOrNull
+import me.stageguard.obms.utils.Either.Companion.onLeft
+import me.stageguard.obms.utils.Either.Companion.onRight
+import me.stageguard.obms.utils.Either.Companion.right
+import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import kotlin.math.pow

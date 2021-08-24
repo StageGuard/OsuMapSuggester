@@ -5,13 +5,15 @@ import me.stageguard.obms.graph.*
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
 import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
 import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
+import me.stageguard.obms.osu.api.dto.BeatmapsetDTO
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
+import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
 import me.stageguard.obms.utils.ValueOrIllegalStateException
 import me.stageguard.obms.utils.lerp
-import net.mamoe.mirai.utils.Either.Companion.ifRight
-import net.mamoe.mirai.utils.Either.Companion.isRight
-import net.mamoe.mirai.utils.Either.Companion.right
+import me.stageguard.obms.utils.Either.Companion.ifRight
+import me.stageguard.obms.utils.Either.Companion.isRight
+import me.stageguard.obms.utils.Either.Companion.right
 import org.jetbrains.skija.*
 import java.lang.Exception
 import java.util.*
@@ -62,29 +64,31 @@ object RecentPlay {
 
 
     suspend fun drawRecentPlayCard(
-        scoreDTO: ScoreDTO, mods: ModCombination,
+        scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
         attribute: ValueOrIllegalStateException<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
         skillAttributes: ValueOrIllegalStateException<SkillAttributes>,
-        userBestScore: ValueOrIllegalStateException<BeatmapUserScoreDTO>
+        userBestScore: ValueOrIllegalStateException<BeatmapUserScoreDTO>,
+        replayAnalyzer: ValueOrIllegalStateException<ReplayFrameAnalyzer>
     ) : Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
-        val songCover = ImageCache.getImageAsSkijaImage(scoreDTO.beatmapset!!.covers.cover2x)
-        val songHeadImage = ImageCache.getImageAsSkijaImage(scoreDTO.beatmapset.covers.list2x)
+        val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
+        val songHeadImage = ImageCache.getImageAsSkijaImage(beatmapSet.covers.list2x)
 
         return drawRecentPlayCardImpl(
-            scoreDTO, mods, attribute, ppCurvePoints, skillAttributes, userBestScore,
-            playerAvatar, songCover, songHeadImage,
+            scoreDTO, beatmapSet, mods, attribute, ppCurvePoints, skillAttributes,
+            userBestScore, replayAnalyzer, playerAvatar, songCover, songHeadImage
         )
     }
 
     @Suppress("DuplicatedCode")
     private fun drawRecentPlayCardImpl(
-        scoreDTO: ScoreDTO, mods: ModCombination,
+        scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
         attribute: ValueOrIllegalStateException<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
         skillAttributes: ValueOrIllegalStateException<SkillAttributes>,
         userBestScore: ValueOrIllegalStateException<BeatmapUserScoreDTO>,
+        replayAnalyzer: ValueOrIllegalStateException<ReplayFrameAnalyzer>,
         playerAvatar: Image, songCover: Result<Image>, songHeadImage: Result<Image>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt())
@@ -138,7 +142,7 @@ object RecentPlay {
 
             //song basic info
             val songTitle = TextLine.make(kotlin.run {
-                val title = scoreDTO.beatmapset!!.title
+                val title = beatmapSet.title
                 if(title.length > 30) title.take(27).plus("...") else title
             }, Font(semiBoldFont, 42f))
 
@@ -149,7 +153,7 @@ object RecentPlay {
                 mode = PaintMode.FILL
                 strokeWidth = 1f
             })
-            val songArtist = TextLine.make(scoreDTO.beatmapset!!.artist, Font(semiBoldFont, 28f))
+            val songArtist = TextLine.make(beatmapSet.artist, Font(semiBoldFont, 28f))
             drawTextLineWithShadow(songArtist, 3f, songTitle.capHeight + 15f, paint.apply {
                 color = colorWhite
                 mode = PaintMode.FILL
@@ -165,7 +169,7 @@ object RecentPlay {
                 drawImage(scaledMapperAvatar, 0f, 0f)
             }
 
-            val mapperName = TextLine.make("mapped by ${scoreDTO.beatmapset.creator}", Font(regularFont, 20f))
+            val mapperName = TextLine.make("mapped by ${beatmapSet.creator}", Font(regularFont, 20f))
             drawTextLineWithShadow(mapperName, mapperAvatarEdgeLength + 15f, mapperName.capHeight + 10f, paint.apply {
                 color = colorWhite
                 mode = PaintMode.FILL
@@ -229,7 +233,7 @@ object RecentPlay {
             restoreToCount(songInfoSavePoint)
 
             //rank status
-            val rankStatus = TextLine.make(scoreDTO.beatmapset.status.uppercase(Locale.getDefault()), Font(boldFont, 28f))
+            val rankStatus = TextLine.make(beatmapSet.status.uppercase(Locale.getDefault()), Font(boldFont, 28f))
             drawRRect(RRect.makeXYWH(
                 cardWidth - songInfoPadding - rankStatus.width - 40f * 2, songInfoPadding,
                 rankStatus.width + 40f * 2, rankStatusHeight, 90f
@@ -936,6 +940,7 @@ object RecentPlay {
         }
     }
 
+    @Suppress("SameParameterValue")
     private fun lerpColor(src: Int, dst: Int, percentage: Double) =
         Color.makeRGB(
             lerp(Color.getR(src).toDouble(), Color.getR(dst).toDouble(), percentage).toInt(),

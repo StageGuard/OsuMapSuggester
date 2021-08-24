@@ -16,11 +16,11 @@ import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.osu.api.dto.*
 import me.stageguard.obms.utils.InferredEitherOrISE
 import me.stageguard.obms.utils.ValueOrIllegalStateException
-import net.mamoe.mirai.utils.Either
-import net.mamoe.mirai.utils.Either.Companion.ifRight
-import net.mamoe.mirai.utils.Either.Companion.left
-import net.mamoe.mirai.utils.Either.Companion.onLeft
-import net.mamoe.mirai.utils.Either.Companion.onRight
+import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.Either.Companion.ifRight
+import me.stageguard.obms.utils.Either.Companion.left
+import me.stageguard.obms.utils.Either.Companion.onLeft
+import me.stageguard.obms.utils.Either.Companion.onRight
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
 
@@ -84,7 +84,7 @@ object OsuWebApi {
      * Api function related
      */
 
-    suspend fun getBeatmap(bid: Int) = openStream(
+    suspend fun getBeatmapFileStream(bid: Int) = openStream(
         url = "$BASE_URL_OLD/osu/$bid",
         parameters = mapOf(),
         headers = mapOf()
@@ -149,7 +149,7 @@ object OsuWebApi {
         //TODO: Kotlin inline bug: nested class
         //TODO: class cast shouldn't appear here
         @Suppress("UNCHECKED_CAST")
-        return (getTailrec().value as ValueOrIllegalStateException<Unit>).run {
+        return getTailrec().run {
             ifRight {
                 if(initialList.isNotEmpty()) {
                     InferredEitherOrISE(initialList)
@@ -159,6 +159,11 @@ object OsuWebApi {
             } ?: Either(left)
         }
     }
+
+    suspend fun getBeatmap(
+        user: Long, beatmapId: Int
+    ) : ValueOrIllegalStateException<BeatmapDTO> =
+        get(path = "/beatmaps/$beatmapId/", user = user)
 
     suspend fun userBeatmapScore(
         user: Long, beatmapId: Int, mode: String = "osu"
@@ -196,12 +201,16 @@ object OsuWebApi {
         parameters = parameters
     ) {
         try {
-            if(startsWith("[")) Either(
-                json.decodeFromString<ArrayResponseWrapper<RESP>>("""
-                    { "array": $this }
-                """.trimIndent()).data) else Either(json.decodeFromString(this))
+            if(startsWith("[")) {
+                InferredEitherOrISE(
+                    json.decodeFromString<ArrayResponseWrapper<RESP>>("""
+                        { "array": $this }
+                    """.trimIndent()).data)
+            } else {
+                InferredEitherOrISE(json.decodeFromString(this))
+            }
         } catch(ex: Exception) {
-            Either(IllegalStateException("BAD_RESPONSE:$this"))
+            Either(IllegalStateException("BAD_RESPONSE:$ex, response string: $this"))
         }
     }
 

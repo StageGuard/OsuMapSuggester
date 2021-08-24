@@ -7,8 +7,8 @@ import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.cache.BeatmapCache
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
-import net.mamoe.mirai.utils.Either.Companion.onLeft
-import net.mamoe.mirai.utils.Either.Companion.right
+import me.stageguard.obms.utils.Either.Companion.onLeft
+import me.stageguard.obms.utils.Either.Companion.right
 import kotlin.math.pow
 
 fun GroupMessageSubscribersBuilder.skill() {

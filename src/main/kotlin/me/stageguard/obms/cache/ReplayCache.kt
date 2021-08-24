@@ -9,9 +9,9 @@ import me.stageguard.obms.osu.processor.replay.ReplayFrame
 import me.stageguard.obms.osu.processor.replay.ReplayProcessor
 import me.stageguard.obms.utils.InferredEitherOrISE
 import me.stageguard.obms.utils.ValueOrIllegalStateException
-import net.mamoe.mirai.utils.Either
-import net.mamoe.mirai.utils.Either.Companion.ifRight
-import net.mamoe.mirai.utils.Either.Companion.left
+import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.Either.Companion.ifRight
+import me.stageguard.obms.utils.Either.Companion.left
 import java.io.File
 import org.apache.commons.codec.binary.Base64
 

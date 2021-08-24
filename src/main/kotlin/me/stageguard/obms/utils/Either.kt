@@ -9,13 +9,12 @@
 
 @file:Suppress("NOTHING_TO_INLINE", "unused")
 
-package net.mamoe.mirai.utils
+package me.stageguard.obms.utils
 
 /**
  * Safe union of two types.
  */
-@JvmInline
-value class Either<out L : Any, out R : Any?> private constructor(
+class Either<out L : Any, out R : Any?> private constructor(
     @PublishedApi
     @JvmField
     internal val value: Any?,

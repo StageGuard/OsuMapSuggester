@@ -7,7 +7,7 @@ import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Beatmap
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.utils.*
-import net.mamoe.mirai.utils.Either
+import me.stageguard.obms.utils.Either
 import java.io.File
 
 object BeatmapCache {
@@ -32,7 +32,7 @@ object BeatmapCache {
             }
         } else withContext(Dispatchers.IO) {
             file.parentFile.mkdirs()
-            val beatmap = OsuWebApi.getBeatmap(bid)
+            val beatmap = OsuWebApi.getBeatmapFileStream(bid)
             runInterruptible {
                 file.createNewFile()
                 beatmap.use {

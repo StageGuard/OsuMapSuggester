@@ -134,7 +134,9 @@ data class BeatmapDTO(
     @SerialName("user_id")
     val userId: Int,
     @SerialName("version")
-    val version: String
+    val version: String,
+    @SerialName("beatmapset")
+    val beatmapset: BeatmapsetDTO? = null,
 )
 
 @Serializable
