@@ -17,7 +17,7 @@ object BeatmapCache {
 
     suspend fun getBeatmap(
         bid: Int, maxTryCount: Int = 4, tryCount: Int = 1
-    ) : ValueOrIllegalStateException<Beatmap> {
+    ) : ValueOrISE<Beatmap> {
         val file = beatmapFile(bid)
         return if(file.run { exists() && isFile }) try {
             withContext(Dispatchers.IO) {

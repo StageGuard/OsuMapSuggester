@@ -15,7 +15,7 @@ import me.stageguard.obms.database.model.getOsuIdSuspend
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.osu.api.dto.*
 import me.stageguard.obms.utils.InferredEitherOrISE
-import me.stageguard.obms.utils.ValueOrIllegalStateException
+import me.stageguard.obms.utils.ValueOrISE
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.left
@@ -40,7 +40,7 @@ object OsuWebApi {
      */
     suspend fun getTokenWithCode(
         code: String
-    ): ValueOrIllegalStateException<GetAccessTokenResponseDTO> = postImpl(
+    ): ValueOrISE<GetAccessTokenResponseDTO> = postImpl(
         url = "https://osu.ppy.sh/oauth/token",
         token = null,
         body = GetAccessTokenRequestDTO(
@@ -54,7 +54,7 @@ object OsuWebApi {
 
     suspend fun refreshToken(
         refToken: String
-    ): ValueOrIllegalStateException<GetAccessTokenResponseDTO> = postImpl(
+    ): ValueOrISE<GetAccessTokenResponseDTO> = postImpl(
         url = "https://osu.ppy.sh/oauth/token",
         token = null,
         body = RefreshTokenRequestDTO(
@@ -68,7 +68,7 @@ object OsuWebApi {
 
     suspend fun getSelfProfileAfterVerifyToken(
         token: String
-    ) = getImpl<String, ValueOrIllegalStateException<GetUserDTO>>(
+    ) = getImpl<String, ValueOrISE<GetUserDTO>>(
         url = "$BASE_URL_V2/me",
         parameters = mapOf(),
         headers = mapOf("Authorization" to "Bearer $token")
@@ -90,7 +90,7 @@ object OsuWebApi {
         headers = mapOf()
     )
 
-    suspend fun getReplay(scoreId: Long) = getImpl<String, ValueOrIllegalStateException<GetReplayDTO>>(
+    suspend fun getReplay(scoreId: Long) = getImpl<String, ValueOrISE<GetReplayDTO>>(
         url = "$BASE_URL_V1/get_replay",
         parameters = mapOf(
             "k" to PluginConfig.osuAuth.v1ApiKey,
@@ -105,7 +105,7 @@ object OsuWebApi {
         }
     }
 
-    suspend fun users(user: Long): ValueOrIllegalStateException<GetUserDTO> =
+    suspend fun users(user: Long): ValueOrISE<GetUserDTO> =
         get("/users/${kotlin.run {
             User.getOsuIdSuspend(user) ?: return Either(IllegalStateException("NOT_BIND"))
         }}", user)
@@ -115,10 +115,10 @@ object OsuWebApi {
         type: String = "recent", includeFails: Boolean = false,
         limit: Int = 10, offset: Int = 0
     //Kotlin bug: Result<T> is cast to java.util.List, use Either instead.
-    ): ValueOrIllegalStateException<List<ScoreDTO>> {
+    ): ValueOrISE<List<ScoreDTO>> {
         val userId = User.getOsuIdSuspend(user) ?: return Either(IllegalStateException("NOT_BIND"))
         val initialList: MutableList<ScoreDTO> = mutableListOf()
-        suspend fun getTailrec(current: Int = offset) : ValueOrIllegalStateException<Unit> {
+        suspend fun getTailrec(current: Int = offset) : ValueOrISE<Unit> {
             if(current + MAX_IN_ONE_REQ < limit + offset) {
                 get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
                     "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
@@ -162,12 +162,12 @@ object OsuWebApi {
 
     suspend fun getBeatmap(
         user: Long, beatmapId: Int
-    ) : ValueOrIllegalStateException<BeatmapDTO> =
+    ) : ValueOrISE<BeatmapDTO> =
         get(path = "/beatmaps/$beatmapId/", user = user)
 
     suspend fun userBeatmapScore(
         user: Long, beatmapId: Int, mode: String = "osu"
-    ) : ValueOrIllegalStateException<BeatmapUserScoreDTO> {
+    ) : ValueOrISE<BeatmapUserScoreDTO> {
         val userId = User.getOsuIdSuspend(user) ?: return Either(IllegalStateException("NOT_BIND"))
         return try {
             get(
@@ -179,7 +179,7 @@ object OsuWebApi {
         }
     }
 
-    suspend fun me(user: Long): ValueOrIllegalStateException<GetUserDTO> = get("/me", user = user)
+    suspend fun me(user: Long): ValueOrISE<GetUserDTO> = get("/me", user = user)
 
 
     /**
@@ -187,7 +187,7 @@ object OsuWebApi {
      */
     suspend inline fun <reified REQ, reified RESP> post(
         path: String, user: Long, body: @Serializable REQ
-    ): ValueOrIllegalStateException<RESP> = postImpl(
+    ): ValueOrISE<RESP> = postImpl(
         url = BASE_URL_V2 + path,
         token = OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow(),
         body = body
@@ -195,7 +195,7 @@ object OsuWebApi {
 
     suspend inline fun <reified RESP> get(
         path: String, user: Long, parameters: Map<String, String> = mapOf()
-    ) = getImpl<String, ValueOrIllegalStateException<RESP>>(
+    ) = getImpl<String, ValueOrISE<RESP>>(
         url = BASE_URL_V2 + path,
         headers = mapOf("Authorization" to "Bearer ${OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow()}"),
         parameters = parameters
@@ -264,7 +264,7 @@ object OsuWebApi {
     @Suppress("DuplicatedCode")
     suspend inline fun <reified REQ, reified RESP : Any> postImpl(
         url: String, token: String? = null, body: @Serializable REQ
-    ) : ValueOrIllegalStateException<RESP> {
+    ) : ValueOrISE<RESP> {
         val responseText = client.post<String> {
             url(url.also {
                 OsuMapSuggester.logger.info { "POST: $url" }

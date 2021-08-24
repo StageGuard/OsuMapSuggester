@@ -15,7 +15,7 @@ import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.BestPerformanceDetail
 import me.stageguard.obms.utils.InferredEitherOrISE
-import me.stageguard.obms.utils.ValueOrIllegalStateException
+import me.stageguard.obms.utils.ValueOrISE
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.At
@@ -70,7 +70,7 @@ suspend fun orderScores(
     analyzeDetail: Boolean = false,
     analyzeType: AnalyzeDetailType = AnalyzeDetailType.IfFullCombo,
     rangeToAnalyze: IntRange = 0..25
-) : ValueOrIllegalStateException<OrderResult> = scores.second.let { secList ->
+) : ValueOrISE<OrderResult> = scores.second.let { secList ->
     if(secList == null) {
         if(!analyzeDetail) {
             InferredEitherOrISE(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))

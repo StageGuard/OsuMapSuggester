@@ -15,7 +15,7 @@ import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
 import me.stageguard.obms.utils.InferredEitherOrISE
-import me.stageguard.obms.utils.ValueOrIllegalStateException
+import me.stageguard.obms.utils.ValueOrISE
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.toMessageChain
@@ -91,7 +91,7 @@ tailrec suspend fun GroupMessageEvent.getLastScore(
     maxTryCount: Int,
     triedCount: Int = 0,
     lastException: IllegalStateException? = null
-) : ValueOrIllegalStateException<ScoreDTO> =
+) : ValueOrISE<ScoreDTO> =
     OsuWebApi.userScore(user = sender.id, limit = 1, offset = triedCount, includeFails = true).onLeft {
         return if(maxTryCount == triedCount + 1) {
             Either(it)

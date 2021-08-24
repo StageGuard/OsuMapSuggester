@@ -8,7 +8,7 @@ import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.processor.replay.ReplayFrame
 import me.stageguard.obms.osu.processor.replay.ReplayProcessor
 import me.stageguard.obms.utils.InferredEitherOrISE
-import me.stageguard.obms.utils.ValueOrIllegalStateException
+import me.stageguard.obms.utils.ValueOrISE
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.left
@@ -23,7 +23,7 @@ object ReplayCache {
     suspend fun getReplayData(
         scoreId: Long,
         maxTryCount: Int = 4, tryCount: Int = 1
-    ) : ValueOrIllegalStateException<Array<ReplayFrame>> {
+    ) : ValueOrISE<Array<ReplayFrame>> {
         val file = replayFile(scoreId)
         return if(file.run { exists() && isFile }) try {
             withContext(Dispatchers.IO) {

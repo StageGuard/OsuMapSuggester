@@ -9,7 +9,7 @@ import me.stageguard.obms.osu.api.dto.BeatmapsetDTO
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
-import me.stageguard.obms.utils.ValueOrIllegalStateException
+import me.stageguard.obms.utils.ValueOrISE
 import me.stageguard.obms.utils.lerp
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.isRight
@@ -65,11 +65,11 @@ object RecentPlay {
 
     suspend fun drawRecentPlayCard(
         scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
-        attribute: ValueOrIllegalStateException<DifficultyAttributes>,
+        attribute: ValueOrISE<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-        skillAttributes: ValueOrIllegalStateException<SkillAttributes>,
-        userBestScore: ValueOrIllegalStateException<BeatmapUserScoreDTO>,
-        replayAnalyzer: ValueOrIllegalStateException<ReplayFrameAnalyzer>
+        skillAttributes: ValueOrISE<SkillAttributes>,
+        userBestScore: ValueOrISE<BeatmapUserScoreDTO>,
+        replayAnalyzer: ValueOrISE<ReplayFrameAnalyzer>
     ) : Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
         val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
@@ -84,11 +84,11 @@ object RecentPlay {
     @Suppress("DuplicatedCode")
     private fun drawRecentPlayCardImpl(
         scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
-        attribute: ValueOrIllegalStateException<DifficultyAttributes>,
+        attribute: ValueOrISE<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-        skillAttributes: ValueOrIllegalStateException<SkillAttributes>,
-        userBestScore: ValueOrIllegalStateException<BeatmapUserScoreDTO>,
-        replayAnalyzer: ValueOrIllegalStateException<ReplayFrameAnalyzer>,
+        skillAttributes: ValueOrISE<SkillAttributes>,
+        userBestScore: ValueOrISE<BeatmapUserScoreDTO>,
+        replayAnalyzer: ValueOrISE<ReplayFrameAnalyzer>,
         playerAvatar: Image, songCover: Result<Image>, songHeadImage: Result<Image>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt())
