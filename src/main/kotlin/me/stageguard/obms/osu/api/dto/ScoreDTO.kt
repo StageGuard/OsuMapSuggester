@@ -2,6 +2,7 @@ package me.stageguard.obms.osu.api.dto
 import kotlinx.serialization.Serializable
 
 import kotlinx.serialization.SerialName
+import me.stageguard.obms.utils.CustomLocalDateTime
 
 @Serializable
 data class BeatmapUserScoreDTO(
@@ -22,7 +23,7 @@ data class ScoreDTO(
     @SerialName("best_id")
     val bestId: Long? = null,
     @SerialName("created_at")
-    val createdAt: String,
+    val createdAt: CustomLocalDateTime,
     @SerialName("id")
     val id: Long,
     @SerialName("max_combo")
@@ -70,7 +71,7 @@ data class UserDTO(
     @SerialName("id")
     val id: Int,
     @SerialName("last_visit")
-    val lastVisit: String? = null,
+    val lastVisit: CustomLocalDateTime? = null,
     @SerialName("username")
     val username: String
 )
@@ -114,7 +115,7 @@ data class BeatmapDTO(
     @SerialName("is_scoreable")
     val isScoreable: Boolean,
     @SerialName("last_updated")
-    val lastUpdated: String,
+    val lastUpdated: CustomLocalDateTime,
     @SerialName("mode")
     val mode: String,
     @SerialName("mode_int")

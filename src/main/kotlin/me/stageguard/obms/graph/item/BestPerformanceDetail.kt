@@ -127,7 +127,7 @@ object BestPerformanceDetail {
                 paint.apply {
                     color = mapVersionTextColor
                 })
-            val timePlayed = TextLine.make(entry.score.createdAt, Font(regularFont, 16f))
+            val timePlayed = TextLine.make(entry.score.createdAt.toString(), Font(regularFont, 16f))
             drawTextLine(timePlayed,
                 rankSvgImage.width * 2f + variant.width + 20f,
                 (cardHeight + variant.height * 2) / 2f - 2f,
@@ -289,7 +289,7 @@ object BestPerformanceDetail {
                 paint.apply {
                     color = mapVersionTextColor
                 })
-            val timePlayed = TextLine.make(entry.score.createdAt, Font(regularFont, 16f))
+            val timePlayed = TextLine.make(entry.score.createdAt.toString(), Font(regularFont, 16f))
             drawTextLine(timePlayed,
                 cardHeight + rankSvgImage.width * 2f + variant.width + 20f,
                 (cardHeight + variant.height * 2) / 2f - 2f,
