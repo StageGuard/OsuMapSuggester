@@ -982,13 +982,13 @@ object RecentPlay {
 
                 val (barHeight, barWidth) = 120f to 3f
                 val groupedTiming = Array(200 / 5 + 1) { 0 }.also { arr ->
-                    rep.hits.forEach { hit ->
-                        if(hit.timingDistribution < -100.0) {
+                    rep.timingDistributions.forEach { time ->
+                        if(time < -100.0) {
                             arr[0] = arr[0].plus(1)
-                        } else if(hit.timingDistribution > 100.0) {
+                        } else if(time > 100.0) {
                             arr[arr.lastIndex] = arr[arr.lastIndex].plus(1)
                         } else {
-                            val idx = round(((hit.timingDistribution - (-100)) / 5.0)).toInt()
+                            val idx = round(((time - (-100)) / 5.0)).toInt()
                             arr[idx] = arr[idx].plus(1)
                         }
                     }
@@ -1015,7 +1015,22 @@ object RecentPlay {
                     acc + barWidth + eachPaddingWidth
                 }
 
-                translate(0f, barHeight + 10f + 45f)
+                translate(0f, barHeight + 10f + 35f)
+
+                val averageHitTimeOffset = TextLine.make("Average Offset: ${format2DFix.format(rep.averageHitTimeOffset)} ms", Font(semiBoldFont, 14f))
+                drawTextLine(averageHitTimeOffset, 9f, averageHitTimeOffset.capHeight, paint.apply {
+                    color = colorWhite
+                    strokeWidth = 1f
+                })
+                translate(0f, averageHitTimeOffset.capHeight + 15f)
+
+                val unstableRate = TextLine.make("Unstable Rate: ${format2DFix.format(rep.unstableRate)}", Font(semiBoldFont, 14f))
+                drawTextLine(unstableRate, 9f, unstableRate.capHeight, paint.apply {
+                    color = colorWhite
+                    strokeWidth = 1f
+                })
+
+                translate(0f, 45f)
 
                 // accuracy heatmap round graph
                 val accuracyHeatmapText = TextLine.make("Accuracy Heatmap", Font(semiBoldFont, 16f))
@@ -1063,7 +1078,14 @@ object RecentPlay {
                     wAcc + dotRadius * 2 + dotPaddingWidth
                 }
                 restore()
+                translate(0f, heatmapCircleRadius * 2 + 35f)
 
+                val averagePrecision = TextLine.make("Precision: ${format2DFix.format(rep.averagePrecision * 100)}%", Font(semiBoldFont, 14f))
+                drawTextLine(averagePrecision, 9f, averagePrecision.capHeight, paint.apply {
+                    color = colorWhite
+                    mode = PaintMode.FILL
+                    strokeWidth = 1f
+                })
             }
         }
 

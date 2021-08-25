@@ -2,6 +2,8 @@ package me.stageguard.obms.osu.processor.replay
 
 import me.stageguard.obms.osu.processor.beatmap.*
 import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 class ReplayFrameAnalyzer(
     private val beatmap: Beatmap,
@@ -19,6 +21,15 @@ class ReplayFrameAnalyzer(
     val missedNotes : MutableList<HitObject> = mutableListOf()
     val effortlessMissedNotes : MutableList<HitObject> = mutableListOf()
     val spinners = beatmap.hitObjects.filter { it.kind is HitObjectType.Spinner }
+
+    val timingDistributions
+        get() = hits.map { it.timingDistribution }
+    val averageHitTimeOffset
+        get() = timingDistributions.average()
+    val unstableRate
+        get() = 10 * sqrt(timingDistributions.map { (it - averageHitTimeOffset).pow(2) }.average())
+    val averagePrecision
+        get() = hits.map { 1 - it.hitObject.pos.distance(it.frame.position) / circleRadius }.average()
 
     init {
         associateHits()
