@@ -137,7 +137,7 @@ object RecentPlay {
                 val songHeaderRRect = RRect.makeXYWH(songInfoPadding, songInfoPadding,
                     scaledSongHeader.width.toFloat(), scaledSongHeader.height.toFloat(), 16f
                 )
-                drawImage(scaledSongHeader, songInfoPadding, songInfoPadding)
+                drawRoundCorneredImage(scaledSongHeader, songInfoPadding, songInfoPadding, 12f)
                 drawRRect(songHeaderRRect, paint.apply {
                     color = Color.makeARGB(80, 0, 0, 0)
                     mode = PaintMode.STROKE
@@ -173,7 +173,7 @@ object RecentPlay {
             val mapperAvatar = defaultAvatarImage
             mapperAvatar.onSuccess {
                 val scaledMapperAvatar = it.scale(mapperAvatarEdgeLength / it.width, mapperAvatarEdgeLength / it.height)
-                drawImage(scaledMapperAvatar, 0f, 0f)
+                drawRoundCorneredImage(scaledMapperAvatar, 0f, 0f, 12f)
             }
 
             val mapperName = TextLine.make("mapped by ${beatmapSet.creator}", Font(regularFont, 20f))
@@ -419,7 +419,7 @@ object RecentPlay {
             val playerName = TextLine.make(scoreDTO.user!!.username, Font(semiBoldFont, 22f))
             val playTime = TextLine.make("played at ${scoreDTO.createdAt}", Font(semiBoldFont, 20f))
 
-            drawImage(scaledPlayerAvatarImage, 40f, 20f)
+            drawRoundCorneredImage(scaledPlayerAvatarImage, 40f, 20f, 12f)
             drawTextLineWithShadow(playerName,
                 40f + scaledPlayerAvatarImage.width + 20f,
                 20f + playerName.capHeight + 13f, paint.apply {

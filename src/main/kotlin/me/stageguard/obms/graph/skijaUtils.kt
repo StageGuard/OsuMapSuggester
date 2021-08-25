@@ -7,6 +7,7 @@ import java.io.File
 import java.io.InputStream
 import java.lang.IllegalStateException
 import kotlin.math.ceil
+import kotlin.math.round
 
 fun resourcePath(path: String) = OsuMapSuggester.dataFolder.absolutePath + File.separator + "resources" + File.separator + path
 fun resourceStream(path: String): InputStream = File(resourcePath(path)).inputStream()
@@ -47,17 +48,17 @@ fun SVGDOM.toScaledImage(ratio: Float): Image = kotlin.run {
 fun Image.scale(ratioX: Float, ratioY: Float = ratioX): Image =
     Surface.makeRasterN32Premul(
         ceil(width * ratioX).toInt(),
-        ceil(width * ratioY).toInt()
+        ceil(height * ratioY).toInt()
     ).run {
         canvas.setMatrix(Matrix33.makeScale(ratioX, ratioY))
         canvas.drawImage(this@scale, 0F, 0F)
         makeImageSnapshot()
     }
 
-fun Image.cutCenter(remainXRatio: Float, remainYRatio: Float) =
+fun Image.cutCenter(remainXRatio: Float, remainYRatio: Float): Image =
     Surface.makeRasterN32Premul(
         ceil(width * remainXRatio).toInt(),
-        ceil(width * remainYRatio).toInt()
+        ceil(height * remainYRatio).toInt()
     ).run {
         val xOffset = imageInfo.width * (1.0 - remainXRatio) / 2
         val yOffset = imageInfo.height * (1.0 - remainYRatio) / 2
@@ -67,3 +68,26 @@ fun Image.cutCenter(remainXRatio: Float, remainYRatio: Float) =
         canvas.restore()
         makeImageSnapshot()
     }
+
+fun Canvas.drawRoundCorneredImage(src: Image, left: Float, top: Float, radius: Float) {
+    Surface.makeRasterN32Premul(src.width, src.height).run {
+        val paint = Paint().apply {
+            isAntiAlias = true
+            mode = PaintMode.FILL
+            filterQuality = FilterQuality.HIGH
+        }
+        canvas.drawRect(Rect.makeXYWH(0f, 0f, width.toFloat(), height.toFloat()), paint.apply {
+            color = Color.makeARGB(0, 0, 0, 0)
+        })
+        canvas.drawRRect(RRect.makeXYWH(0f, 0f, width.toFloat(), height.toFloat(), radius), paint.apply {
+            color = 0xff424242.toInt()
+        })
+
+        canvas.drawImage(src, 0f, 0f, paint.apply {
+            paint.blendMode = BlendMode.SRC_IN
+        })
+        makeImageSnapshot()
+    }.also {
+        drawImage(it, left, top)
+    }
+}
