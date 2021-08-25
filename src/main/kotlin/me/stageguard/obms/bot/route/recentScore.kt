@@ -153,7 +153,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) {
 
     //我草，血压上来了
     val replayAnalyzer = beatmap.run b@ { this@b.ifRight { b ->
-        (userBestScore.rightOrNull?.score ?: score).run s@ {
+        score.run s@ {
             if(this@s.replay) {
                 ReplayCache.getReplayData(this@s.id).run r@ { this@r.ifRight { r ->
                     kotlin.runCatching {

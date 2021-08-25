@@ -33,6 +33,7 @@ object RecentPlay {
     private const val beatmapAttributePanelWidth = 360f
     private const val beatmapAttributePanelHeight = 205f
     private const val replayDataHeight = 55f
+    private const val replayDetailWidth = 300f
 
     private val songInfoShadowColor = Color.makeARGB(153, 34, 40, 42)
     private val scoreInfoBackgroundColor = Color.makeRGB(42, 34, 38)
@@ -48,6 +49,8 @@ object RecentPlay {
     private val grayLine = Color.makeRGB(70, 57, 63)
     private val ppColor = Color.makeRGB(255, 102, 171)
     private val ppTextColor = Color.makeRGB(209, 148, 175)
+    private val replayItemTitleIconColor = Color.makeRGB(2, 247, 165)
+    private fun accuracyHeatmapDotColor(a: Double) = Color.makeARGB((a * 255).toInt(), 114, 224, 193)
 
     private val defaultAvatarImage: Result<Image>
         get() = try {
@@ -91,7 +94,10 @@ object RecentPlay {
         replayAnalyzer: ValueOrISE<ReplayFrameAnalyzer>,
         playerAvatar: Image, songCover: Result<Image>, songHeadImage: Result<Image>
     ) : Surface {
-        val surface = Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt())
+        val surface = Surface.makeRasterN32Premul(
+            (replayAnalyzer.ifRight { (cardWidth + replayDetailWidth).toInt() } ?: cardWidth).toInt(),
+            cardHeight.toInt()
+        )
 
         val paint = Paint().apply {
             isAntiAlias = true
@@ -99,6 +105,7 @@ object RecentPlay {
         }
 
         surface.canvas.apply {
+            val baseSavePoint = save()
             //background
             songCover.onSuccess {
                 drawImage(
@@ -904,8 +911,160 @@ object RecentPlay {
                 )
             }
 
-            restore()
+            restoreToCount(baseSavePoint)
 
+            replayAnalyzer.ifRight { rep ->
+                translate(cardWidth, 0f)
+                //background color
+                drawRect(Rect.makeXYWH(0f, 0f, replayDetailWidth, cardHeight), paint.apply {
+                    color = scoreInfoBackgroundColor
+                    mode = PaintMode.FILL
+                })
+                //duplicate
+                drawRect(Rect.makeXYWH(0f, 0f, replayDetailWidth, cardHeight), paint.apply {
+                    color = transparent40PercentBlack
+                    mode = PaintMode.FILL
+                })
+                val framePadding = 30f
+                drawRRect(
+                    RRect.makeXYWH(
+                        framePadding, framePadding,
+                        replayDetailWidth - 2 * framePadding,
+                        cardHeight - 2 * framePadding, 16f
+                    ), paint.apply {
+                        color = colorGray
+                        mode = PaintMode.STROKE
+                        strokeWidth = 2f
+                    }
+                )
+                val replayDetailText = TextLine.make("Replay Detail", Font(semiBoldFont, 18f))
+                drawRect(
+                    Rect.makeXYWH(
+                        framePadding + 20f, framePadding - replayDetailText.capHeight / 2,
+                        replayDetailText.width + 2 * 5f, replayDetailText.capHeight
+                    ), paint.apply {
+                        color = scoreInfoBackgroundColor
+                        mode = PaintMode.FILL
+                    }
+                )
+                //duplicate
+                drawRect(
+                    Rect.makeXYWH(
+                        framePadding + 20f, framePadding - replayDetailText.capHeight / 2,
+                        replayDetailText.width + 2 * 5f, replayDetailText.capHeight
+                    ), paint.apply {
+                        color = transparent40PercentBlack
+                        mode = PaintMode.FILL
+                    }
+                )
+                drawTextLine(replayDetailText,
+                    framePadding + 20f + 5f, framePadding + replayDetailText.capHeight / 2,
+                    paint.apply {
+                        color = colorWhite
+                        strokeWidth = 1f
+                    }
+                )
+                val contentPadding = 15f
+                translate(contentPadding + framePadding, contentPadding + framePadding + 10f)
+                val contentWidth = replayDetailWidth - framePadding * 2 - contentPadding * 2
+
+                // timing distribution column graph
+                val timingDistributionText = TextLine.make("Timing Distribution", Font(semiBoldFont, 16f))
+                drawLine(3f, 0f, 3f, timingDistributionText.capHeight, paint.apply {
+                    color = replayItemTitleIconColor
+                    strokeWidth = 6f
+                })
+                drawTextLine(timingDistributionText, 6f + 9f, timingDistributionText.capHeight, paint.apply {
+                    color = colorWhite
+                    strokeWidth = 1f
+                })
+                translate(0f, timingDistributionText.capHeight + 35f)
+
+                val (barHeight, barWidth) = 120f to 3f
+                val groupedTiming = Array(200 / 5 + 1) { 0 }.also { arr ->
+                    rep.hits.forEach { hit ->
+                        if(hit.timingDistribution < -100.0) {
+                            arr[0] = arr[0].plus(1)
+                        } else if(hit.timingDistribution > 100.0) {
+                            arr[arr.lastIndex] = arr[arr.lastIndex].plus(1)
+                        } else {
+                            val idx = round(((hit.timingDistribution - (-100)) / 5.0)).toInt()
+                            arr[idx] = arr[idx].plus(1)
+                        }
+                    }
+                }.reversed()
+                val eachPaddingWidth = (contentWidth - barWidth * groupedTiming.size) / (groupedTiming.size - 1)
+                val maxTimingHitCount = groupedTiming.maxOf { it }
+                var startTiming = -100
+                groupedTiming.foldRightIndexed(0f) { idx, cnt, acc ->
+                    drawLine(
+                        acc + barWidth / 2, barHeight,
+                        acc + barWidth / 2, (1.0 - 1.0 * cnt / maxTimingHitCount).toFloat() * barHeight,
+                        paint.apply {
+                            color = colorWhite
+                            strokeWidth = barWidth
+                        })
+                    if(idx % 4 == 0) {
+                        val text = TextLine.make(startTiming.toString(), Font(semiBoldFont, 10f))
+                        drawTextLine(text, acc + barWidth / 2 - text.width / 2, barHeight + 10f + text.capHeight, paint.apply {
+                            color = colorGray
+                            strokeWidth = 1f
+                        })
+                        startTiming += 20
+                    }
+                    acc + barWidth + eachPaddingWidth
+                }
+
+                translate(0f, barHeight + 10f + 45f)
+
+                // accuracy heatmap round graph
+                val accuracyHeatmapText = TextLine.make("Accuracy Heatmap", Font(semiBoldFont, 16f))
+                drawLine(3f, 0f, 3f, accuracyHeatmapText.capHeight, paint.apply {
+                    color = replayItemTitleIconColor
+                    strokeWidth = 6f
+                })
+                drawTextLine(accuracyHeatmapText, 6f + 9f, accuracyHeatmapText.capHeight, paint.apply {
+                    color = colorWhite
+                    strokeWidth = 1f
+                })
+                translate(0f, accuracyHeatmapText.capHeight + 35f)
+
+                val dotDensity = 25
+                val heatmapMatrix = Array(dotDensity) { Array(dotDensity) { 0 } }
+                rep.hits.map { h -> h.hitPointPercentage }.forEach {
+                    heatmapMatrix[
+                            max(0, min(round(it.first * dotDensity).toInt(), dotDensity - 1))
+                    ][
+                            max(0, min(round(it.second * dotDensity).toInt(), dotDensity - 1))
+                    ] ++
+                }
+                val maxHeatmapDotHitCount = heatmapMatrix.maxOf { w -> w.maxOf { h -> h } }
+
+                val heatmapCircleRadius = 90f
+                drawCircle(contentWidth / 2, heatmapCircleRadius, heatmapCircleRadius, paint.apply {
+                    color = colorWhite
+                    mode = PaintMode.STROKE
+                    strokeWidth = 2f
+                })
+                save()
+                val dotRadius = 3f
+                translate(contentWidth / 2 - heatmapCircleRadius, 0f)
+                val dotPaddingWidth = (2 * heatmapCircleRadius - (2 * dotRadius * dotDensity)) / (dotDensity - 1)
+                heatmapMatrix.foldRight(0f) { wCnt, wAcc ->
+                    wCnt.foldRight(0f) { hCnt, hAcc ->
+                        drawPoint(wAcc + dotRadius, hAcc + dotRadius, paint.apply {
+                            color = accuracyHeatmapDotColor((1.0 * hCnt / maxHeatmapDotHitCount).run {
+                                if (this > 0.7) 1.0 else max(0.0, min(this / 0.7, 1.0))
+                            })
+                            strokeWidth = dotRadius * 2
+                        })
+                        hAcc + dotRadius * 2 + dotPaddingWidth
+                    }
+                    wAcc + dotRadius * 2 + dotPaddingWidth
+                }
+                restore()
+
+            }
         }
 
         return surface
