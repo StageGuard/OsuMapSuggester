@@ -19,6 +19,7 @@ import me.stageguard.obms.utils.ValueOrISE
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.left
+import me.stageguard.obms.utils.Either.Companion.mapLeft
 import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.onRight
 import net.mamoe.mirai.utils.info
@@ -119,35 +120,37 @@ object OsuWebApi {
         val userId = User.getOsuIdSuspend(user) ?: return Either(IllegalStateException("NOT_BIND"))
         val initialList: MutableList<ScoreDTO> = mutableListOf()
         suspend fun getTailrec(current: Int = offset) : ValueOrISE<Unit> {
-            if(current + MAX_IN_ONE_REQ < limit + offset) {
-                get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
-                    "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
-                    "limit" to MAX_IN_ONE_REQ.toString(), "offset" to current.toString()
-                )).also { re ->
-                    re.onRight { li ->
-                        initialList.addAll(li)
-                    }.onLeft {
-                        return Either(it)
+            return try {
+                if(current + MAX_IN_ONE_REQ < limit + offset) {
+                    get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
+                        "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
+                        "limit" to MAX_IN_ONE_REQ.toString(), "offset" to current.toString()
+                    )).also { re ->
+                        re.onRight { li ->
+                            initialList.addAll(li)
+                        }.onLeft {
+                            return Either(it)
+                        }
+                    }
+                    getTailrec(current + MAX_IN_ONE_REQ)
+                } else {
+                    get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
+                        "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
+                        "limit" to (limit + offset - current).toString(), "offset" to current.toString()
+                    )).also { re ->
+                        re.onRight { li ->
+                            initialList.addAll(li)
+                        }.onLeft {
+                            return Either(it)
+                        }
                     }
                 }
-                getTailrec(current + MAX_IN_ONE_REQ)
-            } else {
-                get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
-                    "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
-                    "limit" to (limit + offset - current).toString(), "offset" to current.toString()
-                )).also { re ->
-                    re.onRight { li ->
-                        initialList.addAll(li)
-                    }.onLeft {
-                        return Either(it)
-                    }
-                }
+                InferredEitherOrISE(Unit)
+            } catch (ex: IllegalStateException) {
+                Either(ex)
             }
-            return InferredEitherOrISE(Unit)
         }
 
-        //TODO: Kotlin inline bug: nested class
-        //TODO: class cast shouldn't appear here
         @Suppress("UNCHECKED_CAST")
         return getTailrec().run {
             ifRight {
@@ -169,13 +172,14 @@ object OsuWebApi {
         user: Long, beatmapId: Int, mode: String = "osu"
     ) : ValueOrISE<BeatmapUserScoreDTO> {
         val userId = User.getOsuIdSuspend(user) ?: return Either(IllegalStateException("NOT_BIND"))
-        return try {
-            get(
-                path = "/beatmaps/$beatmapId/scores/users/$userId",
-                parameters = mapOf("mode" to mode), user = user
-            )
-        } catch (ex: IllegalStateException) {
-            Either(ex)
+
+        return get<BeatmapUserScoreDTO>(
+            path = "/beatmaps/$beatmapId/scores/users/$userId",
+            parameters = mapOf("mode" to mode), user = user
+        ).mapLeft {
+            if(it.toString().contains("null")) {
+                IllegalStateException("SCORE_LIST_EMPTY")
+            } else IllegalStateException(it.localizedMessage)
         }
     }
 
