@@ -1,12 +1,12 @@
 plugins {
-    id("net.mamoe.mirai-console") version "2.7-RC"
+    id("net.mamoe.mirai-console") version "2.7.0"
     val kotlinVersion = "1.5.20"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 }
 
 group = "me.stageguard"
-version = "1.4"
+version = "1.5"
 
 repositories {
     maven("https://maven.aliyun.com/repository/public")
