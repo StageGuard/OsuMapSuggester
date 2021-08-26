@@ -10,8 +10,8 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import me.stageguard.obms.utils.CustomLocalDateTime
-import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializer(CustomLocalDateTime::class)
@@ -33,7 +33,11 @@ class ISO8601DateToLocalDateTimeSerializer : KSerializer<CustomLocalDateTime> {
 
     override fun deserialize(decoder: Decoder): CustomLocalDateTime =
         stringSerializer.deserialize(decoder).let {
-            CustomLocalDateTime.of(OffsetDateTime.parse(it).toLocalDateTime())
+            CustomLocalDateTime.of(
+                ZonedDateTime.parse(it)
+                    .withZoneSameInstant(ZoneId.systemDefault())
+                    .toLocalDateTime()
+            )
         }
 
 }
