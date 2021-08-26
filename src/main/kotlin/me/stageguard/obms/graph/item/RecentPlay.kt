@@ -587,7 +587,7 @@ object RecentPlay {
             )
             restoreToCount(otherInfoTextSavePoint)
 
-            if(userBestScore.isRight && userBestScore.right.score.createdAt != scoreDTO.createdAt) {
+            if(userBestScore.isRight && userBestScore.right.score.id != scoreDTO.id) {
                 val unwrapped = userBestScore.right.score
 
                 val scoreDiff = (scoreDTO.score - unwrapped.score)
@@ -1057,7 +1057,7 @@ object RecentPlay {
 
                 val heatmapCircleRadius = 90f
                 drawCircle(contentWidth / 2, heatmapCircleRadius, heatmapCircleRadius, paint.apply {
-                    color = colorWhite
+                    color = colorGray
                     mode = PaintMode.STROKE
                     strokeWidth = 2f
                 })
