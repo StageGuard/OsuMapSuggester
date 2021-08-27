@@ -20,9 +20,7 @@ object BeatmapCache {
     ) : ValueOrISE<Beatmap> {
         val file = beatmapFile(bid)
         return if(file.run { exists() && isFile }) try {
-            withContext(Dispatchers.IO) {
-                InferredEitherOrISE(Beatmap.parse(file.bomReader()))
-            }
+            InferredEitherOrISE(Beatmap.parse(file.bomReader()))
         } catch (ex: Exception) {
             if(tryCount < maxTryCount) {
                 file.delete()
@@ -30,15 +28,15 @@ object BeatmapCache {
             } else {
                 Either(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
             }
-        } else withContext(Dispatchers.IO) {
+        } else kotlin.run {
             file.parentFile.mkdirs()
             val beatmap = OsuWebApi.getBeatmapFileStream(bid)
-            runInterruptible {
+            withContext(Dispatchers.IO) { runInterruptible {
                 file.createNewFile()
                 beatmap.use {
                     file.writeBytes(it.readAllBytes())
                 }
-            }
+            } }
             file.bomReader().use {
                 try {
                     InferredEitherOrISE(Beatmap.parse(it))

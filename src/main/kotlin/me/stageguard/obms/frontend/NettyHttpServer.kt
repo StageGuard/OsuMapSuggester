@@ -2,10 +2,7 @@ package me.stageguard.obms.frontend
 
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.frontend.route.authCallback
 import me.stageguard.obms.OsuMapSuggester
@@ -39,7 +36,7 @@ object NettyHttpServer : CoroutineScope {
             module {
                 authCallback()
             }
-        }).also { OsuMapSuggester.launch {
+        }).also { OsuMapSuggester.launch(CoroutineName("NettyServer")) {
             (it as ApplicationEngine).start(false)
         } }
     }

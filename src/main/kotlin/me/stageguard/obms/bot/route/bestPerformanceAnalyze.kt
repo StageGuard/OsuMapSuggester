@@ -5,11 +5,14 @@ import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.calculatorProcessorDispatcher
+import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.graph.bytes
@@ -70,122 +73,125 @@ suspend fun orderScores(
     analyzeDetail: Boolean = false,
     analyzeType: AnalyzeDetailType = AnalyzeDetailType.IfFullCombo,
     rangeToAnalyze: IntRange = 0..25
-) : ValueOrISE<OrderResult> = scores.second.let { secList ->
-    if(secList == null) {
-        if(!analyzeDetail) {
-            InferredEitherOrISE(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
-        } else {
-            val atomicInt = atomic(0)
-            val calculatedList = mutableListOf<OrderResult.Entry.DetailAnalyze>()
-            scores.first.asFlow().flowOn(newSingleThreadContext("PPCalculationFlow")).map { score ->
-                val idx = atomicInt.getAndIncrement()
-                if(idx in rangeToAnalyze) {
-                    val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
-                    beatmap.rightOrNull?.run {
-                        val recalculatedPp = PPCalculator.of(beatmap.right)
-                            .accuracy(score.accuracy * 100.0)
-                            .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
-                            .mods(score.mods.parseMods()).run {
-                                when(analyzeType) {
-                                    AnalyzeDetailType.IfFullCombo -> this
-                                    AnalyzeDetailType.OutdatedAlgorithm -> {
-                                        outdatedAlgorithm()
-                                            .misses(score.statistics.countMiss)
-                                            .combo(score.maxCombo)
-                                            .n100(score.statistics.count100)
-                                            .n50(score.statistics.count50)
+) : ValueOrISE<OrderResult> = withContext(calculatorProcessorDispatcher) {
+    scores.second.let { secList ->
+        if(secList == null) {
+            if(!analyzeDetail) {
+                InferredEitherOrISE(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
+            } else {
+                val atomicInt = atomic(0)
+                val calculatedList = mutableListOf<OrderResult.Entry.DetailAnalyze>()
+                scores.first.asFlow().flowOn(newSingleThreadContext("PPCalculationFlow")).map { score ->
+                    val idx = atomicInt.getAndIncrement()
+                    if(idx in rangeToAnalyze) {
+                        val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
+                        beatmap.rightOrNull?.run {
+                            val recalculatedPp = PPCalculator.of(beatmap.right)
+                                .accuracy(score.accuracy * 100.0)
+                                .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
+                                .mods(score.mods.parseMods()).run {
+                                    when(analyzeType) {
+                                        AnalyzeDetailType.IfFullCombo -> this
+                                        AnalyzeDetailType.OutdatedAlgorithm -> {
+                                            outdatedAlgorithm()
+                                                .misses(score.statistics.countMiss)
+                                                .combo(score.maxCombo)
+                                                .n100(score.statistics.count100)
+                                                .n50(score.statistics.count50)
+                                        }
                                     }
-                                }
-                            }.calculate()
-                        return@map OrderResult.Entry.DetailAnalyze(
+                                }.calculate()
+                            return@map OrderResult.Entry.DetailAnalyze(
+                                analyzeDetailType = analyzeType,
+                                rankChange = 0,
+                                drawLine = idx, // now drawLine is as original rank
+                                recalculatedPp = recalculatedPp.total,
+                                recalculatedWeightedPp = 0.0,
+                                isRecalculated = true,
+                                score = score
+                            )
+                        } ?: throw throw IllegalStateException("CALCULATE_ERROR:${beatmap.leftOrNull}")
+                    } else { // not in recalculate range, will be filtered later
+                        OrderResult.Entry.DetailAnalyze(
                             analyzeDetailType = analyzeType,
                             rankChange = 0,
                             drawLine = idx, // now drawLine is as original rank
-                            recalculatedPp = recalculatedPp.total,
+                            recalculatedPp = score.pp!!,
                             recalculatedWeightedPp = 0.0,
-                            isRecalculated = true,
+                            isRecalculated = false,
                             score = score
                         )
-                    } ?: throw throw IllegalStateException("CALCULATE_ERROR:${beatmap.leftOrNull}")
-                } else { // not in recalculate range, will be filtered later
+                    }
+                }.toList(calculatedList)
+                calculatedList.asSequence().sortedByDescending {
+                    it.recalculatedPp
+                }.mapIndexed { idx, it ->
                     OrderResult.Entry.DetailAnalyze(
                         analyzeDetailType = analyzeType,
-                        rankChange = 0,
+                        rankChange = it.drawLine - idx,
                         drawLine = idx, // now drawLine is as original rank
-                        recalculatedPp = score.pp!!,
-                        recalculatedWeightedPp = 0.0,
-                        isRecalculated = false,
-                        score = score
+                        recalculatedPp = it.recalculatedPp,
+                        recalculatedWeightedPp = it.recalculatedPp * 0.95.pow(idx),
+                        isRecalculated = it.isRecalculated,
+                        score = it.score
                     )
-                }
-            }.toList(calculatedList)
-            calculatedList.asSequence().sortedByDescending {
-                it.recalculatedPp
-            }.mapIndexed { idx, it ->
-                OrderResult.Entry.DetailAnalyze(
-                    analyzeDetailType = analyzeType,
-                    rankChange = it.drawLine - idx,
-                    drawLine = idx, // now drawLine is as original rank
-                    recalculatedPp = it.recalculatedPp,
-                    recalculatedWeightedPp = it.recalculatedPp * 0.95.pow(idx),
-                    isRecalculated = it.isRecalculated,
-                    score = it.score
-                )
-            }.filter { it.isRecalculated }.mapIndexed { idx, it ->
-                OrderResult.Entry.DetailAnalyze(
-                    analyzeDetailType = analyzeType,
-                    rankChange = it.rankChange,
-                    drawLine = idx, // now drawLine is as original rank
-                    recalculatedPp = it.recalculatedPp,
-                    recalculatedWeightedPp = it.recalculatedWeightedPp,
-                    score = it.score,
-                    isRecalculated = it.isRecalculated,
-                )
-            }.toList().run {
-                InferredEitherOrISE(OrderResult(this))
-            }
-        }
-    } else {
-        val resultList = mutableListOf<OrderResult.Entry.Versus>()
-        val combined = mutableListOf<ScoreDTO>().also {
-            it.addAll(scores.first)
-            it.addAll(secList)
-        }.toList().sortedByDescending { it.pp }
-        val leftUserId = scores.first.first().userId
-        var currentRowItemCount = 1
-        var currentRow = 0
-        var currentId = combined.first().userId
-        var currentBottomPP = combined.first().pp!!
-        resultList.add(OrderResult.Entry.Versus(leftUserId == currentId, currentRow, combined.first()))
-        combined.drop(1).forEach {
-            when {
-                it.pp!! + diffInOneLine < currentBottomPP -> {
-                    currentRow ++
-                    currentRowItemCount = 1
-                }
-                currentId == it.userId -> {
-                    currentRow ++
-                    currentRowItemCount = 1
-                }
-                currentRowItemCount == 2 -> {
-                    currentRow ++
-                    currentRowItemCount = 1
-                }
-                else -> {
-                    currentRowItemCount ++
+                }.filter { it.isRecalculated }.mapIndexed { idx, it ->
+                    OrderResult.Entry.DetailAnalyze(
+                        analyzeDetailType = analyzeType,
+                        rankChange = it.rankChange,
+                        drawLine = idx, // now drawLine is as original rank
+                        recalculatedPp = it.recalculatedPp,
+                        recalculatedWeightedPp = it.recalculatedWeightedPp,
+                        score = it.score,
+                        isRecalculated = it.isRecalculated,
+                    )
+                }.toList().run {
+                    InferredEitherOrISE(OrderResult(this))
                 }
             }
-            resultList.add(OrderResult.Entry.Versus(leftUserId == it.userId, currentRow, it))
-            currentId = it.userId
-            currentBottomPP = it.pp
+        } else {
+            val resultList = mutableListOf<OrderResult.Entry.Versus>()
+            val combined = mutableListOf<ScoreDTO>().also {
+                it.addAll(scores.first)
+                it.addAll(secList)
+            }.toList().sortedByDescending { it.pp }
+            val leftUserId = scores.first.first().userId
+            var currentRowItemCount = 1
+            var currentRow = 0
+            var currentId = combined.first().userId
+            var currentBottomPP = combined.first().pp!!
+            resultList.add(OrderResult.Entry.Versus(leftUserId == currentId, currentRow, combined.first()))
+            combined.drop(1).forEach {
+                when {
+                    it.pp!! + diffInOneLine < currentBottomPP -> {
+                        currentRow ++
+                        currentRowItemCount = 1
+                    }
+                    currentId == it.userId -> {
+                        currentRow ++
+                        currentRowItemCount = 1
+                    }
+                    currentRowItemCount == 2 -> {
+                        currentRow ++
+                        currentRowItemCount = 1
+                    }
+                    else -> {
+                        currentRowItemCount ++
+                    }
+                }
+                resultList.add(OrderResult.Entry.Versus(leftUserId == it.userId, currentRow, it))
+                currentId = it.userId
+                currentBottomPP = it.pp
+            }
+            InferredEitherOrISE(OrderResult(resultList))
         }
-        InferredEitherOrISE(OrderResult(resultList))
     }
 }
 
 suspend fun GroupMessageEvent.processOrderResultAndSend(orderResult: OrderResult) {
-    val surfaceOutput = BestPerformanceDetail.drawBestPerformancesImage(orderResult)
-    val bytes = surfaceOutput.bytes(EncodedImageFormat.PNG)
+    val bytes = withContext(graphicProcessorDispatcher) {
+        BestPerformanceDetail.drawBestPerformancesImage(orderResult).bytes(EncodedImageFormat.PNG)
+    }
     val externalResource = bytes.toExternalResource("png")
     val image = group.uploadImage(externalResource)
     runInterruptible { externalResource.close() }

@@ -1,6 +1,8 @@
 package me.stageguard.obms.cache
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.api.OsuWebApi
 import org.jetbrains.skija.Image
@@ -17,7 +19,7 @@ object ImageCache {
         url: String, maxTryCount: Int = 4, tryCount: Int = 0
     ) : Result<InputStream> = if(maxTryCount == tryCount + 1) {
         Result.failure(IllegalStateException("Failed to get image from $url after $maxTryCount tries"))
-    } else {
+    } else withContext(Dispatchers.IO) {
         val headers = OsuWebApi.head(url, headers = mapOf(), parameters = mapOf())
         val etag = headers["etag"]
         if(etag != null) {

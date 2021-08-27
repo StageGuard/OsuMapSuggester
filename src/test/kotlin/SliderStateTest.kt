@@ -6,7 +6,7 @@ import me.stageguard.obms.osu.processor.beatmap.SliderState
 import me.stageguard.obms.osu.processor.beatmap.TimingPoint
 import kotlin.test.assertEquals
 
-fun main() {
+suspend fun main() {
     val beatmap = Beatmap.buildBeatmap {
         timingPoints = mutableListOf(
             TimingPoint(time = 1.0, beatLength = 10.0),

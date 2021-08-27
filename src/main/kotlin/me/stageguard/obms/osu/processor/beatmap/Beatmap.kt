@@ -1,5 +1,7 @@
 package me.stageguard.obms.osu.processor.beatmap
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import me.stageguard.obms.osu.processor.beatmap.SliderPathType.*
 import me.stageguard.obms.utils.bomReader
 import me.stageguard.obms.utils.isLinearPoints
@@ -41,10 +43,10 @@ class Beatmap private constructor(
         private const val CURVE_POINT_THRESHOLD = 256
         private const val MAX_COORDINATE_VALUE = 131_072.0
 
-        fun parse(file: File) : Beatmap = parse(file.bomReader())
+        suspend fun parse(file: File) : Beatmap = parse(file.bomReader())
 
-        fun parse(reader: Reader) = buildBeatmap {
-            val lines = reader.readLines().filterNot {
+        suspend fun parse(reader: Reader) = buildBeatmap {
+            val lines = withContext(Dispatchers.IO) { reader.readLines() }.filterNot {
                 it.startsWith("//") || it.startsWith("_") || it.isEmpty() || it.isBlank()
             }.map {
                 it.trim { c -> c == '﻿' || c.isWhitespace() }
@@ -226,7 +228,7 @@ class Beatmap private constructor(
         }
 
         @Suppress("FunctionName")
-        fun buildBeatmap(buildAction: Builder.() -> Unit) = Builder().run {
+        suspend fun buildBeatmap(buildAction: suspend Builder.() -> Unit) = Builder().run {
             buildAction()
             build()
         }

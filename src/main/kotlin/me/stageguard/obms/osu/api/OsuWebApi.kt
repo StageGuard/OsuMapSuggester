@@ -5,6 +5,8 @@ import io.ktor.client.engine.okhttp.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.OsuMapSuggester
@@ -230,45 +232,49 @@ object OsuWebApi {
         url: String,
         parameters: Map<String, String>,
         headers: Map<String, String>,
-        consumer: RESP.() -> R
-    ) = client.get<RESP> {
-        url(url.also {
-            OsuMapSuggester.logger.info {
-                "GET: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
-                    if(isNotEmpty()) "?$this" else ""
-                }}"
+        crossinline consumer: RESP.() -> R
+    ) = withContext(Dispatchers.IO) {
+        client.get<RESP> {
+            url(url.also {
+                OsuMapSuggester.logger.info {
+                    "GET: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
+                        if(isNotEmpty()) "?$this" else ""
+                    }}"
+                }
+            })
+            headers.forEach {
+                header(it.key, it.value)
             }
-        })
-        headers.forEach {
-            header(it.key, it.value)
-        }
-        parameters.forEach {
-            parameter(it.key, it.value)
-        }
-    }.run(consumer)
+            parameters.forEach {
+                parameter(it.key, it.value)
+            }
+        }.run(consumer)
+    }
 
     @Suppress("DuplicatedCode")
     suspend inline fun head(
         url: String,
         parameters: Map<String, String>,
         headers: Map<String, String>
-    ) = client.head<HttpStatement> {
-        url(url.also {
-            OsuMapSuggester.logger.info {
-                "HEAD: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
-                    if(isNotEmpty()) "?$this" else ""
-                }}"
-            }
-        })
-        headers.forEach { header(it.key, it.value) }
-        parameters.forEach { parameter(it.key, it.value) }
-    }.execute { it.headers }
+    ) = withContext(Dispatchers.IO) {
+        client.head<HttpStatement> {
+            url(url.also {
+                OsuMapSuggester.logger.info {
+                    "HEAD: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
+                        if(isNotEmpty()) "?$this" else ""
+                    }}"
+                }
+            })
+            headers.forEach { header(it.key, it.value) }
+            parameters.forEach { parameter(it.key, it.value) }
+        }.execute { it.headers }
+    }
 
     @OptIn(ExperimentalSerializationApi::class)
     @Suppress("DuplicatedCode")
     suspend inline fun <reified REQ, reified RESP : Any> postImpl(
         url: String, token: String? = null, body: @Serializable REQ
-    ) : ValueOrISE<RESP> {
+    ) = withContext<ValueOrISE<RESP>>(Dispatchers.IO) {
         val responseText = client.post<String> {
             url(url.also {
                 OsuMapSuggester.logger.info { "POST: $url" }
@@ -278,7 +284,7 @@ object OsuWebApi {
             contentType(ContentType.Application.Json)
         }
 
-        return try {
+        try {
             InferredEitherOrISE(json.decodeFromString(responseText))
         } catch (ex: Exception) {
             Either(IllegalStateException("BAD_RESPONSE:$responseText"))

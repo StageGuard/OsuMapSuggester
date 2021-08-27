@@ -1,7 +1,10 @@
 package me.stageguard.obms.bot.route
 
 import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.calculatorProcessorDispatcher
+import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.cache.ReplayCache
@@ -114,7 +117,7 @@ tailrec suspend fun GroupMessageEvent.getLastScore(
     }
 
 
-suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) {
+suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withContext(calculatorProcessorDispatcher) {
     val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
     //calculate pp, first: current miss, second: full combo
     val mods = score.mods.parseMods()
@@ -179,10 +182,12 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) {
         }.right
     }
 
-    val surfaceOutput = RecentPlay.drawRecentPlayCard(
-        score, beatmapSet, modCombination, difficultyAttribute, ppCurvePoints, skillAttributes, userBestScore, replayAnalyzer
-    )
-    val bytes = surfaceOutput.bytes(EncodedImageFormat.PNG)
+    val bytes = withContext(graphicProcessorDispatcher) {
+        RecentPlay.drawRecentPlayCard(
+            score, beatmapSet, modCombination, difficultyAttribute,
+            ppCurvePoints, skillAttributes, userBestScore, replayAnalyzer
+        ).bytes(EncodedImageFormat.PNG)
+    }
     val externalResource = bytes.toExternalResource("png")
     val image = group.uploadImage(externalResource)
     runInterruptible { externalResource.close() }
