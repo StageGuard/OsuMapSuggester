@@ -145,7 +145,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) {
     }
     val modCombination = ModCombination.of(mods)
     val difficultyAttribute = beatmap.mapRight { it.calculateDifficultyAttributes(modCombination) }
-    val userBestScore = if(score.bestId != score.id) {
+    val userBestScore = if(score.bestId != score.id && !score.replay) {
         OsuWebApi.userBeatmapScore(sender.id, score.beatmap.id)
     } else {
         Either.invoke(IllegalStateException())
@@ -155,7 +155,8 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) {
     val replayAnalyzer = beatmap.run b@ { this@b.ifRight { b ->
         score.run s@ {
             if(this@s.replay) {
-                ReplayCache.getReplayData(this@s.id).run r@ { this@r.ifRight { r ->
+                //if replay available, the replay must be the best score play of this beatmap
+                ReplayCache.getReplayData(this@s.bestId!!).run r@ { this@r.ifRight { r ->
                     kotlin.runCatching {
                         val rep = ReplayFrameAnalyzer(b, r, modCombination)
                         InferredEitherOrISE(rep)
