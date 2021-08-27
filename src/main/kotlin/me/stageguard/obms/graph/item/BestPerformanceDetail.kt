@@ -101,7 +101,7 @@ object BestPerformanceDetail {
             })
             //rank icon
             val rankSvgImage = svgDom("svg/grade_${entry.score.rank.lowercase()}.svg").run {
-                toScaledImage((cardHeight - root!!.height.value / cardHeight) / 0.42f)
+                toScaledImage((cardHeight - root!!.height.value) / cardHeight / 0.42f)
             }.also {
                 drawImage(it, it.width / 2f, (cardHeight - it.height) / 2f)
             }
