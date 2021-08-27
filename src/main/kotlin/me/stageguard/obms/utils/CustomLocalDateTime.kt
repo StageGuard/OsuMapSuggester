@@ -11,7 +11,7 @@ class CustomLocalDateTime private constructor(
     val primitive: LocalDateTime
 ) {
     override fun toString(): String = primitive.run {
-        "$dayOfMonth ${month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} $year ${hour.run { 
+        "$dayOfMonth ${month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} $year ${hour.run {
             if (this < 10) "0$this" else this.toString()
         }}:${minute.run {
             if (this < 10) "0$this" else this.toString()

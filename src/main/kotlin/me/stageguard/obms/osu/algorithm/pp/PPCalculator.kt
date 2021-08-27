@@ -54,11 +54,10 @@ open class PPCalculator protected constructor(
         if (this.mods.fl()) {
             flashlightBonus *= 1.0 +
                 0.35 * min(totalHits / 200.0, 1.0) +
-                    (if (totalHits > 200)
-                        (0.3 * min(1.0, (totalHits - 200) / 300.0) + ( if (totalHits > 500)
-                                (totalHits - 500) / 1200.0
-                        else 0.0))
-                    else 0.0)
+                    if (totalHits > 200)
+                        0.3 * min(1.0, (totalHits - 200) / 300.0) +
+                        if (totalHits > 500) (totalHits - 500) / 1200.0 else 0.0
+                    else 0.0
         }
 
         aimValue *= max(approachRateBonus, flashlightBonus)

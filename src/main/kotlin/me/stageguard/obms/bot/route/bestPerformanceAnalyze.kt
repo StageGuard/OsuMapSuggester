@@ -292,7 +292,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         ).onRight { list ->
             orderScores(
                 list to null, analyzeDetail,
-                analyzeDetailType, offset..(limit + offset)
+                analyzeDetailType, offset..limit + offset
             ).onRight {
                 processOrderResultAndSend(it)
             }.onLeft {

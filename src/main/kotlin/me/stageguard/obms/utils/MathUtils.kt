@@ -69,7 +69,7 @@ inline fun rotate(
 }
 
 inline fun isLeft(p0: HitObjectPosition, p1: HitObjectPosition, p2: HitObjectPosition) =
-    ((p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x)) < 0.0
+    (p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x) < 0.0
 
 inline fun pointAtDistance(points: List<HitObjectPosition>, dist: Double) : HitObjectPosition {
     if(points.size < 2) {

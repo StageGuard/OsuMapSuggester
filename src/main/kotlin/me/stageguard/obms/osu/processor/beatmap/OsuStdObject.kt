@@ -132,7 +132,7 @@ class OsuStdObject constructor(
 
                 if(h.kind.repeatTimes > 1) {
                     for (rptIndex in 1 until h.kind.repeatTimes) {
-                        val timeOffset = (duration / h.kind.repeatTimes.toDouble()) * rptIndex.toDouble()
+                        val timeOffset = duration / h.kind.repeatTimes.toDouble() * rptIndex.toDouble()
                         computeVertex(h.startTime + timeOffset)
                         if (rptIndex and 1 == 1) {
                             ticks.asReversed().forEach {

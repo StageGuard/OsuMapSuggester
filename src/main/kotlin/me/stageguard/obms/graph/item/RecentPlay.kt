@@ -366,7 +366,7 @@ object RecentPlay {
             drawLine(
                 0f, circleSize.capHeight / 2,
                 attributeBarLength, circleSize.capHeight / 2,
-                paint.apply { 
+                paint.apply {
                     color = transparent40PercentBlack
                     strokeWidth = 8f
                     strokeCap = PaintStrokeCap.ROUND
@@ -421,7 +421,7 @@ object RecentPlay {
             }.forEach {
                 val icon = image("image/mod_$it.png")
                 drawImage(icon, modXOffset, 0f)
-                modXOffset += (icon.width + 3f)
+                modXOffset += icon.width + 3f
             }
 
             restore()
@@ -603,7 +603,7 @@ object RecentPlay {
             if(userBestScore.isRight && userBestScore.right.score.id != scoreDTO.id) {
                 val unwrapped = userBestScore.right.score
 
-                val scoreDiff = (scoreDTO.score - unwrapped.score)
+                val scoreDiff = scoreDTO.score - unwrapped.score
                 val bestScore = TextLine.make(" (${scoreDiff.run { if(this > 0) "+$this" else this.toString() }})", Font(semiBoldFont, 18f))
                 val accuracyDiff = (scoreDTO.accuracy - unwrapped.accuracy) * 100.0
                 val bestAccuracy = TextLine.make(" (${if(accuracyDiff > 0) "+" else ""}${format2DFix.format(accuracyDiff)}%)", Font(semiBoldFont, 18f))
@@ -743,7 +743,7 @@ object RecentPlay {
                     val skillWidth = max(skillName.width, skillValue.width)
                     val skillHeight = skillName.capHeight + 5f + skillValue.capHeight
 
-                    val relativeToCoord = 90 - (lastAngle - (360f * (it.second / totalSkill).toFloat()) / 2)
+                    val relativeToCoord = 90 - (lastAngle - 360f * (it.second / totalSkill).toFloat() / 2)
 
                     drawTextLineWithShadow(skillName,
                         (sin(relativeToCoord / 180 * PI) * radius * 1.4 - skillWidth / 2).toFloat() + (skillWidth - skillName.width) / 2,
@@ -794,7 +794,7 @@ object RecentPlay {
                         else -> this
                     }
                 }.toInt()
-                val startValue = (minValue - (minValue % interval)).toInt()
+                val startValue = (minValue - minValue % interval).toInt()
                 val intervalValues = (startValue..startValue + interval * lineRow step interval).toList()
                 val valueTexts = intervalValues.map {
                     TextLine.make(it.toString(), Font(semiBoldFont, 14f))
@@ -825,15 +825,15 @@ object RecentPlay {
                 }
                 accuracyValues.forEachIndexed { idx, it ->
                     drawLine(
-                        5f + 5f + maxValueTextWidth + 5f + 5f + (scaledChartWidth / 11) * idx, -maxAccuracyTextHeight - 5f,
-                        5f + 5f + maxValueTextWidth + 5f + 5f + (scaledChartWidth / 11) * idx, -maxAccuracyTextHeight - 5f - scaledChartHeight + 5f,
+                        5f + 5f + maxValueTextWidth + 5f + 5f + scaledChartWidth / 11 * idx, -maxAccuracyTextHeight - 5f,
+                        5f + 5f + maxValueTextWidth + 5f + 5f + scaledChartWidth / 11 * idx, -maxAccuracyTextHeight - 5f - scaledChartHeight + 5f,
                         paint.apply {
                             color = colorGray2
                             strokeWidth = 2f
                         }
                     )
                     drawTextLine(it,
-                        5f + 5f + maxValueTextWidth + 5f + 5f + (scaledChartWidth / 11) * idx - it.width / 2,
+                        5f + 5f + maxValueTextWidth + 5f + 5f + scaledChartWidth / 11 * idx - it.width / 2,
                         0f, paint.setColor(colorGray)
                     )
                 }
@@ -1001,7 +1001,7 @@ object RecentPlay {
                         } else if(time > 100.0) {
                             arr[arr.lastIndex] = arr[arr.lastIndex].plus(1)
                         } else {
-                            val idx = round(((time - (-100)) / 5.0)).toInt()
+                            val idx = round((time + 100) / 5.0).toInt()
                             arr[idx] = arr[idx].plus(1)
                         }
                     }
@@ -1077,7 +1077,7 @@ object RecentPlay {
                 save()
                 val dotRadius = 3f
                 translate(contentWidth / 2 - heatmapCircleRadius, 0f)
-                val dotPaddingWidth = (2 * heatmapCircleRadius - (2 * dotRadius * dotDensity)) / (dotDensity - 1)
+                val dotPaddingWidth = (2 * heatmapCircleRadius - 2 * dotRadius * dotDensity) / (dotDensity - 1)
                 heatmapMatrix.foldRight(0f) { wCnt, wAcc ->
                     wCnt.foldRight(0f) { hCnt, hAcc ->
                         drawPoint(wAcc + dotRadius, hAcc + dotRadius, paint.apply {

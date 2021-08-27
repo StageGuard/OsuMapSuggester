@@ -40,7 +40,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
         val bp = message.contentToString().removePrefix(".bps").trim().run {
             try {
                 val b = toInt()
-                require(b in (1..100)) { throw IllegalStateException("INVALID_BP_ORD") }
+                require(b in 1..100) { throw IllegalStateException("INVALID_BP_ORD") }
                 InferredEitherOrISE(b)
             } catch (ex: NumberFormatException) {
                 Either(IllegalStateException("INVALID_INPUT_FORMAT"))
@@ -128,7 +128,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
                 .misses(score.statistics.countMiss)
                 .combo(score.maxCombo)
                 .accuracy(score.accuracy * 100).calculate().total)
-            (900..1000 step 5).forEach { step ->
+            generateSequence(900) { s -> if(s == 1000) null else s + 5 }.forEach { step ->
                 val acc = step / 10.0
                 p.second.add(acc to PPCalculator.of(it).mods(mods).accuracy(acc).calculate().total)
                 p.first.add(acc to

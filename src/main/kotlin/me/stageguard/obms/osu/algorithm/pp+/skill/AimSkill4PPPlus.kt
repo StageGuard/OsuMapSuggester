@@ -74,7 +74,7 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
 
         val distance = current.jumpDist / NORMALIZED_RADIUS
 
-        val flowAimBase = (tanh(distance - 2.0) + 1.0) * 2.5 / current.strainTime + (distance / 5.0) / current.strainTime
+        val flowAimBase = (tanh(distance - 2.0) + 1.0) * 2.5 / current.strainTime + distance / 5.0 / current.strainTime
 
         var locationWeight = 1.0
         current.prevDifficultyObject.ifPresent { prevObj ->
@@ -115,7 +115,7 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         previousTwoObjects.asReversed().forEachIndexed { i, previousObject ->
             var velocityWeight = 1.05
             if (previousObject.jumpDist > 0) {
-                val velocityRatio = (current.jumpDist / current.strainTime) / (previousObject.jumpDist / previousObject.strainTime) - 1.0
+                val velocityRatio = current.jumpDist / current.strainTime / (previousObject.jumpDist / previousObject.strainTime) - 1.0
                 if (velocityRatio <= 0)
                     velocityWeight = 1.0 + velocityRatio * velocityRatio / 2.0
                 else if (velocityRatio < 1)

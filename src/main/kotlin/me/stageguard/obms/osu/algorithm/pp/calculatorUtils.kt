@@ -173,7 +173,7 @@ fun List<OsuStdObject>.stacking(stackThreshold: Double) {
                 if(objectN.isSlider && objectN.endPosition.distance(objectI.position) < stackDistance) {
                     val offset = objectI.stackHeight - objectN.stackHeight + 1
 
-                    for(j in (n + 1)..i) {
+                    for(j in n + 1..i) {
                         val objectJ = get(j)
                         if(objectN.endPosition.distance(objectJ.position) < stackDistance) {
                             get(j).stackHeight -= offset

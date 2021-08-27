@@ -101,9 +101,9 @@ object BestPerformanceDetail {
             })
             //rank icon
             val rankSvgImage = svgDom("svg/grade_${entry.score.rank.lowercase()}.svg").run {
-                toScaledImage(((cardHeight - root!!.height.value) / cardHeight) / 0.42f)
+                toScaledImage((cardHeight - root!!.height.value / cardHeight) / 0.42f)
             }.also {
-                drawImage(it, it.width / 2f, ((cardHeight - it.height) / 2f))
+                drawImage(it, it.width / 2f, (cardHeight - it.height) / 2f)
             }
             //beatmap info
             val songText = TextLine.make("${entry.score.beatmapset!!.title} ", Font(semiBoldFont, 18f))
@@ -146,15 +146,7 @@ object BestPerformanceDetail {
                     color = ppBackgroundColor
                     mode = PaintMode.FILL
                 })
-            drawRRect(
-                RRect.makeXYWH(
-                    (cardWidth - cardHeight),
-                    0f,
-                    cardHeight,
-                    cardHeight,
-                    15f
-                ), paint
-            )
+            drawRRect(RRect.makeXYWH(cardWidth - cardHeight, 0f, cardHeight, cardHeight, 15f), paint)
             //draw pp text
             val ppValueText = TextLine.make(round(entry.score.pp!!).toInt().toString(), Font(boldFont, 20f))
             val ppText = TextLine.make("pp", Font(semiBoldFont, 16f))
@@ -167,7 +159,7 @@ object BestPerformanceDetail {
                 }
             )
             drawTextLine(ppText,
-                cardWidth - ((ppBackgroundWidth - cardHeight / 4) + totalWidth) / 2f + ppValueText.width,
+                cardWidth - (ppBackgroundWidth - cardHeight / 4 + totalWidth) / 2f + ppValueText.width,
                 cardHeight / 2f + ppValueText.height / 4f,
                 paint.apply {
                     color = ppTextColor
@@ -263,9 +255,9 @@ object BestPerformanceDetail {
             )
             //rank icon
             val rankSvgImage = svgDom("svg/grade_${entry.score.rank.lowercase()}.svg").run {
-                toScaledImage(((cardHeight - root!!.height.value) / cardHeight) / 0.42f)
+                toScaledImage((cardHeight - root!!.height.value) / cardHeight / 0.42f)
             }.also {
-                drawImage(it, cardHeight + it.width / 2f, ((cardHeight - it.height) / 2f))
+                drawImage(it, cardHeight + it.width / 2f, (cardHeight - it.height) / 2f)
             }
             //beatmap info
             val songText = TextLine.make("${entry.score.beatmapset!!.title} ", Font(semiBoldFont, 18f))
@@ -308,15 +300,7 @@ object BestPerformanceDetail {
                     color = ppBackgroundColor
                     mode = PaintMode.FILL
                 })
-            drawRRect(
-                RRect.makeXYWH(
-                    (detailedCardWidth - cardHeight),
-                    0f,
-                    cardHeight,
-                    cardHeight,
-                    15f
-                ), paint
-            )
+            drawRRect(RRect.makeXYWH(detailedCardWidth - cardHeight, 0f, cardHeight, cardHeight, 15f), paint)
             //draw pp text
             val ppText = TextLine.make("pp", Font(semiBoldFont, 16f))
             if(abs(round(entry.score.pp) - round(entry.recalculatedPp)) <= 1) {
@@ -348,7 +332,7 @@ object BestPerformanceDetail {
                 }
                 val totalWidth = beforeRecalculatePPValue.width + ppText.width + rightArrow.width + beforeRecalculatePPValue.width + ppText.width + 20
                 drawTextLine(beforeRecalculatePPValue,
-                    detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f,
+                    detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f,
                     cardHeight / 2f + beforeRecalculatePPValue.height / 4f,
                     paint.apply {
                         color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
@@ -357,7 +341,7 @@ object BestPerformanceDetail {
                     }
                 )
                 drawTextLine(ppText,
-                    detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f
+                    detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f
                             + beforeRecalculatePPValue.width,
                     cardHeight / 2f + beforeRecalculatePPValue.height / 4f,
                     paint.apply {
@@ -367,12 +351,12 @@ object BestPerformanceDetail {
                     }
                 )
                 drawImage(rightArrow,
-                    detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f +
+                    detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f +
                             beforeRecalculatePPValue.width + ppText.width + 10.toFloat(),
                     (cardHeight - rightArrow.height) / 2,
                     paint)
                 drawTextLine(afterRecalculatePPValue,
-                    detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f +
+                    detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f +
                             beforeRecalculatePPValue.width + ppText.width + rightArrow.width + 20.toFloat(),
                     cardHeight / 2f + afterRecalculatePPValue.height / 4f,
                     paint.apply {
@@ -382,7 +366,7 @@ object BestPerformanceDetail {
                     }
                 )
                 drawTextLine(ppText,
-                    detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f +
+                    detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f +
                             beforeRecalculatePPValue.width + ppText.width + rightArrow.width + afterRecalculatePPValue.width + 20.toFloat(),
                     cardHeight / 2f + afterRecalculatePPValue.height / 4f,
                     paint.apply {
