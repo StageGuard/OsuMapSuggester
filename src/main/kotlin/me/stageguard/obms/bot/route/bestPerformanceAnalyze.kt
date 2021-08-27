@@ -1,11 +1,9 @@
 package me.stageguard.obms.bot.route
 
 import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.runInterruptible
-import kotlinx.coroutines.withContext
+import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.api.OsuWebApi
@@ -73,118 +71,116 @@ suspend fun orderScores(
     analyzeDetail: Boolean = false,
     analyzeType: AnalyzeDetailType = AnalyzeDetailType.IfFullCombo,
     rangeToAnalyze: IntRange = 0..25
-) : ValueOrISE<OrderResult> = withContext(calculatorProcessorDispatcher) {
-    scores.second.let { secList ->
-        if(secList == null) {
-            if(!analyzeDetail) {
-                InferredEitherOrISE(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
-            } else {
-                val atomicInt = atomic(0)
-                val calculatedList = mutableListOf<OrderResult.Entry.DetailAnalyze>()
-                scores.first.asFlow().flowOn(newSingleThreadContext("PPCalculationFlow")).map { score ->
-                    val idx = atomicInt.getAndIncrement()
-                    if(idx in rangeToAnalyze) {
-                        val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
-                        beatmap.rightOrNull?.run {
-                            val recalculatedPp = PPCalculator.of(beatmap.right)
-                                .accuracy(score.accuracy * 100.0)
-                                .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
-                                .mods(score.mods.parseMods()).run {
-                                    when(analyzeType) {
-                                        AnalyzeDetailType.IfFullCombo -> this
-                                        AnalyzeDetailType.OutdatedAlgorithm -> {
-                                            outdatedAlgorithm()
-                                                .misses(score.statistics.countMiss)
-                                                .combo(score.maxCombo)
-                                                .n100(score.statistics.count100)
-                                                .n50(score.statistics.count50)
-                                        }
+) : ValueOrISE<OrderResult> = scores.second.let { secList ->
+    if(secList == null) {
+        if(!analyzeDetail) {
+            InferredEitherOrISE(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
+        } else withContext(calculatorProcessorDispatcher) {
+            val atomicInt = atomic(0)
+            val calculatedList = mutableListOf<OrderResult.Entry.DetailAnalyze>()
+            scores.first.asFlow().map { score ->
+                val idx = atomicInt.getAndIncrement()
+                if(idx in rangeToAnalyze) {
+                    val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
+                    beatmap.rightOrNull?.run {
+                        val recalculatedPp = PPCalculator.of(beatmap.right)
+                            .accuracy(score.accuracy * 100.0)
+                            .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
+                            .mods(score.mods.parseMods()).run {
+                                when(analyzeType) {
+                                    AnalyzeDetailType.IfFullCombo -> this
+                                    AnalyzeDetailType.OutdatedAlgorithm -> {
+                                        outdatedAlgorithm()
+                                            .misses(score.statistics.countMiss)
+                                            .combo(score.maxCombo)
+                                            .n100(score.statistics.count100)
+                                            .n50(score.statistics.count50)
                                     }
-                                }.calculate()
-                            return@map OrderResult.Entry.DetailAnalyze(
-                                analyzeDetailType = analyzeType,
-                                rankChange = 0,
-                                drawLine = idx, // now drawLine is as original rank
-                                recalculatedPp = recalculatedPp.total,
-                                recalculatedWeightedPp = 0.0,
-                                isRecalculated = true,
-                                score = score
-                            )
-                        } ?: throw throw IllegalStateException("CALCULATE_ERROR:${beatmap.leftOrNull}")
-                    } else { // not in recalculate range, will be filtered later
-                        OrderResult.Entry.DetailAnalyze(
+                                }
+                            }.calculate()
+                        return@map OrderResult.Entry.DetailAnalyze(
                             analyzeDetailType = analyzeType,
                             rankChange = 0,
                             drawLine = idx, // now drawLine is as original rank
-                            recalculatedPp = score.pp!!,
+                            recalculatedPp = recalculatedPp.total,
                             recalculatedWeightedPp = 0.0,
-                            isRecalculated = false,
+                            isRecalculated = true,
                             score = score
                         )
-                    }
-                }.toList(calculatedList)
-                calculatedList.asSequence().sortedByDescending {
-                    it.recalculatedPp
-                }.mapIndexed { idx, it ->
+                    } ?: throw throw IllegalStateException("CALCULATE_ERROR:${beatmap.leftOrNull}")
+                } else { // not in recalculate range, will be filtered later
                     OrderResult.Entry.DetailAnalyze(
                         analyzeDetailType = analyzeType,
-                        rankChange = it.drawLine - idx,
+                        rankChange = 0,
                         drawLine = idx, // now drawLine is as original rank
-                        recalculatedPp = it.recalculatedPp,
-                        recalculatedWeightedPp = it.recalculatedPp * 0.95.pow(idx),
-                        isRecalculated = it.isRecalculated,
-                        score = it.score
+                        recalculatedPp = score.pp!!,
+                        recalculatedWeightedPp = 0.0,
+                        isRecalculated = false,
+                        score = score
                     )
-                }.filter { it.isRecalculated }.mapIndexed { idx, it ->
-                    OrderResult.Entry.DetailAnalyze(
-                        analyzeDetailType = analyzeType,
-                        rankChange = it.rankChange,
-                        drawLine = idx, // now drawLine is as original rank
-                        recalculatedPp = it.recalculatedPp,
-                        recalculatedWeightedPp = it.recalculatedWeightedPp,
-                        score = it.score,
-                        isRecalculated = it.isRecalculated,
-                    )
-                }.toList().run {
-                    InferredEitherOrISE(OrderResult(this))
                 }
+            }.toList(calculatedList)
+            calculatedList.asSequence().sortedByDescending {
+                it.recalculatedPp
+            }.mapIndexed { idx, it ->
+                OrderResult.Entry.DetailAnalyze(
+                    analyzeDetailType = analyzeType,
+                    rankChange = it.drawLine - idx,
+                    drawLine = idx, // now drawLine is as original rank
+                    recalculatedPp = it.recalculatedPp,
+                    recalculatedWeightedPp = it.recalculatedPp * 0.95.pow(idx),
+                    isRecalculated = it.isRecalculated,
+                    score = it.score
+                )
+            }.filter { it.isRecalculated }.mapIndexed { idx, it ->
+                OrderResult.Entry.DetailAnalyze(
+                    analyzeDetailType = analyzeType,
+                    rankChange = it.rankChange,
+                    drawLine = idx, // now drawLine is as original rank
+                    recalculatedPp = it.recalculatedPp,
+                    recalculatedWeightedPp = it.recalculatedWeightedPp,
+                    score = it.score,
+                    isRecalculated = it.isRecalculated,
+                )
+            }.toList().run {
+                InferredEitherOrISE(OrderResult(this))
             }
-        } else {
-            val resultList = mutableListOf<OrderResult.Entry.Versus>()
-            val combined = mutableListOf<ScoreDTO>().also {
-                it.addAll(scores.first)
-                it.addAll(secList)
-            }.toList().sortedByDescending { it.pp }
-            val leftUserId = scores.first.first().userId
-            var currentRowItemCount = 1
-            var currentRow = 0
-            var currentId = combined.first().userId
-            var currentBottomPP = combined.first().pp!!
-            resultList.add(OrderResult.Entry.Versus(leftUserId == currentId, currentRow, combined.first()))
-            combined.drop(1).forEach {
-                when {
-                    it.pp!! + diffInOneLine < currentBottomPP -> {
-                        currentRow ++
-                        currentRowItemCount = 1
-                    }
-                    currentId == it.userId -> {
-                        currentRow ++
-                        currentRowItemCount = 1
-                    }
-                    currentRowItemCount == 2 -> {
-                        currentRow ++
-                        currentRowItemCount = 1
-                    }
-                    else -> {
-                        currentRowItemCount ++
-                    }
-                }
-                resultList.add(OrderResult.Entry.Versus(leftUserId == it.userId, currentRow, it))
-                currentId = it.userId
-                currentBottomPP = it.pp
-            }
-            InferredEitherOrISE(OrderResult(resultList))
         }
+    } else withContext(calculatorProcessorDispatcher) {
+        val resultList = mutableListOf<OrderResult.Entry.Versus>()
+        val combined = mutableListOf<ScoreDTO>().also {
+            it.addAll(scores.first)
+            it.addAll(secList)
+        }.toList().sortedByDescending { it.pp }
+        val leftUserId = scores.first.first().userId
+        var currentRowItemCount = 1
+        var currentRow = 0
+        var currentId = combined.first().userId
+        var currentBottomPP = combined.first().pp!!
+        resultList.add(OrderResult.Entry.Versus(leftUserId == currentId, currentRow, combined.first()))
+        combined.drop(1).forEach {
+            when {
+                it.pp!! + diffInOneLine < currentBottomPP -> {
+                    currentRow ++
+                    currentRowItemCount = 1
+                }
+                currentId == it.userId -> {
+                    currentRow ++
+                    currentRowItemCount = 1
+                }
+                currentRowItemCount == 2 -> {
+                    currentRow ++
+                    currentRowItemCount = 1
+                }
+                else -> {
+                    currentRowItemCount ++
+                }
+            }
+            resultList.add(OrderResult.Entry.Versus(leftUserId == it.userId, currentRow, it))
+            currentId = it.userId
+            currentBottomPP = it.pp
+        }
+        InferredEitherOrISE(OrderResult(resultList))
     }
 }
 
@@ -216,90 +212,94 @@ fun List<String>.parseMods() = map {
 @Suppress("SpellCheckingInspection")
 fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
     startsWith(".bpvs") {
-        //parse message
-        var (limit, offset) = 25 to 0
-        val target: At = message.filterIsInstance<At>().run {
-            if(isEmpty()) {
-                atReply("请指定一个玩家来对比。")
-                return@startsWith
-            } else first()
+        OsuMapSuggester.launch(CoroutineName("Command \"bpvs\" of ${sender.id}")) {
+            //parse message
+            var (limit, offset) = 25 to 0
+            val target: At = message.filterIsInstance<At>().run {
+                if(isEmpty()) {
+                    atReply("请指定一个玩家来对比。")
+                    return@launch
+                } else first()
+            }
+
+            if(target.target == sender.id) {
+                atReply("无法与你自己对比！")
+                return@launch
+            }
+
+            regex.matchEntire(
+                message.filterIsInstance<PlainText>().joinToString("").substringAfter(".bpvs").trim()
+            )?.groupValues?.run {
+                limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1
+                offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
+            }
+
+            val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)
+            val targetBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset)
+
+            myBpScores.onRight { my ->
+                targetBpScores.onRight { target ->
+                    orderScores(my to target).onRight {
+                        processOrderResultAndSend(it)
+                    }.onLeft {
+                        atReply("处理数据时发生了异常: ${parseExceptions(it)}")
+                    }
+                }.onLeft {
+                    atReply("从服务器获取对方的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
+                }
+            }.onLeft {
+                atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
+            }
         }
+    }
 
-        if(target.target == sender.id) {
-            atReply("无法与你自己对比！")
-            return@startsWith
-        }
+    startsWith(".bpa") {
+        OsuMapSuggester.launch(CoroutineName("Command \"bpa\" of ${sender.id}")) {
+            //parse message
+            var (limit, offset) = 25 to 0
 
-        regex.matchEntire(
-            message.filterIsInstance<PlainText>().joinToString("").substringAfter(".bpvs").trim()
-        )?.groupValues?.run {
-            limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1
-            offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
-        }
+            var msg = message.filterIsInstance<PlainText>().joinToString("").substringAfter(".bpa").trim()
+            var analyzeDetail = false
+            var analyzeDetailType = AnalyzeDetailType.IfFullCombo
 
-        val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)
-        val targetBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset)
+            if (msg.startsWith("fc")) {
+                msg = msg.substringAfter("fc").trim()
+                analyzeDetailType = AnalyzeDetailType.IfFullCombo
+                analyzeDetail = true
+            } else if (msg.startsWith("old")) {
+                msg = msg.substringAfter("old").trim()
+                analyzeDetailType = AnalyzeDetailType.OutdatedAlgorithm
+                analyzeDetail = true
+            }
 
-        myBpScores.onRight { my ->
-            targetBpScores.onRight { target ->
-                orderScores(my to target).onRight {
+            regex.matchEntire(msg)?.groupValues?.run {
+                limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1
+                offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
+            }
+
+            if(analyzeDetail) {
+                if(analyzeDetailType == AnalyzeDetailType.IfFullCombo) {
+                    atReply("正在以 Full Combo 重新计算你 Best Performance 中 ${offset + 1} 到 ${offset + limit} 的成绩...")
+                } else if(analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                    atReply("正在计算 Best Performance 中 ${offset + 1} 到 ${offset + limit} 的 PP 削减...")
+                }
+            }
+
+            OsuWebApi.userScore(
+                user = sender.id, type = "best",
+                limit = if(analyzeDetail) 100 else limit, offset = if(analyzeDetail) 0 else offset
+            ).onRight { list ->
+                orderScores(
+                    list to null, analyzeDetail,
+                    analyzeDetailType, offset..limit + offset
+                ).onRight {
                     processOrderResultAndSend(it)
                 }.onLeft {
                     atReply("处理数据时发生了异常: ${parseExceptions(it)}")
                 }
             }.onLeft {
-                atReply("从服务器获取对方的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
+                atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
             }
-        }.onLeft {
-            atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
-        }
-    }
-
-    startsWith(".bpa") {
-        //parse message
-        var (limit, offset) = 25 to 0
-
-        var msg = message.filterIsInstance<PlainText>().joinToString("").substringAfter(".bpa").trim()
-        var analyzeDetail = false
-        var analyzeDetailType = AnalyzeDetailType.IfFullCombo
-
-        if (msg.startsWith("fc")) {
-            msg = msg.substringAfter("fc").trim()
-            analyzeDetailType = AnalyzeDetailType.IfFullCombo
-            analyzeDetail = true
-        } else if (msg.startsWith("old")) {
-            msg = msg.substringAfter("old").trim()
-            analyzeDetailType = AnalyzeDetailType.OutdatedAlgorithm
-            analyzeDetail = true
-        }
-
-        regex.matchEntire(msg)?.groupValues?.run {
-            limit = if(get(2).isEmpty()) 25 else if(get(2).toInt() - get(1).toInt() + 1 > 100) 100 else get(2).toInt() - get(1).toInt() + 1
-            offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
-        }
-
-        if(analyzeDetail) {
-            if(analyzeDetailType == AnalyzeDetailType.IfFullCombo) {
-                atReply("正在以 Full Combo 重新计算你 Best Performance 中 ${offset + 1} 到 ${offset + limit} 的成绩...")
-            } else if(analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
-                atReply("正在计算 Best Performance 中 ${offset + 1} 到 ${offset + limit} 的 PP 削减...")
-            }
-        }
-
-        OsuWebApi.userScore(
-            user = sender.id, type = "best",
-            limit = if(analyzeDetail) 100 else limit, offset = if(analyzeDetail) 0 else offset
-        ).onRight { list ->
-            orderScores(
-                list to null, analyzeDetail,
-                analyzeDetailType, offset..limit + offset
-            ).onRight {
-                processOrderResultAndSend(it)
-            }.onLeft {
-                atReply("处理数据时发生了异常: ${parseExceptions(it)}")
-            }
-        }.onLeft {
-            atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
         }
     }
 }

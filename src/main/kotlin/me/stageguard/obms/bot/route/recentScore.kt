@@ -1,7 +1,10 @@
 package me.stageguard.obms.bot.route
 
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
 import me.stageguard.obms.bot.graphicProcessorDispatcher
@@ -37,53 +40,59 @@ import java.util.Optional
 
 fun GroupMessageSubscribersBuilder.recentScore() {
     startsWith(".bps") {
-        val bp = message.contentToString().removePrefix(".bps").trim().run {
-            try {
-                val b = toInt()
-                require(b in 1..100) { throw IllegalStateException("INVALID_BP_ORD") }
-                InferredEitherOrISE(b)
-            } catch (ex: NumberFormatException) {
-                Either(IllegalStateException("INVALID_INPUT_FORMAT"))
-            } catch (ex: IllegalStateException) {
-                Either(ex)
+        OsuMapSuggester.launch(CoroutineName("Command \"bps\" of ${sender.id}")) {
+            val bp = message.contentToString().removePrefix(".bps").trim().run {
+                try {
+                    val b = toInt()
+                    require(b in 1..100) { throw IllegalStateException("INVALID_BP_ORD") }
+                    InferredEitherOrISE(b)
+                } catch (ex: NumberFormatException) {
+                    Either(IllegalStateException("INVALID_INPUT_FORMAT"))
+                } catch (ex: IllegalStateException) {
+                    Either(ex)
+                }
             }
-        }
-        bp.onRight {
-            val score = OsuWebApi.userScore(sender.id, type = "best", limit = 1, offset = it - 1)
-            score.onRight { ls ->
-                processRecentPlayData(ls.single())
+            bp.onRight {
+                val score = OsuWebApi.userScore(sender.id, type = "best", limit = 1, offset = it - 1)
+                score.onRight { ls ->
+                    processRecentPlayData(ls.single())
+                }.onLeft {
+                    atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
+                }
             }.onLeft {
                 atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
             }
-        }.onLeft {
-            atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
         }
-
     }
     startsWith(".scr") {
-        val bid = message.contentToString().removePrefix(".scr").trim().run {
-            try {
-                InferredEitherOrISE(toInt())
-            } catch (ex: NumberFormatException) {
-                Either(IllegalStateException("INVALID_INPUT_FORMAT"))
+        OsuMapSuggester.launch(CoroutineName("Command \"scr\" of ${sender.id}")) {
+            val bid = message.contentToString().removePrefix(".scr").trim().run {
+                try {
+                    InferredEitherOrISE(toInt())
+                } catch (ex: NumberFormatException) {
+                    Either(IllegalStateException("INVALID_INPUT_FORMAT"))
+                }
             }
-        }
-        bid.onRight {
-            val score = OsuWebApi.userBeatmapScore(sender.id, it)
-            score.onRight { s ->
-                processRecentPlayData(s.score)
+            bid.onRight {
+                val score = OsuWebApi.userBeatmapScore(sender.id, it)
+                score.onRight { s ->
+                    processRecentPlayData(s.score)
+                }.onLeft {
+                    atReply("从服务器获取你的成绩信息时发生了异常: ${parseExceptions(it)}")
+                }
             }.onLeft {
                 atReply("从服务器获取你的成绩信息时发生了异常: ${parseExceptions(it)}")
             }
-        }.onLeft {
-            atReply("从服务器获取你的成绩信息时发生了异常: ${parseExceptions(it)}")
         }
+
     }
     startsWith(".rep") {
-        getLastScore(5).onRight { score ->
-            processRecentPlayData(score)
-        }.onLeft {
-            atReply("从服务器获取最近成绩时发生了异常：${parseExceptions(it)}")
+        OsuMapSuggester.launch(CoroutineName("Command \"rep\" of ${sender.id}")) {
+            getLastScore(5).onRight { score ->
+                processRecentPlayData(score)
+            }.onLeft {
+                atReply("从服务器获取最近成绩时发生了异常：${parseExceptions(it)}")
+            }
         }
     }
 }
