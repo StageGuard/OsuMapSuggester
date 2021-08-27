@@ -15,11 +15,11 @@ enum class Key {
                 return@also
             }
             when {
-                (1 shl 0 and v) > 0 -> it.add(M1)
-                (1 shl 1 and v) > 0 -> it.add(M2)
-                (1 shl 2 and v) > 0 -> it.add(K1)
-                (1 shl 3 and v) > 0 -> it.add(K2)
-                (1 shl 4 and v) > 0 -> it.add(Smoke)
+                1 shl 0 and v > 0 -> it.add(M1)
+                1 shl 1 and v > 0 -> it.add(M2)
+                1 shl 2 and v > 0 -> it.add(K1)
+                1 shl 3 and v > 0 -> it.add(K2)
+                1 shl 4 and v > 0 -> it.add(Smoke)
             }
         }
     }
