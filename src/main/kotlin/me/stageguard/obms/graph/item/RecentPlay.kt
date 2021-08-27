@@ -137,7 +137,7 @@ object RecentPlay {
                 val songHeaderRRect = RRect.makeXYWH(songInfoPadding, songInfoPadding,
                     scaledSongHeader.width.toFloat(), scaledSongHeader.height.toFloat(), 16f
                 )
-                drawRoundCorneredImage(scaledSongHeader, songInfoPadding, songInfoPadding, 12f)
+                drawRoundCorneredImage(scaledSongHeader, songInfoPadding, songInfoPadding, 16f)
                 drawRRect(songHeaderRRect, paint.apply {
                     color = Color.makeARGB(80, 0, 0, 0)
                     mode = PaintMode.STROKE
@@ -146,6 +146,19 @@ object RecentPlay {
             }
 
             val songInfoSavePoint = save()
+
+            val songBid = TextLine.make("BID: ${scoreDTO.beatmap!!.id}", Font(semiBoldFont, 16f))
+            drawRRect(RRect.makeXYWH(
+                cardWidth - songBid.width - 20f, 0f, songBid.width + 20f, songBid.capHeight + 20f, 8f
+            ), paint.apply {
+                color = transparent40PercentBlack
+                mode = PaintMode.FILL
+            })
+            drawTextLine(songBid, cardWidth - songBid.width - 10f, songBid.capHeight + 10f, paint.apply {
+                color = colorGray
+                mode = PaintMode.FILL
+                strokeWidth = 1f
+            })
 
             //song basic info
             val songTitle = TextLine.make(kotlin.run {
@@ -183,7 +196,7 @@ object RecentPlay {
                 strokeWidth = 1f
             }, 2f)
 
-            val beatmapsetCreateTime = TextLine.make("created at ${scoreDTO.beatmap!!.lastUpdated}", Font(regularFont, 20f))
+            val beatmapsetCreateTime = TextLine.make("created at ${scoreDTO.beatmap.lastUpdated}", Font(regularFont, 20f))
             drawTextLineWithShadow(beatmapsetCreateTime, mapperAvatarEdgeLength + 15f,
                 mapperName.capHeight + beatmapsetCreateTime.capHeight + 22f,
                 paint.apply {
@@ -1147,9 +1160,9 @@ object RecentPlay {
                 var color = Color.makeRGB(79, 192, 255)
                 (0 until mapping.lastIndex).forEach {
                     if(value in mapping[it].first..mapping[it + 1].first) {
-                        color = Color.makeLerp(
+                        color = lerpColor(
                             mapping[it].second, mapping[it + 1].second,
-                            ((value - mapping[it].first) / (mapping[it + 1].first - mapping[it].first)).toFloat()
+                            (value - mapping[it].first) / (mapping[it + 1].first - mapping[it].first)
                         )
                     }
                 }
