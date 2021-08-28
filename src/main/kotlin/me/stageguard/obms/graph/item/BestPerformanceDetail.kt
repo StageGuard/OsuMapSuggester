@@ -307,14 +307,14 @@ object BestPerformanceDetail {
                 val ppValueText = TextLine.make(round(entry.score.pp).toInt().toString(), Font(boldFont, 20f))
                 val totalWidth = ppValueText.width + ppText.width
                 drawTextLine(ppValueText,
-                    detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f,
+                    detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f,
                     cardHeight / 2f + ppValueText.height / 4f,
                     paint.apply {
                         color = ppColor
                     }
                 )
                 drawTextLine(ppText,
-                    detailedCardWidth - ((detailedPpBackgroundWidth - cardHeight / 4) + totalWidth) / 2f + ppValueText.width,
+                    detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f + ppValueText.width,
                     cardHeight / 2f + ppValueText.height / 4f,
                     paint.apply {
                         color = ppTextColor
