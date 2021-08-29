@@ -9,11 +9,16 @@ import me.stageguard.obms.osu.api.dto.BeatmapsetDTO
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
+import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.ValueOrISE
 import me.stageguard.obms.utils.lerp
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.isRight
+import me.stageguard.obms.utils.Either.Companion.onLeft
+import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.right
+import me.stageguard.obms.utils.Either.Companion.rightOrNull
+import me.stageguard.obms.utils.InferredEitherOrISE
 import org.jetbrains.skija.*
 import java.lang.Exception
 import java.util.*
@@ -52,18 +57,16 @@ object RecentPlay {
     private val replayItemTitleIconColor = Color.makeRGB(2, 247, 165)
     private fun accuracyHeatmapDotColor(a: Double) = Color.makeARGB((a * 255).toInt(), 114, 224, 193)
 
-    private val defaultAvatarImage: Result<Image>
+    private val defaultAvatarImage: ValueOrISE<Image>
         get() = try {
-            Result.success(image("image/avatar_guest.png"))
+            InferredEitherOrISE(image("image/avatar_guest.png"))
         } catch (ex: Exception) {
-            Result.failure(ex)
+            Either(IllegalStateException(ex))
         }
 
-    private suspend fun getAvatarFromUrlOrDefault(url: String) = ImageCache.getImageAsSkijaImage(url).getOrElse { oEx ->
-        defaultAvatarImage.getOrElse {
-            throw IllegalStateException("Cannot get avatar fom server and local: $oEx")
-        }
-    }
+    private suspend fun getAvatarFromUrlOrDefault(url: String) =
+        ImageCache.getImageAsSkijaImage(url).rightOrNull ?: defaultAvatarImage.rightOrNull ?:
+            throw IllegalStateException("Cannot get avatar fom server and local: $url")
 
 
     suspend fun drawRecentPlayCard(
@@ -92,7 +95,7 @@ object RecentPlay {
         skillAttributes: ValueOrISE<SkillAttributes>,
         userBestScore: ValueOrISE<BeatmapUserScoreDTO>,
         replayAnalyzer: ValueOrISE<ReplayFrameAnalyzer>,
-        playerAvatar: Image, songCover: Result<Image>, songHeadImage: Result<Image>
+        playerAvatar: Image, songCover: ValueOrISE<Image>, songHeadImage: ValueOrISE<Image>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(
             (replayAnalyzer.ifRight { (cardWidth + replayDetailWidth).toInt() } ?: cardWidth).toInt(),
@@ -107,12 +110,12 @@ object RecentPlay {
         surface.canvas.apply {
             val baseSavePoint = save()
             //background
-            songCover.onSuccess {
+            songCover.onRight {
                 drawImage(
                     it.scale(cardWidth / it.width.toFloat(), songInfoHeight / it.height.toFloat()),
                     0F, 0F
                 )
-            }.onFailure {
+            }.onLeft {
                 drawRect(Rect.makeXYWH(0F, 0F, cardWidth, songInfoHeight), paint.apply {
                     color = scoreInfoBackgroundColor
                     mode = PaintMode.FILL
@@ -128,7 +131,7 @@ object RecentPlay {
             })
 
             //song header image
-            songHeadImage.onSuccess {
+            songHeadImage.onRight {
                 val scaledSongHeaderBase = it.scale(songHeaderImageWidth / it.width)
                 val scaledSongHeader = scaledSongHeaderBase.cutCenter(
                     songHeaderImageWidth / scaledSongHeaderBase.width,
@@ -184,7 +187,7 @@ object RecentPlay {
 
             //mapper info
             val mapperAvatar = defaultAvatarImage
-            mapperAvatar.onSuccess {
+            mapperAvatar.onRight {
                 val scaledMapperAvatar = it.scale(mapperAvatarEdgeLength / it.width, mapperAvatarEdgeLength / it.height)
                 drawRoundCorneredImage(scaledMapperAvatar, 0f, 0f, 12f)
             }

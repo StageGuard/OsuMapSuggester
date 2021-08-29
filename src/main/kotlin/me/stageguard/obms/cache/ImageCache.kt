@@ -5,6 +5,11 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.api.OsuWebApi
+import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.Either.Companion.ifRight
+import me.stageguard.obms.utils.Either.Companion.left
+import me.stageguard.obms.utils.InferredEitherOrISE
+import me.stageguard.obms.utils.ValueOrISE
 import org.jetbrains.skija.Image
 import java.io.File
 import java.io.InputStream
@@ -17,8 +22,8 @@ object ImageCache {
 
     suspend fun getImageAsStream(
         url: String, maxTryCount: Int = 4, tryCount: Int = 0
-    ) : Result<InputStream> = if(maxTryCount == tryCount + 1) {
-        Result.failure(IllegalStateException("Failed to get image from $url after $maxTryCount tries"))
+    ) : ValueOrISE<InputStream> = if(maxTryCount == tryCount + 1) {
+        Either(IllegalStateException("Failed to get image from $url after $maxTryCount tries"))
     } else withContext(Dispatchers.IO) {
         val headers = OsuWebApi.head(url, headers = mapOf(), parameters = mapOf())
         val etag = headers["etag"]
@@ -27,7 +32,7 @@ object ImageCache {
             file.parentFile.mkdirs()
             if(file.exists()) {
                 try {
-                    Result.success(file.inputStream())
+                    InferredEitherOrISE(file.inputStream())
                 } catch (ex: Exception) {
                     file.delete()
                     getImageAsStream(url, maxTryCount, tryCount + 1)
@@ -41,7 +46,7 @@ object ImageCache {
                             file.writeBytes(it.readAllBytes())
                         }
                     }
-                    Result.success(file.inputStream())
+                    InferredEitherOrISE(file.inputStream())
                 } catch (ex: Exception) { getImageAsStream(url, maxTryCount, tryCount + 1) }
             }
         } else { getImageAsStream(url, maxTryCount, tryCount + 1) }
@@ -49,11 +54,9 @@ object ImageCache {
 
     suspend fun getImageAsSkijaImage(url: String) = getImageAsStream(url).run {
         runInterruptible {
-            if(isSuccess) {
-                Result.success(Image.makeFromEncoded(getOrThrow().readAllBytes()))
-            } else {
-                Result.failure(exceptionOrNull()!!)
-            }
+            ifRight {
+                InferredEitherOrISE(Image.makeFromEncoded(it.readAllBytes()))
+            } ?: Either(left)
         }
     }
 }
