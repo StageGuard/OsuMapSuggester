@@ -79,11 +79,10 @@ object RecentPlay {
     ) : Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
         val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
-        val songHeadImage = ImageCache.getImageAsSkijaImage(beatmapSet.covers.list2x)
 
         return drawRecentPlayCardImpl(
             scoreDTO, beatmapSet, mods, attribute, ppCurvePoints, skillAttributes,
-            userBestScore, replayAnalyzer, playerAvatar, songCover, songHeadImage
+            userBestScore, replayAnalyzer, playerAvatar, songCover
         )
     }
 
@@ -95,7 +94,7 @@ object RecentPlay {
         skillAttributes: ValueOrISE<SkillAttributes>,
         userBestScore: ValueOrISE<BeatmapUserScoreDTO>,
         replayAnalyzer: ValueOrISE<ReplayFrameAnalyzer>,
-        playerAvatar: Image, songCover: ValueOrISE<Image>, songHeadImage: ValueOrISE<Image>
+        playerAvatar: Image, songCover: ValueOrISE<Image>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(
             (replayAnalyzer.ifRight { (cardWidth + replayDetailWidth).toInt() } ?: cardWidth).toInt(),
@@ -131,7 +130,7 @@ object RecentPlay {
             })
 
             //song header image
-            songHeadImage.onRight {
+            /*songCover.onRight {
                 val scaledSongHeaderBase = it.scale(songHeaderImageWidth / it.width)
                 val scaledSongHeader = scaledSongHeaderBase.cutCenter(
                     songHeaderImageWidth / scaledSongHeaderBase.width,
@@ -146,7 +145,7 @@ object RecentPlay {
                     mode = PaintMode.STROKE
                     strokeWidth = 5f
                 })
-            }
+            }*/
 
             val songInfoSavePoint = save()
 
@@ -169,7 +168,7 @@ object RecentPlay {
                 if(title.length > 30) title.take(27).plus("...") else title
             }, Font(semiBoldFont, 42f))
 
-            translate(songInfoPadding + songHeaderImageWidth + 20f, songInfoPadding + songTitle.capHeight + 14f)
+            translate(songInfoPadding /*+ songHeaderImageWidth*/ + 20f, songInfoPadding + songTitle.capHeight + 14f)
 
             drawTextLineWithShadow(songTitle, 0f, 0f, paint.apply {
                 color = colorWhite
