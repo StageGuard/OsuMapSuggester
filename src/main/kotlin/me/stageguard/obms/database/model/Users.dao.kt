@@ -13,7 +13,7 @@ import org.ktorm.schema.varchar
 
 
 object OsuUserInfo : AddableTable<User>("users") {
-    val id = int("id").primaryKey()
+    val id = int("id").primaryKey().bindTo { it.id }
     val qq = long("qq").bindTo { it.qq }
     val osuId = int("osuId").bindTo { it.osuId }
     val osuName = varchar("osuName").bindTo { it.osuName }
@@ -26,7 +26,7 @@ object OsuUserInfo : AddableTable<User>("users") {
     }
 
     suspend fun getOsuIdAndName(qq: Long) = Database.query { db ->
-        db.sequenceOf(this@OsuUserInfo).find { it.qq eq qq } ?. osuId to osuName
+        db.sequenceOf(this@OsuUserInfo).find { it.qq eq qq } ?.run { osuId to osuName }
     }
 
     override fun <T : AssignmentsBuilder> T.mapElement(element: User) {
@@ -41,6 +41,7 @@ object OsuUserInfo : AddableTable<User>("users") {
 
 interface User : Entity<User> {
     companion object : Entity.Factory<User>()
+    var id: Int
     var qq: Long
     var osuId: Int
     var osuName: String

@@ -8,7 +8,7 @@ import org.ktorm.entity.Entity
 import org.ktorm.schema.*
 
 object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
-    val id = int("id").primaryKey()
+    val id = int("id").primaryKey().bindTo { it.id }
     val bid = int("bid").bindTo { it.bid }
     val jumpAimStrain = double("jump").bindTo { it.jumpAimStrain }
     val flowAimStrain = double("flow").bindTo { it.flowAimStrain }
@@ -30,6 +30,7 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
 
 interface BeatmapSkill : Entity<BeatmapSkill> {
     companion object : Entity.Factory<BeatmapSkill>()
+    var id: Int
     var bid: Int
     var jumpAimStrain: Double
     var flowAimStrain: Double
