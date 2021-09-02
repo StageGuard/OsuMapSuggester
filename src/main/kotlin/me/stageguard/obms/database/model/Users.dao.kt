@@ -1,36 +1,50 @@
 package me.stageguard.obms.database.model
 
+import me.stageguard.obms.database.AddableTable
 import me.stageguard.obms.database.Database
-import org.jetbrains.exposed.dao.IntEntity
-import org.jetbrains.exposed.dao.IntEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.Column
+import org.ktorm.dsl.*
+import org.ktorm.entity.Entity
+import org.ktorm.entity.find
+import org.ktorm.entity.sequenceOf
+import org.ktorm.schema.Table
+import org.ktorm.schema.int
+import org.ktorm.schema.long
+import org.ktorm.schema.varchar
 
 
-object OsuUserInfo : IntIdTable("users") {
-    val qq: Column<Long> = long("qq").uniqueIndex()
-    val osuId: Column<Int> = integer("osuId")
-    val osuName: Column<String> = varchar("osuName", 16)
-    val token: Column<String> = varchar("token", 1500)
-    val tokenExpireUnixSecond: Column<Long> = long("tokenExpiresUnixSecond")
-    val refreshToken: Column<String> = varchar("refreshToken", 1500)
+object OsuUserInfo : AddableTable<User>("users") {
+    val id = int("id").primaryKey()
+    val qq = long("qq").bindTo { it.qq }
+    val osuId = int("osuId").bindTo { it.osuId }
+    val osuName = varchar("osuName").bindTo { it.osuName }
+    val token = varchar("token").bindTo { it.token }
+    val tokenExpireUnixSecond = long("tokenExpiresUnixSecond").bindTo { it.tokenExpireUnixSecond }
+    val refreshToken = varchar("refreshToken").bindTo { it.refreshToken }
+
+    suspend fun getOsuId(qq: Long) = Database.query { db ->
+        db.sequenceOf(this@OsuUserInfo).find { it.qq eq qq } ?.osuId
+    }
+
+    suspend fun getOsuIdAndName(qq: Long) = Database.query { db ->
+        db.sequenceOf(this@OsuUserInfo).find { it.qq eq qq } ?. osuId to osuName
+    }
+
+    override fun <T : AssignmentsBuilder> T.mapElement(element: User) {
+        set(qq, element.qq)
+        set(osuId, element.osuId)
+        set(osuName, element.osuName)
+        set(token, element.token)
+        set(tokenExpireUnixSecond, element.tokenExpireUnixSecond)
+        set(refreshToken, element.refreshToken)
+    }
 }
 
-class User(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<User>(OsuUserInfo)
-    var osuId by OsuUserInfo.osuId
-    var osuName by OsuUserInfo.osuName
-    var qq by OsuUserInfo.qq
-    var token by OsuUserInfo.token
-    var tokenExpireUnixSecond by OsuUserInfo.tokenExpireUnixSecond
-    var refreshToken by OsuUserInfo.refreshToken
-}
-
-suspend fun User.Companion.getOsuIdSuspend(qq: Long) = Database.suspendQuery {
-    User.find { OsuUserInfo.qq eq qq }.singleOrNull() ?.osuId
-}
-
-suspend fun User.Companion.getOsuIdAndName(qq: Long) = Database.suspendQuery {
-    User.find { OsuUserInfo.qq eq qq }.singleOrNull() ?.run { osuId to osuName }
+interface User : Entity<User> {
+    companion object : Entity.Factory<User>()
+    var qq: Long
+    var osuId: Int
+    var osuName: String
+    var token: String
+    var tokenExpireUnixSecond: Long
+    var refreshToken: String
 }

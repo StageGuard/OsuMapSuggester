@@ -2,8 +2,7 @@ package me.stageguard.obms.bot.route
 
 import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.bot.MessageRoute.atReply
-import me.stageguard.obms.database.model.User
-import me.stageguard.obms.database.model.getOsuIdAndName
+import me.stageguard.obms.database.model.OsuUserInfo
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.nextMessage
 
@@ -14,7 +13,7 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
             atReply("Bind account is unavailable in debug mode.")
             return@startsWith
         }
-        val user = User.getOsuIdAndName(sender.id)
+        val user = OsuUserInfo.getOsuIdAndName(sender.id)
         if(user == null) {
             val link = OAuthManager.createOAuthLink(sender.id, group.id)
             atReply("请点击这个链接进行 oAuth 授权来绑定你的 osu 账号: $link")

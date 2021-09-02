@@ -3,20 +3,19 @@ package me.stageguard.obms.database
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.OsuMapSuggester
+import me.stageguard.obms.database.model.BeatmapSkillTable
+import me.stageguard.obms.database.model.User
 import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 import net.mamoe.mirai.utils.verbose
 import net.mamoe.mirai.utils.warning
 import okhttp3.internal.closeQuietly
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.statements.StatementContext
-import org.jetbrains.exposed.sql.statements.expandArgs
-import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.ktorm.database.Database
+import org.ktorm.database.Transaction
 import java.lang.IllegalArgumentException
 
 object Database {
@@ -30,15 +29,10 @@ object Database {
     private lateinit var hikariSource : HikariDataSource
     private var connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED
 
-    fun <T> query(block: Transaction.() -> T) : T? = if(connectionStatus == ConnectionStatus.DISCONNECTED) {
+    suspend fun <T> query(block: suspend Transaction.(Database) -> T) : T? = if(connectionStatus == ConnectionStatus.DISCONNECTED) {
         OsuMapSuggester.logger.error { "Database is disconnected and the query operation will not be completed." }
         null
-    } else transaction(db) { block(this) }
-
-    suspend fun <T> suspendQuery(block: suspend Transaction.() -> T) : T? = if(connectionStatus == ConnectionStatus.DISCONNECTED) {
-        OsuMapSuggester.logger.error { "Database is disconnected and the query operation will not be completed." }
-        null
-    } else newSuspendedTransaction(context = Dispatchers.IO, db = db) { block(this) }
+    } else db.useTransaction { block(it, db) }
 
     fun connect() {
         db = Database.connect(hikariDataSourceProvider().also { hikariSource = it })
@@ -49,15 +43,9 @@ object Database {
 
     fun isConnected() = connectionStatus == ConnectionStatus.CONNECTED
 
-    private fun initDatabase() { query {
-        addLogger(object : SqlLogger {
-            override fun log(context: StatementContext, transaction: Transaction) {
-                OsuMapSuggester.moduleLogger.info("SQL: ${context.expandArgs(transaction)}")
-            }
-        })
-        SchemaUtils.create(OsuUserInfo)
+    private fun initDatabase() {
 
-    } }
+    }
 
     fun close() {
         connectionStatus = ConnectionStatus.DISCONNECTED

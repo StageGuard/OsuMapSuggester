@@ -22,6 +22,7 @@ val mysqlVersion = "8.0.25"
 val miraiSlf4jBridgeVersion = "1.2.0"
 val skijaVersion = "0.92.15"
 val ktorServerVersion = "1.4.0"
+val ktormVersion = "3.4.1"
 
 dependencies {
     //test suite
@@ -34,11 +35,10 @@ dependencies {
     implementation("org.jetbrains.skija:skija-windows:$skijaVersion")
     implementation("org.jetbrains.skija:skija-linux:$skijaVersion")
     //database related lib
-    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.ktorm:ktorm-core:${ktormVersion}")
     implementation("mysql:mysql-connector-java:$mysqlVersion")
     implementation("com.zaxxer:HikariCP:$hikariVersion")
+    //network
     implementation("io.ktor:ktor-server-netty:$ktorServerVersion")
     //mirai
     implementation("net.mamoe:mirai-slf4j-bridge:$miraiSlf4jBridgeVersion")

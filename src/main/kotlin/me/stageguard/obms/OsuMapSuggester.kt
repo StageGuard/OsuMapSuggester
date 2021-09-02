@@ -10,11 +10,13 @@ import me.stageguard.obms.frontend.NettyHttpServer
 import me.stageguard.obms.utils.exportStaticResourcesToDataFolder
 import me.stageguard.obms.utils.retry
 import net.mamoe.mirai.Bot
+import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.extension.PluginComponentStorage
 import net.mamoe.mirai.console.plugin.PluginManager
 import net.mamoe.mirai.console.plugin.PluginManager.INSTANCE.description
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
+import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.events.BotOnlineEvent
 import net.mamoe.mirai.utils.error
@@ -54,7 +56,9 @@ object OsuMapSuggester : KotlinPlugin(
     }
 
     lateinit var botInstance: Bot
+    @OptIn(ConsoleExperimentalApi::class)
     override fun onEnable() {
+        ConsoleCommands.register()
         logger.info { "Connecting to database ${PluginConfig.database.address}." }
         val connectionAsync = async {
             retry(5, exceptionBlock = {

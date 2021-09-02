@@ -5,16 +5,14 @@ import io.ktor.client.engine.okhttp.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.networkProcessorDispatcher
+import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.osu.api.oauth.OAuthManager
-import me.stageguard.obms.database.model.User
-import me.stageguard.obms.database.model.getOsuIdSuspend
 import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.osu.api.dto.*
 import me.stageguard.obms.utils.InferredEitherOrISE
@@ -111,7 +109,7 @@ object OsuWebApi {
 
     suspend fun users(user: Long): ValueOrISE<GetUserDTO> =
         get("/users/${kotlin.run {
-            User.getOsuIdSuspend(user) ?: return Either(IllegalStateException("NOT_BIND"))
+            OsuUserInfo.getOsuId(user) ?: return Either(IllegalStateException("NOT_BIND"))
         }}", user)
 
     suspend fun userScore(
@@ -120,7 +118,7 @@ object OsuWebApi {
         limit: Int = 10, offset: Int = 0
     //Kotlin bug: Result<T> is cast to java.util.List, use Either instead.
     ): ValueOrISE<List<ScoreDTO>> {
-        val userId = User.getOsuIdSuspend(user) ?: return Either(IllegalStateException("NOT_BIND"))
+        val userId = OsuUserInfo.getOsuId(user) ?: return Either(IllegalStateException("NOT_BIND"))
         val initialList: MutableList<ScoreDTO> = mutableListOf()
         suspend fun getTailrec(current: Int = offset) : ValueOrISE<Unit> {
             return try {
@@ -174,7 +172,7 @@ object OsuWebApi {
     suspend fun userBeatmapScore(
         user: Long, beatmapId: Int, mode: String = "osu"
     ) : ValueOrISE<BeatmapUserScoreDTO> {
-        val userId = User.getOsuIdSuspend(user) ?: return Either(IllegalStateException("NOT_BIND"))
+        val userId = OsuUserInfo.getOsuId(user) ?: return Either(IllegalStateException("NOT_BIND"))
 
         return get<BeatmapUserScoreDTO>(
             path = "/beatmaps/$beatmapId/scores/users/$userId",

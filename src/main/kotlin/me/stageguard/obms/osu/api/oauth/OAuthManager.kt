@@ -8,6 +8,10 @@ import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.utils.SimpleEncryptionUtils
 import me.stageguard.obms.utils.Either.Companion.rightOrThrow
+import org.ktorm.dsl.eq
+import org.ktorm.entity.filter
+import org.ktorm.entity.sequenceOf
+import org.ktorm.entity.toList
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import java.time.LocalDateTime
@@ -50,17 +54,17 @@ object OAuthManager {
             val tokenResponse = OsuWebApi.getTokenWithCode(code).rightOrThrow
             val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).rightOrThrow
             AuthCachePool.removeTokenCache(decrypted[0])
-            Database.suspendQuery {
-                val find = User.find { OsuUserInfo.qq eq qq }
-                if(find.empty()) {
-                    User.new {
+            Database.query { db ->
+                val find = db.sequenceOf(OsuUserInfo).filter { u -> u.qq eq qq }.toList()
+                if(find.isEmpty()) {
+                    OsuUserInfo.insert(User {
                         osuId = userResponse.id
                         osuName = userResponse.username
                         this.qq = qq
                         token = tokenResponse.accessToken
                         refreshToken = tokenResponse.refreshToken
                         tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
-                    }
+                    })
                     BindResult.BindSuccessful(qq, decrypted[1].toLong(), userResponse.id, userResponse.username)
                 } else {
                     val existUser = find.single()
@@ -68,6 +72,7 @@ object OAuthManager {
                         existUser.token = tokenResponse.accessToken
                         existUser.refreshToken = tokenResponse.refreshToken
                         existUser.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
+                        existUser.flushChanges()
                         BindResult.AlreadyBound(qq, decrypted[1].toLong(), userResponse.id, userResponse.username)
                     } else {
                         val oldOsuId = existUser.osuId
@@ -77,6 +82,7 @@ object OAuthManager {
                         existUser.token = tokenResponse.accessToken
                         existUser.refreshToken = tokenResponse.refreshToken
                         existUser.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + tokenResponse.expiresIn
+                        existUser.flushChanges()
                         BindResult.ChangeBinding(
                             qq,
                             decrypted[1].toLong(),
@@ -100,9 +106,9 @@ object OAuthManager {
         }
     }
 
-    suspend fun refreshTokenInNeedAndGet(qq: Long): Result<String> = Database.suspendQuery {
-        User.find { OsuUserInfo.qq eq qq }.runCatching {
-            if (empty()) {
+    suspend fun refreshTokenInNeedAndGet(qq: Long): Result<String> = Database.query { db ->
+        db.sequenceOf(OsuUserInfo).filter { u -> u.qq eq qq }.toList().runCatching {
+            if (isEmpty()) {
                 Result.failure(IllegalStateException("NOT_BIND"))
             } else {
                 val item = single()
@@ -111,6 +117,7 @@ object OAuthManager {
                     item.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + response.expiresIn
                     item.refreshToken = response.refreshToken
                     item.token = response.accessToken
+                    item.flushChanges()
                     Result.success(response.accessToken)
                 } else {
                     Result.success(item.token)

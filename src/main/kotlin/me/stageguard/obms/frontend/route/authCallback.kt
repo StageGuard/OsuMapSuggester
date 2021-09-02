@@ -17,12 +17,9 @@ const val AUTH_CALLBACK_PATH = "authCallback"
 fun Application.authCallback() {
     routing {
         get("/$AUTH_CALLBACK_PATH") {
-            val parameters = context.request.queryParameters
-            val verifyResult = parameters.run {
+            context.request.queryParameters.run {
                 OAuthManager.verifyOAuthResponse(state = get("state"), code = get("code"))
-            }
-
-            verifyResult.onSuccess { get ->
+            }.onSuccess { get ->
                 when(get) {
                     is BindResult.BindSuccessful -> {
                         context.respond(HttpStatusCode.OK, "Successfully bind your qq ${get.qq} account to osu! account ${get.osuName}(${get.osuId}).")
@@ -59,7 +56,7 @@ fun Application.authCallback() {
                     }
                 }
             }.onFailure {
-                context.respond(HttpStatusCode.InternalServerError, "Error: ${verifyResult.exceptionOrNull()}")
+                context.respond(HttpStatusCode.InternalServerError, "Error: $it")
             }
             finish()
         }

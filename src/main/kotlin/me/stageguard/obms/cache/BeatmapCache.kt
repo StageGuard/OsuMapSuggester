@@ -11,9 +11,9 @@ import me.stageguard.obms.utils.Either
 import java.io.File
 
 object BeatmapCache {
+    val CACHE_FOLDER get() = OsuMapSuggester.dataFolder.absolutePath + File.separator + "beatmap" + File.separator
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun beatmapFile(bid: Int) =
-        File(OsuMapSuggester.dataFolder.absolutePath + File.separator + "beatmap" + File.separator + bid + ".osu")
+    private inline fun beatmapFile(bid: Int) = File("$CACHE_FOLDER$bid.osu")
 
     suspend fun getBeatmap(
         bid: Int, maxTryCount: Int = 4, tryCount: Int = 1

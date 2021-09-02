@@ -101,7 +101,7 @@ Also, if you have any good idea, welcome to contribute to this project or open a
 ## Library
 
 - Mirai Framework: [mirai](https://github.com/mamoe/mirai/), [mirai-console](https://github.com/mamoe/mirai-console), [mirai-slf4j-bridge](https://github.com/project-mirai/mirai-slf4j-bridge)
-- Database: [Exposed](https://github.com/JetBrains/Exposed), [HikariCP](https://github.com/brettwooldridge/HikariCP)
+- Database: [Ktorm](https://github.com/kotlin-orm/ktorm), [HikariCP](https://github.com/brettwooldridge/HikariCP)
 - Web Server: [ktor](https://github.com/ktorio/ktor)
 - Graphics: [skija](https://github.com/JetBrains/skija)
 - osu! Related: [peace-performance](https://github.com/Pure-Peace/peace-performance), [pp+ algorithm](https://github.com/Syriiin/osu), [osuReplayAnalyzer](https://github.com/firedigger/osuReplayAnalyzer)
