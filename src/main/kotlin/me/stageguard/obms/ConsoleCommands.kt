@@ -1,6 +1,5 @@
 package me.stageguard.obms
 
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
 import me.stageguard.obms.cache.BeatmapCache
@@ -9,11 +8,10 @@ import me.stageguard.obms.database.model.BeatmapSkill
 import me.stageguard.obms.database.model.BeatmapSkillTable
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
 import me.stageguard.obms.osu.algorithm.`pp+`.calculateSkills
+import me.stageguard.obms.osu.algorithm.pp.calculateDifficultyAttributes
 import me.stageguard.obms.osu.processor.beatmap.Beatmap
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
-import me.stageguard.obms.utils.Either.Companion.onLeft
-import me.stageguard.obms.utils.Either.Companion.onRight
 import net.mamoe.mirai.console.command.CommandSender
 import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
@@ -45,7 +43,11 @@ object ConsoleCommands : CompositeCommand(
                 }?.forEach { f ->
                     try {
                         val bid = f.nameWithoutExtension.toInt()
-                        val skillAttributes =  Beatmap.parse(f).calculateSkills(ModCombination.of(Mod.None))
+                        val beatmap = Beatmap.parse(f)
+                        val skillAttributes = beatmap.calculateSkills(ModCombination.of(Mod.None))
+                        // star calculation of pp+ algorithm is corrupted
+                        // spend one more time to calculate stars with pp algorithm
+                        skillAttributes.stars = beatmap.calculateDifficultyAttributes(ModCombination.of(Mod.None)).stars
                         if(bid in existBeatmap) {
                             toUpdate.add(bid to skillAttributes)
                         } else {
@@ -62,6 +64,7 @@ object ConsoleCommands : CompositeCommand(
                 BeatmapSkillTable.batchInsert(toInsert) {
                     BeatmapSkill {
                         this.bid = it.first
+                        stars = it.second.stars
                         jumpAimStrain = it.second.jumpAimStrain
                         flowAimStrain = it.second.flowAimStrain
                         speedStrain = it.second.speedStrain
@@ -73,6 +76,7 @@ object ConsoleCommands : CompositeCommand(
                 BeatmapSkillTable.batchUpdate1(toUpdate, BeatmapSkillTable.bid, { first }) {
                     BeatmapSkill {
                         this.bid = it.first
+                        stars = it.second.stars
                         jumpAimStrain = it.second.jumpAimStrain
                         flowAimStrain = it.second.flowAimStrain
                         speedStrain = it.second.speedStrain
