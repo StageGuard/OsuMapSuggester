@@ -39,7 +39,7 @@ object ConsoleCommands : CompositeCommand(
         if(existBeatmap != null) {
             val toUpdate = mutableListOf<Pair<Int, SkillAttributes>>()
             val toInsert = mutableListOf<Pair<Int, SkillAttributes>>()
-            withContext(Dispatchers.IO) {
+            withContext(calculatorProcessorDispatcher) {
                 File(BeatmapCache.CACHE_FOLDER).listFiles { _, s -> s.split(".").last() == "osu" }?.also {
                     all = it.size
                 }?.forEach { f ->
