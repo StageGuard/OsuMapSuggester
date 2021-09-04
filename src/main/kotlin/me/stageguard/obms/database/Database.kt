@@ -2,16 +2,12 @@ package me.stageguard.obms.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import me.stageguard.obms.PluginConfig
-import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.database.model.BeatmapSkillTable
-import me.stageguard.obms.database.model.User
+import me.stageguard.obms.database.model.OsuUserInfo
 import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
-import net.mamoe.mirai.utils.verbose
 import net.mamoe.mirai.utils.warning
 import okhttp3.internal.closeQuietly
 import org.ktorm.database.Database
@@ -44,7 +40,38 @@ object Database {
     fun isConnected() = connectionStatus == ConnectionStatus.CONNECTED
 
     private fun initDatabase() {
-
+        // ktorm doesn't support creating database schema.
+        db.useConnection { connection ->
+            val statement = connection.createStatement()
+            statement.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS `${OsuUserInfo.tableName}` (
+                  `id` int NOT NULL AUTO_INCREMENT,
+                  `osuId` int NOT NULL,
+                  `osuName` varchar(16) NOT NULL,
+                  `qq` bigint NOT NULL,
+                  `token` varchar(1500) NOT NULL,
+                  `tokenExpiresUnixSecond` bigint NOT NULL,
+                  `refreshToken` varchar(1500) NOT NULL,
+                  PRIMARY KEY (`id`),
+                  UNIQUE KEY `users_qq_unique` (`qq`)
+                );
+            """.trimIndent())
+            statement.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS `${BeatmapSkillTable.tableName}` (
+                	`id` INT NOT NULL AUTO_INCREMENT,
+                	`bid` INT NOT NULL,
+                	`stars` DOUBLE NOT NULL,
+                	`jump` DOUBLE NOT NULL,
+                	`flow` DOUBLE NOT NULL,
+                	`speed` DOUBLE NOT NULL,
+                	`stamina` DOUBLE NOT NULL,
+                	`precision` DOUBLE NOT NULL,
+                	`complexity` DOUBLE NOT NULL,
+                	PRIMARY KEY (`id`),
+                    UNIQUE KEY `beatmap_skills_unique` (`bid`)
+                );
+            """.trimIndent())
+        }
     }
 
     fun close() {
