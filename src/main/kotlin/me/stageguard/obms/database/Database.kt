@@ -84,7 +84,7 @@ object Database {
             PluginConfig.database.address == "" -> throw IllegalArgumentException("Database address is not set in config file ${PluginConfig.saveName}.")
             PluginConfig.database.table == "" -> {
                 OsuMapSuggester.logger.warning { "Database table is not set in config file ${PluginConfig.saveName} and now it will be default value 'sctimetabledb'." }
-                PluginConfig.database.table = "sctimetabledb"
+                PluginConfig.database.table = "osu!beatmap suggester"
             }
             PluginConfig.database.port !in 1024..65535 -> throw IllegalArgumentException("Database port is invalid.")
             PluginConfig.database.user == "" -> throw IllegalArgumentException("Database user is not set in config file ${PluginConfig.saveName}.")
