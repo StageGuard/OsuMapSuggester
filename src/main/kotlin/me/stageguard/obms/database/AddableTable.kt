@@ -5,6 +5,7 @@ import org.ktorm.entity.Entity
 import org.ktorm.schema.Column
 import org.ktorm.schema.Table
 
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 abstract class AddableTable<E: Entity<E>>(name: String) : Table<E>(name) {
     abstract fun <T : AssignmentsBuilder> T.mapElement(element: E)
 
