@@ -155,7 +155,7 @@ class Beatmap private constructor(
                                         cp.split(":").run {
                                             HitObjectPosition(get(0).toDouble(), get(1).toDouble())
                                         }
-                                    }.forEach { hop -> curvePoints.add(hop) }
+                                    }.also { crl -> curvePoints.addAll(crl) }
                                     when {
                                         pathType == Linear && curvePoints.size % 2 == 0 -> {
                                             if(isValidLinearPoint(curvePoints)) {
@@ -174,7 +174,7 @@ class Beatmap private constructor(
                                         pathType == Catmull -> { }
                                         else -> pathType = Bezier
                                     }
-                                    while(curvePoints.size > CURVE_POINT_THRESHOLD) {
+                                    /*while(curvePoints.size > CURVE_POINT_THRESHOLD) {
                                         val last = curvePoints.last()
                                         val lastIndex = (curvePoints.size - 1) / 2
                                         for(idx in 1..lastIndex) {
@@ -184,7 +184,7 @@ class Beatmap private constructor(
                                         }
                                         curvePoints[lastIndex] = last
                                         curvePoints.take(lastIndex + 1)
-                                    }
+                                    }*/
                                     if (curvePoints.isEmpty()) {
                                         HitObjectType.Circle
                                     } else {
