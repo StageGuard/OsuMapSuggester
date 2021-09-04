@@ -73,17 +73,17 @@ object OsuMapSuggester : KotlinPlugin(
         launch {
             logger.info { "Exporting static resources..." }
             exportStaticResourcesToDataFolder()
+            logger.info { "Waiting target Bot ${PluginConfig.qq} goes online..." }
+            GlobalEventChannel.filter {
+                it is BotOnlineEvent && it.bot.id == PluginConfig.qq
+            }.subscribeOnce<BotOnlineEvent> {
+                MessageRoute.subscribeMessages(this.bot.also {
+                    this@OsuMapSuggester.botInstance = it
+                })
+            }
             val connectionResult = connectionAsync.await()
             if(connectionResult.isSuccess) {
                 NettyHttpServer.start(PluginConfig.frontend.host, PluginConfig.frontend.port)
-                logger.info { "Waiting target Bot ${PluginConfig.qq} goes online..." }
-                GlobalEventChannel.filter {
-                    it is BotOnlineEvent && it.bot.id == PluginConfig.qq
-                }.subscribeOnce<BotOnlineEvent> {
-                    MessageRoute.subscribeMessages(this.bot.also {
-                        this@OsuMapSuggester.botInstance = it
-                    })
-                }
             } else {
                 logger.error("Database is not connected, all services will not start.")
             }
