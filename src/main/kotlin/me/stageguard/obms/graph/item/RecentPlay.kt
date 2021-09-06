@@ -789,13 +789,7 @@ object RecentPlay {
 
                 val maxValue = ppCurvePoints.second.last().second
                 val minValue = ppCurvePoints.first[2].second
-                val interval = ((maxValue - minValue) / lineRow).run {
-                    val div = this.toInt() % 10
-                    when {
-                        div > 5 -> this + (10 - this % 10)
-                        else -> this
-                    }
-                }.toInt()
+                val interval = ((maxValue - minValue) / lineRow).run { this + (10 - this % 10) }.toInt()
                 val startValue = (minValue - minValue % interval).toInt()
                 val intervalValues = (startValue..startValue + interval * lineRow step interval).toList()
                 val valueTexts = intervalValues.map {
@@ -842,18 +836,19 @@ object RecentPlay {
                 translate(maxValueTextWidth + 20f, -maxAccuracyTextHeight - 15f)
                 val actualChatWidth = scaledChartWidth - 22f
                 val actualCharHeight = scaledChartHeight - 23f
-                (0 until ppCurvePoints.second.size - 1).forEach {
+                (1 until ppCurvePoints.second.size - 1).forEach {
                     //the first element of ppCurePoints.first is the pp of current score
                     drawLine(
+                        ((ppCurvePoints.first[it].first - 90) / 10 * actualChatWidth).toFloat(),
+                        (-((ppCurvePoints.first[it].second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat(),
                         ((ppCurvePoints.first[it + 1].first - 90) / 10 * actualChatWidth).toFloat(),
                         (-((ppCurvePoints.first[it + 1].second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat(),
-                        ((ppCurvePoints.first[it + 2].first - 90) / 10 * actualChatWidth).toFloat(),
-                        (-((ppCurvePoints.first[it + 2].second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat(),
                         paint.apply {
                             color = colorWhite
                             strokeWidth = 3f
                         }
                     )
+                    //the first element of ppCurePoints.second is the pp of current score if full combo
                     drawLine(
                         ((ppCurvePoints.second[it].first - 90) / 10 * actualChatWidth).toFloat(),
                         (-((ppCurvePoints.second[it].second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat(),
@@ -876,35 +871,68 @@ object RecentPlay {
                 )
 
                 val actualPp = scoreDTO.pp ?: ppCurvePoints.first.first().second
+                val ifFullComboPp = ppCurvePoints.second.first().second
                 val ppText = TextLine.make("pp", Font(semiBoldFont, 18f))
-                val ppValueText = TextLine.make(actualPp.toInt().toString(), Font(boldFont, 22f))
+                val actualPpValueText = TextLine.make(actualPp.toInt().toString(), Font(boldFont, 22f))
+                val ifFullComboPpValueText = TextLine.make(ifFullComboPp.toInt().toString(), Font(boldFont, 22f))
 
                 if(scoreDTO.accuracy * 100.0 < 91.0) {
-                    drawPoint(0f, 0f, paint.apply {
+                    //actual pp text
+                    drawPoint(-5f, 0f, paint.apply {
                         color = colorYellow
                         strokeWidth = 5f
                     })
-                    drawTextLineWithShadow(ppValueText, 5f, -5f, paint.apply {
+                    drawTextLineWithShadow(actualPpValueText, -5f + 5f, actualPpValueText.capHeight / 2, paint.apply {
                         color = ppColor
                         strokeWidth = 2f
                     }, 2f)
-                    drawTextLineWithShadow(ppText, 5f + ppValueText.width, -5f, paint.apply {
+                    drawTextLineWithShadow(ppText, -5f + 5f + actualPpValueText.width, actualPpValueText.capHeight / 2, paint.apply {
+                        color = ppTextColor
+                        strokeWidth = 2f
+                    }, 2f)
+                    //if full combo pp text
+                    val yCoord = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
+                    drawPoint(-5f, -yCoord, paint.apply {
+                        color = colorYellow
+                        strokeWidth = 7f
+                    })
+                    drawTextLineWithShadow(ifFullComboPpValueText, -5f + 5f, -5f - yCoord, paint.apply {
+                        color = ppColor
+                        strokeWidth = 2f
+                    }, 2f)
+                    drawTextLineWithShadow(ppText, -5f + 5f + ifFullComboPpValueText.width, -5f - yCoord, paint.apply {
                         color = ppTextColor
                         strokeWidth = 2f
                     }, 2f)
                 } else {
+                    //actual pp text
                     val xCoord = ((scoreDTO.accuracy * 100.0 - 90) / 10 * actualChatWidth).toFloat()
-                    val yCoord = ((actualPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
-                    val textOffset = if(yCoord > ppText.capHeight) ppText.capHeight + 10f else 0f
-                    drawPoint(xCoord, -yCoord, paint.apply {
+                    val yCoordActualPp = ((actualPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
+                    val yCoordIfFullComboPp = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
+                    val textOffset = if(yCoordActualPp > ppText.capHeight) ppText.capHeight + 10f else 0f
+                    // actual pp
+                    drawPoint(xCoord, -yCoordActualPp, paint.apply {
                         color = colorYellow
                         strokeWidth = 5f
                     })
-                    drawTextLineWithShadow(ppValueText, 5f + xCoord, -5f - yCoord + textOffset, paint.apply {
+                    drawTextLineWithShadow(actualPpValueText, 5f + xCoord, -5f - yCoordActualPp + textOffset, paint.apply {
                         color = ppColor
                         strokeWidth = 2f
                     }, 2f)
-                    drawTextLineWithShadow(ppText, 5f + xCoord + ppValueText.width, -5f - yCoord + textOffset, paint.apply {
+                    drawTextLineWithShadow(ppText, 5f + xCoord + actualPpValueText.width, -5f - yCoordActualPp + textOffset, paint.apply {
+                        color = ppTextColor
+                        strokeWidth = 2f
+                    }, 2f)
+                    //if full combo pp text
+                    drawPoint(xCoord, -yCoordIfFullComboPp, paint.apply {
+                        color = colorGreen
+                        strokeWidth = 7f
+                    })
+                    drawTextLineWithShadow(ifFullComboPpValueText, -5f + xCoord - ifFullComboPpValueText.width - ppText.width, -5f - yCoordIfFullComboPp, paint.apply {
+                        color = ppColor
+                        strokeWidth = 2f
+                    }, 2f)
+                    drawTextLineWithShadow(ppText, -5f + xCoord - ppText.width, -5f - yCoordIfFullComboPp, paint.apply {
                         color = ppTextColor
                         strokeWidth = 2f
                     }, 2f)

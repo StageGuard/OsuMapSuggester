@@ -137,6 +137,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
                 .misses(score.statistics.countMiss)
                 .combo(score.maxCombo)
                 .accuracy(score.accuracy * 100).calculate().total)
+            p.second.add(score.accuracy * 100 to PPCalculator.of(it).mods(mods).accuracy(score.accuracy * 100).calculate().total)
             generateSequence(900) { s -> if(s == 1000) null else s + 5 }.forEach { step ->
                 val acc = step / 10.0
                 p.second.add(acc to PPCalculator.of(it).mods(mods).accuracy(acc).calculate().total)
