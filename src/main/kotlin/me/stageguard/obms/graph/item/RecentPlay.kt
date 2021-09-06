@@ -876,11 +876,11 @@ object RecentPlay {
                 val actualPpValueText = TextLine.make(actualPp.toInt().toString(), Font(boldFont, 22f))
                 val ifFullComboPpValueText = TextLine.make(ifFullComboPp.toInt().toString(), Font(boldFont, 22f))
 
-                if(scoreDTO.accuracy * 100.0 < 91.0) {
+                if(scoreDTO.accuracy * 100.0 < 90.0) {
                     //actual pp text
                     drawPoint(-5f, 0f, paint.apply {
                         color = colorYellow
-                        strokeWidth = 5f
+                        strokeWidth = 6f
                     })
                     drawTextLineWithShadow(actualPpValueText, -5f + 5f, actualPpValueText.capHeight / 2, paint.apply {
                         color = ppColor
@@ -891,29 +891,30 @@ object RecentPlay {
                         strokeWidth = 2f
                     }, 2f)
                     //if full combo pp text
-                    val yCoord = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
-                    drawPoint(-5f, -yCoord, paint.apply {
-                        color = colorYellow
-                        strokeWidth = 7f
-                    })
-                    drawTextLineWithShadow(ifFullComboPpValueText, -5f + 5f, -5f - yCoord, paint.apply {
-                        color = ppColor
-                        strokeWidth = 2f
-                    }, 2f)
-                    drawTextLineWithShadow(ppText, -5f + 5f + ifFullComboPpValueText.width, -5f - yCoord, paint.apply {
-                        color = ppTextColor
-                        strokeWidth = 2f
-                    }, 2f)
+                    if(abs(actualPp - ifFullComboPp) > 2.0) {
+                        val yCoord = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
+                        drawPoint(-5f, -yCoord, paint.apply {
+                            color = colorYellow
+                            strokeWidth = 6f
+                        })
+                        drawTextLineWithShadow(ifFullComboPpValueText, -5f + 5f, -5f - yCoord, paint.apply {
+                            color = ppColor
+                            strokeWidth = 2f
+                        }, 2f)
+                        drawTextLineWithShadow(ppText, -5f + 5f + ifFullComboPpValueText.width, -5f - yCoord, paint.apply {
+                            color = ppTextColor
+                            strokeWidth = 2f
+                        }, 2f)
+                    }
                 } else {
                     //actual pp text
                     val xCoord = ((scoreDTO.accuracy * 100.0 - 90) / 10 * actualChatWidth).toFloat()
                     val yCoordActualPp = ((actualPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
-                    val yCoordIfFullComboPp = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
                     val textOffset = if(yCoordActualPp > ppText.capHeight) ppText.capHeight + 10f else 0f
                     // actual pp
                     drawPoint(xCoord, -yCoordActualPp, paint.apply {
                         color = colorYellow
-                        strokeWidth = 5f
+                        strokeWidth = 6f
                     })
                     drawTextLineWithShadow(actualPpValueText, 5f + xCoord, -5f - yCoordActualPp + textOffset, paint.apply {
                         color = ppColor
@@ -924,18 +925,21 @@ object RecentPlay {
                         strokeWidth = 2f
                     }, 2f)
                     //if full combo pp text
-                    drawPoint(xCoord, -yCoordIfFullComboPp, paint.apply {
-                        color = colorGreen
-                        strokeWidth = 7f
-                    })
-                    drawTextLineWithShadow(ifFullComboPpValueText, -5f + xCoord - ifFullComboPpValueText.width - ppText.width, -5f - yCoordIfFullComboPp, paint.apply {
-                        color = ppColor
-                        strokeWidth = 2f
-                    }, 2f)
-                    drawTextLineWithShadow(ppText, -5f + xCoord - ppText.width, -5f - yCoordIfFullComboPp, paint.apply {
-                        color = ppTextColor
-                        strokeWidth = 2f
-                    }, 2f)
+                    if(abs(actualPp - ifFullComboPp) > 2.0) {
+                        val yCoordIfFullComboPp = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
+                        drawPoint(xCoord, -yCoordIfFullComboPp, paint.apply {
+                            color = colorGreen
+                            strokeWidth = 6f
+                        })
+                        drawTextLineWithShadow(ifFullComboPpValueText, -5f + xCoord - ifFullComboPpValueText.width - ppText.width, -5f - yCoordIfFullComboPp, paint.apply {
+                            color = ppColor
+                            strokeWidth = 2f
+                        }, 2f)
+                        drawTextLineWithShadow(ppText, -5f + xCoord - ppText.width, -5f - yCoordIfFullComboPp, paint.apply {
+                            color = ppTextColor
+                            strokeWidth = 2f
+                        }, 2f)
+                    }
                 }
             } else {
                 val unavailable1 = TextLine.make("PP curve analysis", Font(semiBoldFont, 28f))
