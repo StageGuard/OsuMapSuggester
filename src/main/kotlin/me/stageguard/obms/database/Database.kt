@@ -99,6 +99,7 @@ object Database {
         username        = PluginConfig.database.user
         password        = PluginConfig.database.password
         maximumPoolSize = PluginConfig.database.maximumPoolSize!!
+        poolName        = "OBMSDB Pool"
     })
 
 }
