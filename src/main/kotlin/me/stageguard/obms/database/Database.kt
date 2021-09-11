@@ -6,6 +6,7 @@ import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.database.model.BeatmapSkillTable
 import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.utils.retry
 import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 import net.mamoe.mirai.utils.warning
@@ -13,6 +14,7 @@ import okhttp3.internal.closeQuietly
 import org.ktorm.database.Database
 import org.ktorm.database.Transaction
 import java.lang.IllegalArgumentException
+import java.sql.SQLException
 
 object Database {
 
@@ -28,7 +30,21 @@ object Database {
     suspend fun <T> query(block: suspend Transaction.(Database) -> T) : T? = if(connectionStatus == ConnectionStatus.DISCONNECTED) {
         OsuMapSuggester.logger.error { "Database is disconnected and the query operation will not be completed." }
         null
-    } else db.useTransaction { block(it, db) }
+    } else db.useTransaction { t ->
+        retry(3, exceptionBlock = {
+            if(it is SQLException && it.toString().contains("Connection is closed")) {
+                OsuMapSuggester.logger.warning { "Database connection is closed, reconnecting..." }
+                close()
+                connect()
+            } else throw it
+        }) {
+            if(isConnected()) {
+                block(t, db)
+            } else {
+                throw SQLException("Connection is closed")
+            }
+        }.getOrThrow()
+    }
 
     fun connect() {
         db = Database.connect(hikariDataSourceProvider().also { hikariSource = it })
