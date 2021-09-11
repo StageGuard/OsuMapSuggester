@@ -8,17 +8,17 @@ A [mirai-console](https://github.com/mamoe/mirai-console) plugin that can provid
 
 It can analyze player's **aim**, **speed** and **accuracy** skills of his best performances and [PerformancePlus](https://syrin.me/pp+/) and other factors to infer what type of the player he is.
 
-Then it can recommend specific beatmaps for his shortcomings or other kind of beatmaps.
+Then it can recommend specific beatmap for his shortcomings or other kind of beatmap.
 
 **But currently none of the feature above is implemented, because it is still working in progress. XD**
 
-There are also other features: 
+There are other features: 
 
 - [ ] Analyze player's skills(main function).
-- [ ] Recommend specific beatmaps(main function).
+- [ ] Recommend specific beatmap(main function).
 - [x] Show your best performance picture.
 - [x] Best performance versus.
-- [x] Recalculate best performance if all full combo.
+- [x] Recalculate the best performance if all full combo.
 - [ ] ...
 
 ## How plugin process OAuth request and bind account
@@ -44,18 +44,22 @@ It is easy to deploy this bot.
 - <details> <summary>osu! OAuth Application</summary>
 		1. Go to <a href="https://osu.ppy.sh/home/account/edit">https://osu.ppy.sh/home/account/edit</a><br><br>
       2. Click <b>New OAuth Application</b><br>
-      <img src="static/new_oauth_app_button.png"/><br><br>
+      <img src="static/new_oauth_app_button.png" alt="new_oauth_app_button"/><br><br>
       3. Set <b>Application Callback URL</b> to <b>http://&lt;your server ip or domain name&gt;:port/authCallback</b><br>
-      <img src="static/new_oauth_app.png" height="200"/><br><br>
-      4. Copy <b>Client Id</b> and <b>Client Secrect</b>.<br>
-      <img src="static/oauth.png" height="200"/>
+      <img src="static/new_oauth_app.png" height="200" alt="new_oauth_app"/><br><br>
+      4. Copy <b>Client Id</b> and <b>Client Secret</b>.<br>
+      <img src="static/oauth.png" height="200" alt="oauth"/>
+  </details>
+  
+- <details> <summary>osu! v1 api key</summary>
+      Request a new v1 api key: <a href="https://osu.ppy.sh/p/api/">https://osu.ppy.sh/p/api/</a>
   </details>
 
 #### Run: 
 
 1. Clone this project and open with IntelliJ IDEA. Sync gradle project and run `mirai/buildPlugin` task to build the plugin binary file.
 
-> You can also build via command line by runing `./gradle buildPlugin` command if your IntelliJ IDEA is not installed.
+> You can also build via command line by running `chmod +x gradlew && ./gradlew buildPlugin` command if your IntelliJ IDEA is not installed. The output binary file is in `build/mirai`.
 
 2. Copy the output in `build/mirai/OsuMapSuggester-xxx.mirai.jar` to `<console runtime>/plugins/` folder, and start mirai console once, you may get this error log: 
 
@@ -79,6 +83,7 @@ osuAuth:
   clientId: 0 # The OAuth application client id you just created.
   secret: '' # OAuth application client secret
   authCallbackBaseUrl: 'http://localhost:8081' # callback base url, it is for generating OAuth link when users bind qq account, must be same with OAuth application callback base url(no "/authCallback").
+  v1ApiKey: '' # your v1 api key
 frontend: # frontend is used to process oauth application callback
   host: localhost # frontend host
   port: 8081 # frontend port
@@ -94,9 +99,9 @@ frontend: # frontend is used to process oauth application callback
 
 This project is still working in progress, it is unstable and there are still many bugs.
 
-If you suffer from fatal bug when running bot, please open a issue with `bug` to feedback.
+If you suffer from fatal bug when running bot, please open an issue with `bug` to feedback.
 
-Also, if you have any good idea, welcome to contribute to this project or open a issue with `feature` label.
+Also, if you have any good idea, welcome to contribute to this project or open an issue with `feature` label.
 
 ## Library
 
