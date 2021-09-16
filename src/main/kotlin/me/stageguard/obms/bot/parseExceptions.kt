@@ -15,6 +15,8 @@ fun parseExceptions(ex: Exception) : String {
         message.contains("INVALID_INPUT_FORMAT") -> "输入数据格式有误"
         message.contains("FAILED_AFTER_N_TRIES") ->
             message.substringAfterLast("FAILED_AFTER_N_TRIES:", message)
+        message.contains("JS_COMPILE_ERROR") -> "JavaScript 编译错误：$ex"
+        message.contains("JS_RUNTIME_ERROR") -> "JavaScript 运行错误：$ex"
         else -> "unhandled exception: $message"
     }
 }

@@ -7,6 +7,7 @@ import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.database.model.BeatmapSkillTable
 import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.utils.retry
+import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 import net.mamoe.mirai.utils.warning
@@ -61,15 +62,15 @@ object Database {
             val statement = connection.createStatement()
             statement.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS `${OsuUserInfo.tableName}` (
-                  `id` int NOT NULL AUTO_INCREMENT,
-                  `osuId` int NOT NULL,
-                  `osuName` varchar(16) NOT NULL,
-                  `qq` bigint NOT NULL,
-                  `token` varchar(1500) NOT NULL,
-                  `tokenExpiresUnixSecond` bigint NOT NULL,
-                  `refreshToken` varchar(1500) NOT NULL,
-                  PRIMARY KEY (`id`),
-                  UNIQUE KEY `users_qq_unique` (`qq`)
+                    `id` int NOT NULL AUTO_INCREMENT,
+                    `osuId` int NOT NULL,
+                    `osuName` varchar(16) NOT NULL,
+                    `qq` bigint NOT NULL,
+                    `token` varchar(1500) NOT NULL,
+                    `tokenExpiresUnixSecond` bigint NOT NULL,
+                    `refreshToken` varchar(1500) NOT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `users_qq_unique` (`qq`)
                 );
             """.trimIndent())
             statement.executeUpdate("""
@@ -87,6 +88,18 @@ object Database {
                     UNIQUE KEY `beatmap_skills_unique` (`bid`)
                 );
             """.trimIndent())
+            statement.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS `beatmap_type` (
+                    `id` INT NOT NULL COMMENT '主键 ID',
+                    `triggers` VARCHAR(1500) NOT NULL COMMENT '触发条件',
+                    `authorQq` INT NOT NULL COMMENT '添加者 QQ',
+                    `condition` VARCHAR(1500) NOT NULL COMMENT 'JavaScript条件表达式',
+                    `priority` INT NOT NULL COMMENT '优先级',
+                    `addDate` DATE NOT NULL COMMENT '添加日期',
+                    `lastEdited` DATE NOT NULL COMMENT '修改日期',
+                    PRIMARY KEY (`id`)
+                );
+            """.trimIndent())
         }
     }
 
@@ -95,6 +108,7 @@ object Database {
         hikariSource.closeQuietly()
     }
 
+    @OptIn(ConsoleExperimentalApi::class)
     private fun hikariDataSourceProvider() : HikariDataSource = HikariDataSource(HikariConfig().apply {
         when {
             PluginConfig.database.address == "" -> throw IllegalArgumentException("Database address is not set in config file ${PluginConfig.saveName}.")

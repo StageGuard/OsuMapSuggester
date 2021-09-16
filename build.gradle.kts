@@ -1,6 +1,6 @@
 plugins {
     id("net.mamoe.mirai-console") version "2.7.0"
-    val kotlinVersion = "1.5.20"
+    val kotlinVersion = "1.5.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 }
@@ -21,14 +21,10 @@ val hikariVersion = "5.0.0"
 val mysqlVersion = "8.0.25"
 val miraiSlf4jBridgeVersion = "1.2.0"
 val skijaVersion = "0.92.15"
-val ktorServerVersion = "1.4.0"
+val ktorServerVersion = "1.5.4"
 val ktormVersion = "3.4.1"
 
 dependencies {
-    //test suite
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.5.21")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
     //kotlin serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
     //skija
@@ -48,6 +44,12 @@ dependencies {
     implementation("org.apache.commons:commons-math3:3.6.1")
     implementation("org.apache.commons:commons-compress:1.21")
     implementation("org.tukaani:xz:1.9")
+    //javascript engine
+    implementation("org.mozilla:rhino:1.7.13")
+    //test suite
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.5.21")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
 
 }
 

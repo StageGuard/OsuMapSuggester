@@ -4,6 +4,8 @@ import kotlinx.coroutines.launch
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.bot.route.*
 import net.mamoe.mirai.Bot
+import net.mamoe.mirai.event.Event
+import net.mamoe.mirai.event.ListeningStatus
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.subscribeGroupMessages
 import net.mamoe.mirai.message.data.At
@@ -15,11 +17,15 @@ import net.mamoe.mirai.utils.info
 object MessageRoute {
     fun subscribeMessages(bot: Bot) {
         bot.eventChannel.subscribeGroupMessages {
+            //basic commands
             bindAccount()
-            bestPerformanceAnalyze()
             help()
+            //query commands
+            bestPerformanceAnalyze()
             skill()
             recentScore()
+            //suggester
+            suggesterTrigger()
         }
         OsuMapSuggester.logger.info { "Subscribed group and friend messages." }
     }
