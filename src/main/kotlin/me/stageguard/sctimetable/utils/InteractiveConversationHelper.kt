@@ -117,8 +117,9 @@ class InteractiveConversationBuilder(
         tryLimit: Int = -2,
         timeoutLimit: Long = -2L,
         key: String? = null,
+        mismatchedMessage: String? = null,
         noinline checkBlock: ((SM) -> Boolean) = { true }
-    ): List<SM> = recvImpl(tryLimit, timeoutLimit, { chain ->
+    ): List<SM> = recvImpl(tryLimit, timeoutLimit, mismatchedMessage, { chain ->
         chain.any { it is SM } && run {
             var satisfied = false
             chain.filterIsInstance<SM>().forEach { satisfied = checkBlock(it) }
@@ -159,8 +160,9 @@ class InteractiveConversationBuilder(
         tryLimit: Int = -2,
         timeoutLimit: Long = -2L,
         key: String? = null,
+        mismatchedMessage: String? = null,
         noinline checkBlock: ((String) -> Boolean) = { true }
-    ): String = recvImpl(tryLimit, timeoutLimit, {
+    ): String = recvImpl(tryLimit, timeoutLimit, mismatchedMessage, {
         it.subList(1, it.size).let { single -> single.size == 1 && single[0] is PlainText && checkBlock(single[0].content) }
     }, { it.contentToString() }).also { if(key != null) capturedList[key] = it }
 
@@ -170,6 +172,7 @@ class InteractiveConversationBuilder(
     suspend fun <R> recvImpl(
         tryLimit: Int = tryCountLimitation,
         timeoutLimit: Long = timeoutLimitation,
+        mismatchedMessage: String?,
         checkBlock: (MessageChain) -> Boolean,
         mapBlock: (MessageChain) -> R
     ): R {
@@ -189,7 +192,7 @@ class InteractiveConversationBuilder(
             runCatching {
                 if(checkBlock(nextMsg)) return mapBlock(nextMsg)
             }
-            send("mismatched message.")
+            send(mismatchedMessage ?: "mismatched message.")
         }
         throw QuitConversationExceptions.IllegalInputException()
     }
@@ -229,7 +232,9 @@ class InteractiveConversationBuilder(
     suspend fun select(
         timeoutLimit: Long = timeoutLimitation,
         runBlock: suspend SelectionLambdaExpression.(MessageChain) -> Unit
-    ) = SelectionLambdaExpression(recvImpl(tryCountLimitation, timeoutLimit, { true }) { it })(runBlock)
+    ) = SelectionLambdaExpression(
+        recvImpl(tryCountLimitation, timeoutLimit, null, { true }) { it }
+    )(runBlock)
 
     @Suppress("DuplicatedCode")
     class SelectionLambdaExpression(
