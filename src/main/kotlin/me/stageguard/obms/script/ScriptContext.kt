@@ -4,17 +4,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.utils.Either
-import me.stageguard.obms.utils.Either.Companion.onLeft
-import me.stageguard.obms.utils.Either.Companion.onRight
-import me.stageguard.obms.utils.InferredEitherOrISE
-import me.stageguard.obms.utils.ValueOrISE
 import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
-import org.mozilla.javascript.Context
-import org.mozilla.javascript.ImporterTopLevel
-import org.mozilla.javascript.Script
-import org.mozilla.javascript.ScriptableObject
+import org.mozilla.javascript.*
 import kotlin.coroutines.CoroutineContext
 
 object ScriptContext : CoroutineScope {
@@ -25,8 +17,17 @@ object ScriptContext : CoroutineScope {
     private val dispatcher = newSingleThreadContext("JavaScriptContext")
     private val lock = Mutex()
     private val exceptionHandler = CoroutineExceptionHandler { _: CoroutineContext, throwable: Throwable ->
-        OsuMapSuggester.logger.error { throwable.toString() }
+        OsuMapSuggester.logger.error { throwable.printStackTrace(); throwable.localizedMessage }
     }
+    private val optLv by lazy {
+        try {
+            Class.forName("android.os.Build"); 0
+        } catch (e: Throwable) { -1 }
+    }
+    private val compileStringPrivMethod = Context::class.java.getDeclaredMethod("compileString",
+        String::class.java, Evaluator::class.java, ErrorReporter::class.java,
+        String::class.java, Int::class.java, Object::class.java
+    ).also { it.trySetAccessible() }
 
     override val coroutineContext: CoroutineContext
         get() = dispatcher + exceptionHandler
@@ -34,11 +35,9 @@ object ScriptContext : CoroutineScope {
     fun init() {
         initJob = OsuMapSuggester.launch(dispatcher + exceptionHandler) {
             ctx = Context.enter()
-            ctx.optimizationLevel = try {
-                Class.forName("android.os.Build"); 0
-            } catch (e: Throwable) { -1 }
+            ctx.optimizationLevel = optLv
             ctx.languageVersion = Context.VERSION_ES6
-            topLevelScope = ImporterTopLevel(ctx).also { it.initStandardObjects(ctx, true) }
+            topLevelScope = ImporterTopLevel(ctx)
             //init global objects
             //ScriptableObject.putProperty(topLevelScope, "_propertyName", Context.javaToJS(Any(), topLevelScope))
             OsuMapSuggester.logger.info { "JavaScript context initialized." }
@@ -59,16 +58,56 @@ object ScriptContext : CoroutineScope {
         }
     }
 
-    fun compile(src: String) = try {
-        ctx.compileString("""
-            this["__${'$'}internalRunAndGetResult${'$'}"] = eval("${src.replace("\"", "\\\"")}")
-        """.trimIndent(), "RunJavaScript", 1, null)
-    } catch (ex: Exception) {
-        throw IllegalStateException("JS_COMPILE_ERROR:$ex")
+    fun checkSyntax(src: String) : Pair<Boolean, List<String>> {
+        val messages = mutableListOf<String>()
+        var isError = false
+
+        kotlin.runCatching {
+            Parser(CompilerEnvirons().also {
+                it.optimizationLevel = optLv
+                it.isGeneratingSource = true
+                it.isGenerateDebugInfo = true
+            }, object : ErrorReporter {
+                override fun warning(
+                    message: String?, sourceName: String?,
+                    line: Int, lineSource: String?, lineOffset: Int
+                ) {
+                    messages.add("WARNING: $message in ($line, $lineOffset)")
+                }
+
+                override fun error(
+                    message: String?, sourceName: String?,
+                    line: Int, lineSource: String?, lineOffset: Int
+                ) {
+                    isError = true
+                    messages.add("ERROR: $message in ($line, $lineOffset)")
+                }
+
+                override fun runtimeError(
+                    message: String?, sourceName: String?,
+                    line: Int, lineSource: String?, lineOffset: Int
+                ): EvaluatorException {
+                    return EvaluatorException(message, sourceName, line, lineSource, lineOffset)
+                }
+            }).parse(src, "", 0)
+        }
+
+        return isError to messages
+    }
+
+    suspend fun compile(src: String, errorReporter: ErrorReporter? = null): Script = withContext(dispatcher) {
+        try {
+            compileStringPrivMethod.invoke(ctx, """
+                this["__${'$'}internalRunAndGetResult${'$'}"] = eval("${src.replace("\"", "\\\"")}")
+            """.trimIndent(), null, errorReporter, "RunJavaScript", 1, null) as Script
+        } catch (ex: Exception) {
+            println("err")
+            throw IllegalStateException("JS_COMPILE_ERROR:$ex")
+        }
     }
 
     suspend fun <T : Any> evaluateAndGetResult(
-        source: String, properties: Map<String, Any>
+        source: String, properties: Map<String, Any> = mapOf()
     ) = withContext(coroutineContext) {
         initJob.join()
         withProperties(properties) {
