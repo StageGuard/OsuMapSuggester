@@ -173,8 +173,17 @@ class InteractiveConversationBuilder(
         checkBlock: (MessageChain) -> Boolean,
         mapBlock: (MessageChain) -> R
     ): R {
-        val calculatedTryLimit = if(tryLimit == -2) (if(UNLIMITED_REPEAT) Int.MAX_VALUE else tryCountLimitation) else (if(tryLimit == -1) Int.MAX_VALUE else tryLimit)
-        val calculatedTimeLimit = if(timeoutLimit == -2L) (if(UNLIMITED_TIME) Long.MAX_VALUE else timeoutLimitation) else (if(timeoutLimit == -1L) Long.MAX_VALUE else timeoutLimit)
+        val calculatedTryLimit = if(tryLimit == -2) {
+            if(UNLIMITED_REPEAT) Int.MAX_VALUE else tryCountLimitation
+        } else {
+            if(tryLimit == -1) Int.MAX_VALUE else tryLimit
+        }
+        val calculatedTimeLimit = if(timeoutLimit == -2L) {
+            if (UNLIMITED_TIME) Long.MAX_VALUE else timeoutLimitation
+        } else {
+            if (timeoutLimit == -1L) Long.MAX_VALUE else timeoutLimit
+        }
+
         repeat(calculatedTryLimit) {
             val nextMsg = eventContext.nextMessage(calculatedTimeLimit)
             runCatching {
