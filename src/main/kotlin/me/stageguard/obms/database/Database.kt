@@ -90,9 +90,9 @@ object Database {
             """.trimIndent())
             statement.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS `beatmap_type` (
-                    `id` INT NOT NULL COMMENT '主键 ID',
+                    `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
                     `triggers` VARCHAR(1500) NOT NULL COMMENT '触发条件',
-                    `authorQq` INT NOT NULL COMMENT '添加者 QQ',
+                    `authorQq` BIGINT NOT NULL COMMENT '添加者 QQ',
                     `condition` VARCHAR(1500) NOT NULL COMMENT 'JavaScript条件表达式',
                     `priority` INT NOT NULL COMMENT '优先级',
                     `addDate` DATE NOT NULL COMMENT '添加日期',
