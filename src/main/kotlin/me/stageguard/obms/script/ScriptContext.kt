@@ -60,11 +60,11 @@ object ScriptContext : CoroutineScope {
     }
 
     fun compile(src: String) = try {
-        InferredEitherOrISE(ctx.compileString("""
+        ctx.compileString("""
             this["__${'$'}internalRunAndGetResult${'$'}"] = eval("${src.replace("\"", "\\\"")}")
-        """.trimIndent(), "RunJavaScript", 1, null))
+        """.trimIndent(), "RunJavaScript", 1, null)
     } catch (ex: Exception) {
-        Either.invoke<IllegalStateException, Script>(IllegalStateException("JS_COMPILE_ERROR:$ex"))
+        throw IllegalStateException("JS_COMPILE_ERROR:$ex")
     }
 
     suspend fun <T : Any> evaluateAndGetResult(
@@ -74,15 +74,13 @@ object ScriptContext : CoroutineScope {
         withProperties(properties) {
             try {
                 putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
-                compile(source).onRight {
-                    it.exec(ctx, topLevelScope)
-                }.onLeft { throw it }
+                compile(source).exec(ctx, topLevelScope)
                 topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as? T
-            } catch (ex: ClassCastException) {
-                throw Exception("ClassCastExpression in evaluating JavaScript source: $source")
+            } catch (ex: IllegalStateException) {
+                throw ex
             } catch (ex: Exception) {
                 throw Exception("JS_RUNTIME_ERROR: $ex")
-            } catch (iex: IllegalStateException) {  }
+            }
         }
     }
 }
