@@ -192,7 +192,7 @@ class InteractiveConversationBuilder(
             runCatching {
                 if(checkBlock(nextMsg)) return mapBlock(nextMsg)
             }
-            send(mismatchedMessage ?: "mismatched message.")
+            if(mismatchedMessage != null) send(mismatchedMessage)
         }
         throw QuitConversationExceptions.IllegalInputException()
     }
@@ -304,23 +304,23 @@ class InteractiveConversationBuilder(
         suspend fun default(caseLambda: suspend () -> Unit) {
             if(!matches) caseLambda()
         }
-        fun finish() { throw QuitConversationExceptions.AdvancedQuitException() }
+        fun finish(message: String? = null) { throw QuitConversationExceptions.AdvancedQuitException(message) }
 
         //For execute
         suspend operator fun invoke(runBlock: suspend SelectionLambdaExpression.(MessageChain) -> Unit) = runBlock(chain)
     }
-    fun finish() { throw QuitConversationExceptions.AdvancedQuitException() }
+    fun finish(message: String? = null) { throw QuitConversationExceptions.AdvancedQuitException(message) }
 
     suspend operator fun invoke() = conversationBlock()
 }
 
-sealed class QuitConversationExceptions : Exception() {
+sealed class QuitConversationExceptions(message: String? = null) : Exception(message) {
     /**
      * 提前结束会话时抛出
      * @see InteractiveConversationBuilder.finish
      * @see InteractiveConversationBuilder.SelectionLambdaExpression.finish
      */
-    class AdvancedQuitException : QuitConversationExceptions()
+    class AdvancedQuitException(override val message: String? = null) : QuitConversationExceptions()
 
     /**
      * 超过了尝试次数后未捕获到合适的消息时抛出
