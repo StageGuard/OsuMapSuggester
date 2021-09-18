@@ -26,15 +26,14 @@ import me.stageguard.obms.utils.Either.Companion.onRight
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
 
+@OptIn(ExperimentalSerializationApi::class)
 object OsuWebApi {
     const val BASE_URL_V2 = "https://osu.ppy.sh/api/v2"
     const val BASE_URL_V1 = "https://osu.ppy.sh/api"
     const val BASE_URL_OLD = "https://old.ppy.sh"
 
-    val client = HttpClient(OkHttp) {
-        expectSuccess = false
-    }
     val json = Json { ignoreUnknownKeys = true }
+    val client = HttpClient(OkHttp) { expectSuccess = false }
 
     private const val MAX_IN_ONE_REQ = 50
     /**
@@ -86,6 +85,19 @@ object OsuWebApi {
      * Api function related
      */
 
+    suspend fun searchBeatmapSet(
+        user: Long, keyword: String, mode: String = "osu",
+        category: String = "", isRecommended: Boolean = false
+    ) = get<BeatmapSetSearchDTO>(
+        user = user, path = "/beatmapsets/search", parameters = mutableMapOf(
+            "q" to keyword,
+            "m" to when(mode) { "osu" -> 0; "taiko" -> 1; "catch" -> 2; "mania" -> 3; else -> 0 }
+        ).also {
+            if(category.isNotEmpty()) it["s"] = category
+            if(isRecommended) it["c"] = "recommended"
+        }
+    )
+
     suspend fun getBeatmapFileStream(bid: Int) = openStream(
         url = "$BASE_URL_OLD/osu/$bid",
         parameters = mapOf(),
@@ -96,7 +108,7 @@ object OsuWebApi {
         url = "$BASE_URL_V1/get_replay",
         parameters = mapOf(
             "k" to PluginConfig.osuAuth.v1ApiKey,
-            "s" to scoreId.toString()
+            "s" to scoreId
         ),
         headers = mapOf()
     ) {
@@ -136,8 +148,8 @@ object OsuWebApi {
                     getTailrec(current + MAX_IN_ONE_REQ)
                 } else {
                     get<List<ScoreDTO>>("/users/$userId/scores/$type", user, mapOf(
-                        "mode" to mode, "include_fails" to if(includeFails) "1" else "0",
-                        "limit" to (limit + offset - current).toString(), "offset" to current.toString()
+                        "mode" to mode, "include_fails" to if(includeFails) 1 else 0,
+                        "limit" to limit + offset - current, "offset" to current
                     )).also { re ->
                         re.onRight { li ->
                             initialList.addAll(li)
@@ -199,7 +211,7 @@ object OsuWebApi {
     )
 
     suspend inline fun <reified RESP> get(
-        path: String, user: Long, parameters: Map<String, String> = mapOf()
+        path: String, user: Long, parameters: Map<String, Any> = mapOf()
     ) = getImpl<String, ValueOrISE<RESP>>(
         url = BASE_URL_V2 + path,
         headers = mapOf("Authorization" to "Bearer ${OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow()}"),
@@ -229,7 +241,7 @@ object OsuWebApi {
     @Suppress("DuplicatedCode")
     suspend inline fun <reified RESP, R> getImpl(
         url: String,
-        parameters: Map<String, String>,
+        parameters: Map<String, Any>,
         headers: Map<String, String>,
         crossinline consumer: RESP.() -> R
     ) = withContext(networkProcessorDispatcher) {
@@ -269,7 +281,6 @@ object OsuWebApi {
         }.execute { it.headers }
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
     @Suppress("DuplicatedCode")
     suspend inline fun <reified REQ, reified RESP : Any> postImpl(
         url: String, token: String? = null, body: @Serializable REQ
