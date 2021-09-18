@@ -8,17 +8,19 @@ A [mirai-console](https://github.com/mamoe/mirai-console) plugin that can provid
 
 It can analyze player's **aim**, **speed** and **accuracy** skills of his best performances and [PerformancePlus](https://syrin.me/pp+/) and other factors to infer what type of the player he is.
 
-Then it can recommend specific beatmap for his shortcomings or other kind of beatmap.
+Then it can recommend specific beatmap for his shortcomings or other kind of beatmap.(not implemented)
 
-**But currently none of the feature above is implemented, because it is still working in progress. XD**
+Users can also define custom ruleset of beatmap type via [these properties](https://github.com/StageGuard/OsuMapSuggester/blob/main/src/main/kotlin/me/stageguard/obms/database/model/BeatmapSkill.dao.kt#L22) using JavaScript expression.
 
 There are other features: 
 
-- [ ] Analyze player's skills(main function).
-- [ ] Recommend specific beatmap(main function).
+- [x] Analyze player's skills(main function).
+- [x] Recommend specific beatmap(main function).
 - [x] Show your best performance picture.
 - [x] Best performance versus.
 - [x] Recalculate the best performance if all full combo.
+- [x] Show your skill attributes.
+- [x] query your recent score
 - [ ] ...
 
 ## How plugin process OAuth request and bind account
