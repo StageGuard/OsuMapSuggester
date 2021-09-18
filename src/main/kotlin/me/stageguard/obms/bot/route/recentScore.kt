@@ -11,6 +11,7 @@ import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.cache.ReplayCache
+import me.stageguard.obms.database.model.BeatmapSkillTable
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.RecentPlay
 import me.stageguard.obms.osu.algorithm.`pp+`.calculateSkills
@@ -154,8 +155,14 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
     val skillAttributes = beatmap.mapRight {
         it.calculateSkills(ModCombination.of(mods), Optional.of(
             score.statistics.count300 + score.statistics.count100 + score.statistics.count50
-        ))
+        )).also { skAttr ->
+            launch(CoroutineName("Add skillAttribute of beatmap ${score.beatmap.id} to database")) {
+                BeatmapSkillTable.addAll(listOf(score.beatmap.id to skAttr))
+            }
+        }
     }
+
+
     val modCombination = ModCombination.of(mods)
     val difficultyAttribute = beatmap.mapRight { it.calculateDifficultyAttributes(modCombination) }
     val userBestScore = if(score.bestId != score.id && !score.replay) {
