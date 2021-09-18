@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package me.stageguard.obms.script.synthetic.wrapped
 
 import me.stageguard.obms.script.synthetic.AbstractWrapped
