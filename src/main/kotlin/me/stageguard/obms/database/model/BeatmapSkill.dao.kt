@@ -17,6 +17,7 @@ import org.ktorm.dsl.AssignmentsBuilder
 import org.ktorm.entity.Entity
 import org.ktorm.entity.map
 import org.ktorm.entity.sequenceOf
+import org.ktorm.entity.toList
 import org.ktorm.schema.*
 
 object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
@@ -65,13 +66,20 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
         if(toUpdate.isNotEmpty()) BeatmapSkillTable.batchUpdate1(toUpdate, bid, { this.bid }) { it }
     }
 
-    suspend fun addAllViaBid(whoAdded: Long, items: List<Int>) = Database.query { db ->
+    suspend fun addAllViaBid(items: List<Int>) = Database.query { db ->
         val existBeatmap = db.sequenceOf(BeatmapSkillTable).map { it.bid }
         val toUpdate = mutableListOf<BeatmapSkill>()
         val toInsert = mutableListOf<BeatmapSkill>()
 
+        val randomUser = db.sequenceOf(OsuUserInfo).toList().firstOrNull()?.qq
+
+        if(randomUser == null) {
+            OsuMapSuggester.logger.warning { "Error while add beatmap: no user exist in database" }
+            return@query
+        }
+
         items.forEach { bid ->
-            val beatmapInfo = OsuWebApi.getBeatmap(whoAdded, bid).onLeft {
+            val beatmapInfo = OsuWebApi.getBeatmap(randomUser, bid).onLeft {
                 OsuMapSuggester.logger.warning { "Error while add beatmap $bid: $it" }
                 return@forEach
             }.right
@@ -99,8 +107,6 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
                 this.rhythmComplexity = skills.accuracyStrain
             }
             if(bid in existBeatmap) toUpdate.add(dao) else toInsert.add(dao)
-
-            OsuMapSuggester.logger.info { "Added: $bid" }
         }
 
         BeatmapSkillTable.batchInsert(toInsert)

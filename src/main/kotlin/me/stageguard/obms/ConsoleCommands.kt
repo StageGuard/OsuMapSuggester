@@ -63,14 +63,17 @@ object ConsoleCommands : CompositeCommand(
     @Suppress("DuplicatedCode")
     @SubCommand
     @Description("Load all beatmap skill info in cache to database")
-    suspend fun CommandSender.refreshBeatmap(u: Long) {
-        OsuMapSuggester.logger.info { "Loading beatmap skill info in database to database..." }
+    suspend fun CommandSender.refreshBeatmap() {
+        OsuMapSuggester.logger.info { """
+            Loading beatmap skill info in database to database...
+            Note that if count of beatmap in cache folder is large, this process will take a long time
+        """.trimIndent() }
         withContext(calculatorProcessorDispatcher) {
             val beatmap = File(BeatmapCache.CACHE_FOLDER).listFiles { _, s ->
                 s.split(".").last() == "osu"
             }?.map { f -> f.nameWithoutExtension.toInt() }
             if (beatmap != null) {
-                BeatmapSkillTable.addAllViaBid(u, beatmap)
+                BeatmapSkillTable.addAllViaBid(beatmap)
             }
         }
     }
