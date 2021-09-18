@@ -137,11 +137,9 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                     当前的触发词有：${triggers.ifEmpty { listOf("<空>") }.joinToString()}
                                 """.trimIndent())
                                     triggers.clear()
-                                    triggers.addAll(receivePlain {
-                                        !it.contains(";").also {
-                                            ScriptContext.launch { send("触发词中不允许出现英文分号，请重新输入") }
-                                        }
-                                    }.split("\n"))
+                                    triggers.addAll(receivePlain(
+                                        mismatchedMessage = "触发词中不允许出现英文分号，请重新输入"
+                                    ) { !it.contains(";") }.split("\n"))
                                     addTriggerStep = false
                                 }
                                 if(conditionStep) {
