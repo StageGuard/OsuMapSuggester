@@ -11,6 +11,7 @@ import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.cache.ReplayCache
+import me.stageguard.obms.database.model.BeatmapSkill
 import me.stageguard.obms.database.model.BeatmapSkillTable
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.RecentPlay
@@ -35,6 +36,7 @@ import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.right
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
+import net.mamoe.mirai.utils.warning
 import org.jetbrains.skija.EncodedImageFormat
 import java.lang.NumberFormatException
 import java.util.Optional
@@ -152,24 +154,14 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
             }
         }
     }
-    val skillAttributes = beatmap.mapRight {
-        it.calculateSkills(ModCombination.of(mods), Optional.of(
-            score.statistics.count300 + score.statistics.count100 + score.statistics.count50
-        )).also { skAttr ->
-            launch(CoroutineName("Add skillAttribute of beatmap ${score.beatmap.id} to database")) {
-                BeatmapSkillTable.addAll(listOf(score.beatmap.id to skAttr))
-            }
-        }
-    }
+    val skillAttributes = beatmap.mapRight { it.calculateSkills(ModCombination.of(mods)) }
 
 
     val modCombination = ModCombination.of(mods)
     val difficultyAttribute = beatmap.mapRight { it.calculateDifficultyAttributes(modCombination) }
     val userBestScore = if(score.bestId != score.id && !score.replay) {
         OsuWebApi.userBeatmapScore(sender.id, score.beatmap.id)
-    } else {
-        Either.invoke(IllegalStateException())
-    }
+    } else { Either.invoke(IllegalStateException()) }
 
     //我草，血压上来了
     val replayAnalyzer = beatmap.run b@ { this@b.ifRight { b ->
@@ -197,6 +189,33 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
         onLeft {
             atReply("从服务器获取铺面信息时发生了异常: ${parseExceptions(it)}")
         }.right
+    }
+
+    launch(CoroutineName("Add skillAttribute of beatmap ${score.beatmap.id} to database")) {
+        val da = difficultyAttribute.onLeft {
+            OsuMapSuggester.logger.warning { "Error while add beatmap ${score.beatmap.id}: $it" }
+            return@launch
+        }.right
+        val sk = skillAttributes.onLeft {
+            OsuMapSuggester.logger.warning { "Error while add beatmap ${score.beatmap.id}: $it" }
+            return@launch
+        }.right
+        BeatmapSkillTable.addAll(listOf(BeatmapSkill {
+            this.bid = bid
+            this.stars = da.stars
+            this.bpm = score.beatmap.bpm
+            this.length = score.beatmap.totalLength
+            this.circleSize = score.beatmap.cs
+            this.hpDrain = score.beatmap.drain
+            this.approachingRate = score.beatmap.ar
+            this.overallDifficulty = score.beatmap.accuracy
+            this.jumpAimStrain = sk.jumpAimStrain
+            this.flowAimStrain = sk.flowAimStrain
+            this.speedStrain = sk.speedStrain
+            this.staminaStrain = sk.staminaStrain
+            this.precisionStrain = sk.precisionStrain
+            this.rhythmComplexity = sk.accuracyStrain
+        }))
     }
 
     val bytes = withContext(graphicProcessorDispatcher) {

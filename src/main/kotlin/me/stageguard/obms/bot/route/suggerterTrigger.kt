@@ -23,6 +23,8 @@ import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import org.ktorm.entity.*
 import java.time.LocalDate
 
+typealias Wrapper<T> = ColumnDeclaringComparableNumberWrapped<T>
+
 fun GroupMessageSubscribersBuilder.suggesterTrigger() {
     finding(Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)")) { mr ->
         try {
@@ -56,14 +58,20 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                         "recommendStar" to recommendedDifficulty,
                                         "matchResult" to triggerMatchesGroup,
                                         //column
-                                        "bid" to ColumnDeclaringComparableNumberWrapped(btColumn.bid),
-                                        "star" to ColumnDeclaringComparableNumberWrapped(btColumn.stars),
-                                        "jump" to ColumnDeclaringComparableNumberWrapped(btColumn.jumpAimStrain),
-                                        "flow" to ColumnDeclaringComparableNumberWrapped(btColumn.flowAimStrain),
-                                        "speed" to ColumnDeclaringComparableNumberWrapped(btColumn.speedStrain),
-                                        "stamina" to ColumnDeclaringComparableNumberWrapped(btColumn.staminaStrain),
-                                        "precision" to ColumnDeclaringComparableNumberWrapped(btColumn.precisionStrain),
-                                        "accuracy" to ColumnDeclaringComparableNumberWrapped(btColumn.rhythmComplexity)
+                                        "bid" to Wrapper(btColumn.bid),
+                                        "star" to Wrapper(btColumn.stars),
+                                        "bpm" to Wrapper(btColumn.bpm),
+                                        "length" to Wrapper(btColumn.length),
+                                        "ar" to Wrapper(btColumn.approachingRate),
+                                        "od" to Wrapper(btColumn.overallDifficulty),
+                                        "cs" to Wrapper(btColumn.circleSize),
+                                        "hp" to Wrapper(btColumn.hpDrain),
+                                        "jump" to Wrapper(btColumn.jumpAimStrain),
+                                        "flow" to Wrapper(btColumn.flowAimStrain),
+                                        "speed" to Wrapper(btColumn.speedStrain),
+                                        "stamina" to Wrapper(btColumn.staminaStrain),
+                                        "precision" to Wrapper(btColumn.precisionStrain),
+                                        "accuracy" to Wrapper(btColumn.rhythmComplexity)
                                     )
                                 )?.unwrap() ?: kotlin.run {
                                     atReply("""
