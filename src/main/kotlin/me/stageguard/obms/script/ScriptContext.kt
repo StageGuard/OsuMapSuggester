@@ -8,6 +8,7 @@ import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 import org.mozilla.javascript.*
 import kotlin.coroutines.CoroutineContext
+import kotlin.reflect.KFunction
 
 object ScriptContext : CoroutineScope {
     private lateinit var initJob: Job
@@ -49,7 +50,7 @@ object ScriptContext : CoroutineScope {
         ScriptableObject.putProperty(topLevelScope, name, Context.javaToJS(value, topLevelScope))
     }
 
-    suspend fun <R> withProperties(properties: Map<String, Any>, block: suspend () -> R) = lock.withLock {
+    suspend fun <R> withProperties(properties: Map<String, Any?>, block: suspend () -> R) = lock.withLock {
         properties.forEach { (name, value) ->
             ScriptableObject.putProperty(topLevelScope, name, Context.javaToJS(value, topLevelScope))
         }
@@ -96,18 +97,13 @@ object ScriptContext : CoroutineScope {
     }
 
     suspend fun compile(src: String, errorReporter: ErrorReporter? = null): Script = withContext(dispatcher) {
-        try {
-            compileStringPrivMethod.invoke(ctx, """
-                this["__${'$'}internalRunAndGetResult${'$'}"] = eval("${src.replace("\"", "\\\"")}")
-            """.trimIndent(), null, errorReporter, "RunJavaScript", 1, null) as Script
-        } catch (ex: Exception) {
-            println("err")
-            throw IllegalStateException("JS_COMPILE_ERROR:$ex")
-        }
+        compileStringPrivMethod.invoke(ctx, """
+            this["__${'$'}internalRunAndGetResult${'$'}"] = eval("${src.replace("\"", "\\\"")}")
+        """.trimIndent(), null, errorReporter, "RunJavaScript", 1, null) as Script
     }
 
     suspend fun <T : Any> evaluateAndGetResult(
-        source: String, properties: Map<String, Any> = mapOf()
+        source: String, properties: Map<String, Any?> = mapOf()
     ) = withContext(coroutineContext) {
         initJob.join()
         withProperties(properties) {
@@ -115,11 +111,12 @@ object ScriptContext : CoroutineScope {
                 putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
                 compile(source).exec(ctx, topLevelScope)
                 topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as? T
-            } catch (ex: IllegalStateException) {
-                throw ex
             } catch (ex: Exception) {
-                throw Exception("JS_RUNTIME_ERROR: $ex")
+                throw IllegalStateException("JS_RUNTIME_ERROR: $ex")
             }
         }
     }
+
+    fun createJSFunctionFromKJvmStatic(name: String, kFunction: KFunction<*>) =
+        K2JSFunction(name, kFunction, topLevelScope)
 }

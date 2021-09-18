@@ -1,13 +1,19 @@
 package me.stageguard.obms.bot.route
 
+import kotlinx.atomicfu.AtomicRef
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.launch
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.database.Database
-import me.stageguard.obms.database.model.BeatmapType
-import me.stageguard.obms.database.model.BeatmapTypeTable
-import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.database.model.*
+import me.stageguard.obms.graph.format2DFix
+import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.script.ScriptContext
+import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringBooleanWrapped
+import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringComparableNumberWrapped
+import me.stageguard.obms.script.synthetic.ConvenientToolsForBeatmapSkill.contains as toolContains
+import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.sctimetable.utils.QuitConversationExceptions
 import me.stageguard.sctimetable.utils.exception
 import me.stageguard.sctimetable.utils.finish
@@ -21,15 +27,82 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
     finding(Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)")) { mr ->
         try {
             val variant = mr.groupValues[1]
-            val userId = OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
 
-            var selected : Int? = null
+            val recommendedDifficulty = OsuWebApi.searchBeatmapSet(
+                sender.id, "13df7m40t6ynm23f4g07ym"
+            ).ifRight { it.recommendedDifficulty } ?: 0.0
+
+            val selected: AtomicRef<Pair<BeatmapType, BeatmapSkill>?> = atomic(null)
             Database.query { db ->
                 val allTypes = db.sequenceOf(BeatmapTypeTable).sortedBy { it.priority }.map { it }
-                var dropCount = 0
-                allTypes.filter { bt ->
-                    bt.triggers.split(";").map { t -> Regex(t) }.any { r -> r.matches(variant) }
+                // first: 这个 variant 的第几个关键词， second: 这个关键词的正则表达式
+                var triggerMatchers = Regex(String())
+                //匹配 matchers，即关键词触发
+
+                allTypes.asSequence().filter { bt ->
+                    bt.triggers.split(";").map { t -> Regex(t) }.any { r ->
+                        r.matches(variant).also { triggerMatchers = r }
+                    }
+                }.forEach filterEach@ { ruleset ->
+                    if (selected.value == null) {
+                        val triggerMatchesGroup = triggerMatchers.find(variant)?.groupValues
+                        val searchedBeatmap = db.sequenceOf(BeatmapSkillTable).filter { btColumn ->
+                            try {
+                                ScriptContext.evaluateAndGetResult<ColumnDeclaringBooleanWrapped>(
+                                    ruleset.condition, properties = mapOf(
+                                        //tool function
+                                        "contains" to ScriptContext.createJSFunctionFromKJvmStatic("contains", ::toolContains),
+                                        //variable
+                                        "recommendStar" to recommendedDifficulty,
+                                        "matchResult" to triggerMatchesGroup,
+                                        //column
+                                        "bid" to ColumnDeclaringComparableNumberWrapped(btColumn.bid),
+                                        "star" to ColumnDeclaringComparableNumberWrapped(btColumn.stars),
+                                        "jump" to ColumnDeclaringComparableNumberWrapped(btColumn.jumpAimStrain),
+                                        "flow" to ColumnDeclaringComparableNumberWrapped(btColumn.flowAimStrain),
+                                        "speed" to ColumnDeclaringComparableNumberWrapped(btColumn.speedStrain),
+                                        "stamina" to ColumnDeclaringComparableNumberWrapped(btColumn.staminaStrain),
+                                        "precision" to ColumnDeclaringComparableNumberWrapped(btColumn.precisionStrain),
+                                        "accuracy" to ColumnDeclaringComparableNumberWrapped(btColumn.rhythmComplexity)
+                                    )
+                                )?.unwrap() ?: kotlin.run {
+                                    atReply("""
+                                        Return type of this condition expression is not ColumnDeclaring<Boolean>.
+                                        Please contact this ruleset creator for more information.
+                                        Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
+                                    """.trimIndent())
+                                    return@filterEach
+                                }
+                            } catch (ex: IllegalStateException) {
+                                atReply("""
+                                    An error occurred when executing condition expression: 
+                                    $ex
+                                    Please contact this ruleset creator for more information.
+                                    Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
+                                """.trimIndent())
+                                return@filterEach
+                            }
+                        }.map { bsk -> bsk }
+
+                        if(searchedBeatmap.isNotEmpty()) {
+                            selected.compareAndSet(null, ruleset to searchedBeatmap.random())
+                        }
+                    } else return@query //跳出搜图过程
                 }
+            }
+
+            if(selected.value != null) {
+                val unwrapped = selected.value!!
+                atReply("""
+                    BID: ${unwrapped.second.bid}
+                    Stars: ${format2DFix.format(unwrapped.second.stars)}
+                    Recommender: ${OsuUserInfo.getOsuIdAndName(unwrapped.first.author).run { 
+                        if(this != null) "$second(QQ: ${unwrapped.first.author}, OsuID: $first)" else unwrapped.first.author
+                    }}
+                    Link: https://osu.ppy.sh/b/${unwrapped.second.bid}
+                """.trimIndent())
+            } else {
+                atReply("No proper beatmap found.")
             }
 
         } catch (ex: Exception) {
@@ -42,8 +115,6 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
             OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
 
             Database.query { db ->
-                val allTypes = db.sequenceOf(BeatmapTypeTable).sortedBy { it.priority }.map { it }
-
                 interactiveConversation {
                     send("""
                     添加新的谱面类型规则。
@@ -108,7 +179,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                 若需要修改：
                                 * 修改触发词请发送 1，修改规则表达式请发送 2。
                                 * 输入其他文字将同时重新修改所有两项。
-                                * 全部设置已完成，清输入 完成。
+                                * 全部设置已完成，请输入 完成。
                             """.trimIndent())
                                 select {
                                     "1" { addTriggerStep = true }
@@ -159,4 +230,3 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
         }
     }
 }
-
