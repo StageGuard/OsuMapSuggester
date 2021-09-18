@@ -1,111 +1,111 @@
 # OsuMapSuggester
 
-A [mirai-console](https://github.com/mamoe/mirai-console) plugin that can provide **osu!std** players some appropriate beatmap. (WIP)
+一个可以为 **osu!standard** 玩家推图的 [mirai-console](https://github.com/mamoe/mirai-console) 插件。
+
+English: [README-en.md](README-en.md)
 
 [![CI](https://github.com/StageGuard/OsuMapSuggester/actions/workflows/build.yml/badge.svg)](https://github.com/StageGuard/OsuMapSuggester/actions/workflows/build.yml) [![CodeFactor](https://www.codefactor.io/repository/github/stageguard/osumapsuggester/badge/main)](https://www.codefactor.io/repository/github/stageguard/osumapsuggester/overview/main)
 
-## Features
+## 特性
 
-It can analyze player's **aim**, **speed** and **accuracy** skills of his best performances and [PerformancePlus](https://syrin.me/pp+/) and other factors to infer what type of the player he is.
+插件可以从 **osu!standard** 玩家的 **Best Performance** 分析 **aim**, **speed** and **accuracy** 能力和 [PerformancePlus](https://syrin.me/pp+/) 以及其他因素来推断玩家的类型（跳跳人或串串人之类的）。
 
-Then it can recommend specific beatmap for his shortcomings or other kind of beatmap.(not implemented)
+然后插件可以**针对这个玩家的弱点或强项**给这个玩家推荐特定类型的谱面。(未实现)
 
-Users can also define custom ruleset of beatmap type via [these properties](https://github.com/StageGuard/OsuMapSuggester/blob/main/src/main/kotlin/me/stageguard/obms/database/model/BeatmapSkill.dao.kt#L22) using JavaScript expression.
+用户也可以通过[这些属性](https://github.com/StageGuard/OsuMapSuggester/blob/main/src/main/kotlin/me/stageguard/obms/database/model/BeatmapSkill.dao.kt#L22)来自定义谱面类型规则。
 
-There are other features: 
+除此之外，还有其他以下特性：
 
-- [x] Analyze player's skills(main function).
-- [x] Recommend specific beatmap(main function).
-- [x] Show your best performance picture.
-- [x] Best performance versus.
-- [x] Recalculate the best performance if all full combo.
-- [x] Show your skill attributes.
-- [x] query your recent score
+- [x] 查询玩家的 **Best Performance** 并以图片显示。
+- [x] 和其他玩家对比 **Best Performance**。
+- [x] 以 Full Combo 重新计算 **Best Performance** 和排名。
+- [ ] 显示玩家技能雷达图。
+- [x] 查询玩家最近一次成绩，包括类似 osu!lazer 的 Accuracy Heatmap 和 PP 曲线图等属性，并以图片显示。
 - [ ] ...
 
-## How plugin process OAuth request and bind account
+## 插件如何实现处理 OAuth 链接和绑定 osu 账号
 
-When users click OAuth link and confirm authorization. It will redirect to your callback URL with query parameters `state` and `code`. 
+当用户点击 OAuth 链接并且授权之后，将会自动重定向 OAuth 配置中的回调网址。
 
-The OsuMapSuggester plugin will open a frontend http server to process the parameters.
+OsuMapSuggester 将会开启一个 HTTP 前端来处理这些数据。
 
-## Deploy
+## 部署
 
-It is easy to deploy this bot.
+#### 准备工作
 
-#### Preparation: 
+- **MySQL** 或 **MariaDB** 数据库, 并需要为插件创建一个数据库。
 
-- A **MySQL** or **MariaDB** database, create a database for this plugin.
+- 有公网 IP 的服务器。
 
-- A server with public IP.
-
-- <details> <summary>Mirai console runtime environment.</summary>
-      Learn how to setup mirai console: <a href="https://github.com/mamoe/mirai/blob/dev/docs/UserManual.md">https://github.com/mamoe/mirai/blob/dev/docs/UserManual.md</a>
+- <details> <summary>mirai-console 运行环境</summary>
+      点击查看如何部署 mirai-console 环境: <a href="https://github.com/mamoe/mirai/blob/dev/docs/UserManual.md">https://github.com/mamoe/mirai/blob/dev/docs/UserManual.md</a>
   </details>
 
-- <details> <summary>osu! OAuth Application</summary>
-		1. Go to <a href="https://osu.ppy.sh/home/account/edit">https://osu.ppy.sh/home/account/edit</a><br><br>
-      2. Click <b>New OAuth Application</b><br>
+- <details> <summary>osu! OAuth 应用</summary>
+		1. 前往 <a href="https://osu.ppy.sh/home/account/edit">https://osu.ppy.sh/home/account/edit</a><br><br>
+      2. 点击 <b>New OAuth Application</b><br>
       <img src="static/new_oauth_app_button.png" alt="new_oauth_app_button"/><br><br>
-      3. Set <b>Application Callback URL</b> to <b>http://&lt;your server ip or domain name&gt;:port/authCallback</b><br>
+      3. 把 <b>Application Callback URL</b> 设为 <b>http://&lt;你的服务器 IP 或域名&gt;:端口/authCallback</b><br>
       <img src="static/new_oauth_app.png" height="200" alt="new_oauth_app"/><br><br>
-      4. Copy <b>Client Id</b> and <b>Client Secret</b>.<br>
+      4. 复制 <b>Client Id</b> 和 <b>Client Secret</b>.<br>
       <img src="static/oauth.png" height="200" alt="oauth"/>
   </details>
   
-- <details> <summary>osu! v1 api key</summary>
-      Request a new v1 api key: <a href="https://osu.ppy.sh/p/api/">https://osu.ppy.sh/p/api/</a>
+- <details> <summary>osu! v1 api 密钥</summary>
+      点击申请一个 v1 api 密钥: <a href="https://osu.ppy.sh/p/api/">https://osu.ppy.sh/p/api/</a>
   </details>
 
-#### Run: 
+#### 运行
 
-1. Clone this project and open with IntelliJ IDEA. Sync gradle project and run `mirai/buildPlugin` task to build the plugin binary file.
+1. 克隆并用 IntelliJ IDEA 打开工程. 同步 gradle 项目后运行 `mirai/buildPlugin` gradle 任务来构建项目。
 
-> You can also build via command line by running `chmod +x gradlew && ./gradlew buildPlugin` command if your IntelliJ IDEA is not installed. The output binary file is in `build/mirai`.
+> 如果你不想用 IntelliJ IDEA，也可以克隆后在命令行运行 `chmod +x gradlew && ./gradlew buildPlugin` 指令来构建. 构建完成后的 jar 输出在 `build/mirai`.
 
-2. Copy the output in `build/mirai/OsuMapSuggester-xxx.mirai.jar` to `<console runtime>/plugins/` folder, and start mirai console once, you may get this error log: 
+2. 把构建好的 jar 包放入 `<mirai-console目录>/plugins/` 中，启动 mirai console，不出意外的话你会看到以下输出：
 
 ```
 2021-07-26 20:22:37 E/OsuMapSuggester: Failed to connect database: com.zaxxer.hikari.pool.HikariPool$PoolInitializationException: Failed to initialize pool: Access denied for user 'root'@'localhost' (using password: YES).
 2021-07-26 20:22:37 E/OsuMapSuggester: Retry to connect database in 10 seconds.
 ```
 
-3. Close mirai console, edit `config/OsuMapSuggester/OsuMapSuggester.Config.yml`
+3. 停止 mirai console, 编辑配置文件 `config/OsuMapSuggester/OsuMapSuggester.Config.yml`
 
 ```yaml
-qq: 1234567890 # Enable the plugin for this bot
+qq: 1234567890 # 为这个 BOT 启用插件
 database: 
-  address: localhost # Your database address
-  port: 3306 # Database port
-  user: root # Database user
-  password: testpwd # Database password
-  table: osu!beatmap suggester # Database name
+  address: localhost # 数据库地址
+  port: 3306 # 端口
+  user: root # 账号
+  password: testpwd # 密码
+  table: osu!beatmap suggester # 数据库名称（在准备工作第一步创建的数据库）
   maximumPoolSize: 10
 osuAuth: 
-  clientId: 0 # The OAuth application client id you just created.
-  secret: '' # OAuth application client secret
-  authCallbackBaseUrl: 'http://localhost:8081' # callback base url, it is for generating OAuth link when users bind qq account, must be same with OAuth application callback base url(no "/authCallback").
-  v1ApiKey: '' # your v1 api key
-frontend: # frontend is used to process oauth application callback
-  host: localhost # frontend host
-  port: 8081 # frontend port
+  clientId: 0 # OAuth clientId
+  secret: '' # OAuth client secret
+  # 回调地址，必须和 OAuth 设置的相同（不包含 /authCallback)
+  # 注意这个地址是为了生成绑定账号的 OAuth 链接。
+  authCallbackBaseUrl: 'http://localhost:8081' 
+  v1ApiKey: '' # vi api 密钥
+frontend:
+  host: localhost # 前端主机地址，注意这个地址是实际主机地址
+  port: 8081 # 前端端口
 ```
 
-4. Save config, rerun mirai console. If you see this log, it means everything works ok.
+4. 保存，重新运行 mirai console，登录设定的账号后，看到以下输出则意味着工作正常：
 
 ```
 2021-07-26 20:34:27 I/OsuMapSuggester: Subscribed group and friend messages.
 ```
 
-## Issues
+## 问题反馈
 
-This project is still working in progress, it is unstable and there are still many bugs.
+这个项目仍在活跃开发中，并不稳定并且有许多 BUG。
 
-If you suffer from fatal bug when running bot, please open an issue with `bug` to feedback.
+如果你在使用过程中遇到了致命 BUG，请新建一个 Issue 并加上 `bug` 标签。
 
-Also, if you have any good idea, welcome to contribute to this project or open an issue with `feature` label.
+同时欢迎 pr；或者如果有好的想法，也可以新建一个 Issue 加上`feature` 标签。
 
-## Library
+## 使用到的库
 
 - Mirai Framework: [mirai](https://github.com/mamoe/mirai/), [mirai-console](https://github.com/mamoe/mirai-console), [mirai-slf4j-bridge](https://github.com/project-mirai/mirai-slf4j-bridge)
 - Database: [Ktorm](https://github.com/kotlin-orm/ktorm), [HikariCP](https://github.com/brettwooldridge/HikariCP)
@@ -114,7 +114,7 @@ Also, if you have any good idea, welcome to contribute to this project or open a
 - osu! Related: [peace-performance](https://github.com/Pure-Peace/peace-performance), [pp+ algorithm](https://github.com/Syriiin/osu), [osuReplayAnalyzer](https://github.com/firedigger/osuReplayAnalyzer)
 - Utilities: apache utilities(commons-io, commons-math3, commons-compress), [xz](https://tukaani.org/xz/java.html)
 
-## LICENSE of this project and mirai
+## 许可证
 
 ```
 OsuMapSuggester
