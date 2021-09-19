@@ -35,6 +35,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
             ).ifRight { it.recommendedDifficulty } ?: 0.0
 
             val selected: AtomicRef<Pair<BeatmapType, BeatmapSkill>?> = atomic(null)
+            var matchedAnyRuleset = false
             Database.query { db ->
                 val allTypes = db.sequenceOf(BeatmapTypeTable).sortedBy { it.priority }.map { it }
                 // first: 这个 variant 的第几个关键词， second: 这个关键词的正则表达式
@@ -46,6 +47,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                         r.matches(variant).also { triggerMatchers = r }
                     }
                 }.forEach filterEach@ { ruleset ->
+                    matchedAnyRuleset = true
                     if (selected.value == null) {
                         val triggerMatchesGroup = triggerMatchers.find(variant)?.groupValues
                         val searchedBeatmap = db.sequenceOf(BeatmapSkillTable).filter { btColumn ->
@@ -110,7 +112,11 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                     Link: https://osu.ppy.sh/b/${unwrapped.second.bid}
                 """.trimIndent())
             } else {
-                atReply("No proper beatmap found.")
+                if(matchedAnyRuleset) {
+                    atReply("No proper beatmap found.")
+                } else {
+                    atReply("No this ruleset.")
+                }
             }
 
         } catch (ex: Exception) {
