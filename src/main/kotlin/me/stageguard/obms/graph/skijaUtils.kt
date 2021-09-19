@@ -1,6 +1,8 @@
 package me.stageguard.obms.graph
 
 import me.stageguard.obms.OsuMapSuggester
+import me.stageguard.obms.graph.item.RecentPlay
+import me.stageguard.obms.utils.lerp
 import org.jetbrains.skija.*
 import org.jetbrains.skija.svg.SVGDOM
 import java.io.File
@@ -91,3 +93,33 @@ fun Canvas.drawRoundCorneredImage(src: Image, left: Float, top: Float, radius: F
         drawImage(it, left, top)
     }
 }
+
+fun Canvas.drawTextLineWithShadow(
+    textLine: TextLine, x: Float, y: Float, paint: Paint,
+    dropShadowX: Float = 3f, dropShadowY: Float = dropShadowX, shadowColor: Int = Color.makeRGB(0, 0, 0)
+) {
+    val currentPaintColor = paint.color
+    val currentPaintStrokeWidth = paint.strokeWidth
+    val currentPaintMode = paint.mode
+    drawTextLine(textLine, x + dropShadowX, y + dropShadowY, paint.apply {
+        color = shadowColor
+        mode = PaintMode.FILL
+        strokeWidth = 1f
+    })
+    drawTextLine(textLine, x, y, paint.apply {
+        color = currentPaintColor
+        mode = PaintMode.FILL
+        strokeWidth = 1f
+    })
+    paint.apply {
+        strokeWidth = currentPaintStrokeWidth
+        mode = currentPaintMode
+    }
+}
+
+fun lerpColor(src: Int, dst: Int, percentage: Double) =
+    Color.makeRGB(
+        lerp(Color.getR(src).toDouble(), Color.getR(dst).toDouble(), percentage).toInt(),
+        lerp(Color.getG(src).toDouble(), Color.getG(dst).toDouble(), percentage).toInt(),
+        lerp(Color.getB(src).toDouble(), Color.getB(dst).toDouble(), percentage).toInt()
+    )

@@ -2,6 +2,8 @@ package me.stageguard.obms.graph.item
 
 import me.stageguard.obms.cache.ImageCache
 import me.stageguard.obms.graph.*
+import me.stageguard.obms.graph.common.drawPPPlusGraph
+import me.stageguard.obms.graph.common.drawPpCurveGraph
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
 import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
 import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
@@ -11,7 +13,6 @@ import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.ValueOrISE
-import me.stageguard.obms.utils.lerp
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.isRight
 import me.stageguard.obms.utils.Either.Companion.onLeft
@@ -45,15 +46,12 @@ object RecentPlay {
     private val colorWhite = Color.makeRGB(255, 255, 255)
     private val colorGray = Color.makeARGB(100, 255, 255, 255)
     private val colorGray2 = Color.makeARGB(45, 255, 255, 255)
-    private val colorBlack = Color.makeRGB(0, 0, 0)
     private val colorYellow = Color.makeRGB(255, 204, 34)
     private val colorPink = Color.makeRGB(255, 102, 171)
     private val colorGreen = Color.makeRGB(179, 255, 102)
     private val colorRed = Color.makeRGB(255, 98, 98)
     private val transparent40PercentBlack = Color.makeARGB(100, 14, 16, 17)
     private val grayLine = Color.makeRGB(70, 57, 63)
-    private val ppColor = Color.makeRGB(255, 102, 171)
-    private val ppTextColor = Color.makeRGB(209, 148, 175)
     private val replayItemTitleIconColor = Color.makeRGB(2, 247, 165)
     private fun accuracyHeatmapDotColor(a: Double) = Color.makeARGB((a * 255).toInt(), 114, 224, 193)
 
@@ -688,78 +686,16 @@ object RecentPlay {
             val graphCardHeight = scoreInfoHeight - 25f * 2 - 20f * 2 - scaledPlayerAvatarImage.height
 
             //pp+ and pp graph background
-            drawRRect(RRect.makeXYWH(25f, 25f, graphCardWidth, graphCardHeight, 16f), paint.apply {
-                color = transparent40PercentBlack
-                mode = PaintMode.FILL
-            })
-            drawRRect(RRect.makeXYWH(25f + 20f + graphCardWidth, 25f, graphCardWidth, graphCardHeight, 16f), paint.apply {
-                color = transparent40PercentBlack
-                mode = PaintMode.FILL
-            })
-
             translate(25f, 25f)
 
             if(skillAttributes.isRight) {
                 val unwrapped = skillAttributes.right
-
-                val ppPlusGraphText = TextLine.make("Strain skill of the beatmap", Font(semiBoldFont, 18f))
-                drawTextLine(ppPlusGraphText,
-                    (graphCardWidth - ppPlusGraphText.width) / 2, graphCardHeight - 15f,
-                    paint.setColor(colorWhite)
+                drawPPPlusGraph(
+                    graphCardWidth, graphCardHeight,
+                    unwrapped.jumpAimStrain, unwrapped.flowAimStrain, unwrapped.speedStrain,
+                    unwrapped.staminaStrain, unwrapped.precisionStrain, unwrapped.accuracyStrain,
+                    transparent40PercentBlack, colorWhite, colorYellow, colorGray, paint
                 )
-                val graphCenterY = (graphCardHeight - 20f - ppPlusGraphText.capHeight) / 2
-                val radius = 70f
-
-                val totalSkill = unwrapped.run { jumpAimStrain + flowAimStrain + accuracyStrain + precisionStrain + staminaStrain + speedStrain }
-                val skills = unwrapped.run { listOf(
-                    "Jump" to jumpAimStrain,
-                    "Flow" to flowAimStrain,
-                    "Speed" to speedStrain,
-                    "Stamina" to staminaStrain,
-                    "Precision" to precisionStrain,
-                    "Complexity" to accuracyStrain
-                ) }
-
-                var lastAngle = -90f
-
-                drawCircle(graphCardWidth / 2, graphCenterY, radius, paint.setColor(colorWhite))
-
-                skills.forEachIndexed { idx, it ->
-                    val scaledRadius = (radius * (1 + 0.5 * (1.0 * it.second / totalSkill))).toFloat()
-                    drawArc(
-                        graphCardWidth / 2 - scaledRadius, graphCenterY - scaledRadius,
-                        graphCardWidth / 2 + scaledRadius, graphCenterY + scaledRadius,
-                        lastAngle, 360f * (it.second / totalSkill).toFloat() + 1f,
-                        true, paint.apply {
-                            color = lerpColor(colorYellow, colorGray, 1.0 * idx / skills.size)
-                        }
-                    )
-
-                    lastAngle += 360f * (it.second / totalSkill).toFloat()
-
-                    save()
-                    translate(graphCardWidth / 2, graphCenterY)
-
-                    val skillName = TextLine.make(it.first, Font(semiBoldFont, 18f))
-                    val skillValue = TextLine.make(format1DFix.format(it.second), Font(semiBoldFont, 18f))
-                    val skillWidth = max(skillName.width, skillValue.width)
-                    val skillHeight = skillName.capHeight + 5f + skillValue.capHeight
-
-                    val relativeToCoord = 90 - (lastAngle - 360f * (it.second / totalSkill).toFloat() / 2)
-
-                    drawTextLineWithShadow(skillName,
-                        (sin(relativeToCoord / 180 * PI) * radius * 1.4 - skillWidth / 2).toFloat() + (skillWidth - skillName.width) / 2,
-                        (cos(relativeToCoord / 180 * PI) * radius * 1.4 - skillHeight / 2).toFloat() + skillName.capHeight,
-                        paint.setColor(colorWhite), 1f
-                    )
-                    drawTextLineWithShadow(skillValue,
-                        (sin(relativeToCoord / 180 * PI) * radius * 1.4 - skillWidth / 2).toFloat() + (skillWidth - skillValue.width) / 2,
-                        (cos(relativeToCoord / 180 * PI) * radius * 1.4 - skillHeight / 2).toFloat() + skillName.capHeight + 5f + skillValue.capHeight,
-                        paint.setColor(colorWhite), 1f
-                    )
-
-                    restore()
-                }
             } else {
                 val unavailable1 = TextLine.make("Strain skill analysis", Font(semiBoldFont, 28f))
                 val unavailable2 = TextLine.make("is unavailable", Font(semiBoldFont, 28f))
@@ -780,167 +716,13 @@ object RecentPlay {
             translate(graphCardWidth + 20f, 0f)
 
             if(ppCurvePoints.first.isNotEmpty() && ppCurvePoints.second.isNotEmpty()) {
-                val lineRow = 8
-                val ppCurveText = TextLine.make("PP curve", Font(semiBoldFont, 18f))
-                drawTextLine(ppCurveText,
-                    (graphCardWidth - ppCurveText.width) / 2, graphCardHeight - 15f,
-                    paint.setColor(colorWhite)
+                drawPpCurveGraph(
+                    graphCardWidth, graphCardHeight,
+                    ppCurvePoints.first, ppCurvePoints.second,
+                    scoreDTO.pp ?: ppCurvePoints.first.first().second, scoreDTO.accuracy,
+                    transparent40PercentBlack, colorWhite, colorGray2, colorGray,
+                    colorWhite, colorYellow, colorYellow, colorGreen, paint
                 )
-
-                val maxValue = ppCurvePoints.second.last().second
-                val minValue = ppCurvePoints.first[2].second
-                val interval = ((maxValue - minValue) / lineRow).run { this + (10 - this % 10) }.toInt()
-                val startValue = (minValue - minValue % interval).toInt()
-                val intervalValues = (startValue..startValue + interval * lineRow step interval).toList()
-                val valueTexts = intervalValues.map {
-                    TextLine.make(it.toString(), Font(semiBoldFont, 14f))
-                }
-                val maxValueTextWidth = valueTexts.maxOf { it.width }
-                val accuracyValues = (0..10).map {
-                    TextLine.make("${90 + it}", Font(semiBoldFont, 14f))
-                }
-                val maxAccuracyTextHeight = accuracyValues.maxOf { it.capHeight }
-
-                translate(10f, graphCardHeight - 2 * 15f - ppCurveText.capHeight)
-                val scaledChartHeight = graphCardHeight - 10f - 2 * 15f - ppCurveText.capHeight - 5f - 10f //the last 10f is for overdrew row and column
-                val scaledChartWidth = graphCardWidth - 20f - maxValueTextWidth - 5f - 10f //the last 10f is for overdrew row and column
-                valueTexts.forEachIndexed { idx, it ->
-                    drawLine(
-                        5f + maxValueTextWidth + 5f, -5f - maxAccuracyTextHeight -10f - scaledChartHeight / (lineRow + 1) * idx,
-                        5f + maxValueTextWidth + 5f + scaledChartWidth, -5f - maxAccuracyTextHeight -10f - scaledChartHeight / (lineRow + 1) * idx,
-                        paint.apply {
-                            color = colorGray2
-                            strokeWidth = 2f
-                        }
-                    )
-                    drawTextLine(it,
-                        maxValueTextWidth - it.width,
-                        -5f - maxAccuracyTextHeight -10f - scaledChartHeight / (lineRow + 1) * idx + it.capHeight / 2,
-                        paint.setColor(colorGray)
-                    )
-                }
-                accuracyValues.forEachIndexed { idx, it ->
-                    drawLine(
-                        5f + 5f + maxValueTextWidth + 5f + 5f + scaledChartWidth / 11 * idx, -maxAccuracyTextHeight - 5f,
-                        5f + 5f + maxValueTextWidth + 5f + 5f + scaledChartWidth / 11 * idx, -maxAccuracyTextHeight - 5f - scaledChartHeight + 5f,
-                        paint.apply {
-                            color = colorGray2
-                            strokeWidth = 2f
-                        }
-                    )
-                    drawTextLine(it,
-                        5f + 5f + maxValueTextWidth + 5f + 5f + scaledChartWidth / 11 * idx - it.width / 2,
-                        0f, paint.setColor(colorGray)
-                    )
-                }
-                translate(maxValueTextWidth + 20f, -maxAccuracyTextHeight - 15f)
-                val actualChatWidth = scaledChartWidth - 22f
-                val actualCharHeight = scaledChartHeight - 23f
-                (1 until ppCurvePoints.second.size - 1).forEach {
-                    //the first element of ppCurePoints.first is the pp of current score
-                    drawLine(
-                        ((ppCurvePoints.first[it].first - 90) / 10 * actualChatWidth).toFloat(),
-                        (-((ppCurvePoints.first[it].second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat(),
-                        ((ppCurvePoints.first[it + 1].first - 90) / 10 * actualChatWidth).toFloat(),
-                        (-((ppCurvePoints.first[it + 1].second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat(),
-                        paint.apply {
-                            color = colorWhite
-                            strokeWidth = 3f
-                        }
-                    )
-                    //the first element of ppCurePoints.second is the pp of current score if full combo
-                    drawLine(
-                        ((ppCurvePoints.second[it].first - 90) / 10 * actualChatWidth).toFloat(),
-                        (-((ppCurvePoints.second[it].second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat(),
-                        ((ppCurvePoints.second[it + 1].first - 90) / 10 * actualChatWidth).toFloat(),
-                        (-((ppCurvePoints.second[it + 1].second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat(),
-                        paint.apply {
-                            color = colorYellow
-                            strokeWidth = 3f
-                        }
-                    )
-                }
-
-                val ifFullComboText = TextLine.make("if fc", Font(boldFont, 18f))
-                drawTextLineWithShadow(ifFullComboText,
-                    ((ppCurvePoints.second.last().first - 90) / 10 * actualChatWidth).toFloat() + 8f,
-                    (-((ppCurvePoints.second.last().second - intervalValues.first()) / (intervalValues.last() - intervalValues.first())) * actualCharHeight).toFloat() + ifFullComboText.capHeight / 2,
-                    paint.apply {
-                        color = colorGreen
-                    }, 2f
-                )
-
-                val actualPp = scoreDTO.pp ?: ppCurvePoints.first.first().second
-                val ifFullComboPp = ppCurvePoints.second.first().second
-                val ppText = TextLine.make("pp", Font(semiBoldFont, 18f))
-                val actualPpValueText = TextLine.make(actualPp.toInt().toString(), Font(boldFont, 22f))
-                val ifFullComboPpValueText = TextLine.make(ifFullComboPp.toInt().toString(), Font(boldFont, 22f))
-
-                if(scoreDTO.accuracy * 100.0 < 90.0) {
-                    //actual pp text
-                    drawPoint(-5f, 0f, paint.apply {
-                        color = colorYellow
-                        strokeWidth = 6f
-                    })
-                    drawTextLineWithShadow(actualPpValueText, -5f + 5f, actualPpValueText.capHeight / 2, paint.apply {
-                        color = ppColor
-                        strokeWidth = 2f
-                    }, 2f)
-                    drawTextLineWithShadow(ppText, -5f + 5f + actualPpValueText.width, actualPpValueText.capHeight / 2, paint.apply {
-                        color = ppTextColor
-                        strokeWidth = 2f
-                    }, 2f)
-                    //if full combo pp text
-                    if(abs(actualPp - ifFullComboPp) > 2.0) {
-                        val yCoord = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
-                        drawPoint(-5f, -yCoord, paint.apply {
-                            color = colorYellow
-                            strokeWidth = 6f
-                        })
-                        drawTextLineWithShadow(ifFullComboPpValueText, -5f + 5f, -5f - yCoord, paint.apply {
-                            color = ppColor
-                            strokeWidth = 2f
-                        }, 2f)
-                        drawTextLineWithShadow(ppText, -5f + 5f + ifFullComboPpValueText.width, -5f - yCoord, paint.apply {
-                            color = ppTextColor
-                            strokeWidth = 2f
-                        }, 2f)
-                    }
-                } else {
-                    //actual pp text
-                    val xCoord = ((scoreDTO.accuracy * 100.0 - 90) / 10 * actualChatWidth).toFloat()
-                    val yCoordActualPp = ((actualPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
-                    val textOffset = if(yCoordActualPp > ppText.capHeight) ppText.capHeight + 10f else 0f
-                    // actual pp
-                    drawPoint(xCoord, -yCoordActualPp, paint.apply {
-                        color = colorYellow
-                        strokeWidth = 6f
-                    })
-                    drawTextLineWithShadow(actualPpValueText, 5f + xCoord, -5f - yCoordActualPp + textOffset, paint.apply {
-                        color = ppColor
-                        strokeWidth = 2f
-                    }, 2f)
-                    drawTextLineWithShadow(ppText, 5f + xCoord + actualPpValueText.width, -5f - yCoordActualPp + textOffset, paint.apply {
-                        color = ppTextColor
-                        strokeWidth = 2f
-                    }, 2f)
-                    //if full combo pp text
-                    if(abs(actualPp - ifFullComboPp) > 2.0) {
-                        val yCoordIfFullComboPp = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
-                        drawPoint(xCoord, -yCoordIfFullComboPp, paint.apply {
-                            color = colorGreen
-                            strokeWidth = 6f
-                        })
-                        drawTextLineWithShadow(ifFullComboPpValueText, -5f + xCoord - ifFullComboPpValueText.width - ppText.width, -5f - yCoordIfFullComboPp, paint.apply {
-                            color = ppColor
-                            strokeWidth = 2f
-                        }, 2f)
-                        drawTextLineWithShadow(ppText, -5f + xCoord - ppText.width, -5f - yCoordIfFullComboPp, paint.apply {
-                            color = ppTextColor
-                            strokeWidth = 2f
-                        }, 2f)
-                    }
-                }
             } else {
                 val unavailable1 = TextLine.make("PP curve analysis", Font(semiBoldFont, 28f))
                 val unavailable2 = TextLine.make("is unavailable", Font(semiBoldFont, 28f))
@@ -1144,37 +926,6 @@ object RecentPlay {
         val remainSec = (second % 60).run { if(this < 10) "0$this" else this.toString() }
         return "${minute}:$remainSec"
     }
-
-    private fun Canvas.drawTextLineWithShadow(
-        textLine: TextLine, x: Float, y: Float, paint: Paint,
-        dropShadowX: Float = 3f, dropShadowY: Float = dropShadowX, shadowColor: Int = colorBlack
-    ) {
-        val currentPaintColor = paint.color
-        val currentPaintStrokeWidth = paint.strokeWidth
-        val currentPaintMode = paint.mode
-        drawTextLine(textLine, x + dropShadowX, y + dropShadowY, paint.apply {
-            color = shadowColor
-            mode = PaintMode.FILL
-            strokeWidth = 1f
-        })
-        drawTextLine(textLine, x, y, paint.apply {
-            color = currentPaintColor
-            mode = PaintMode.FILL
-            strokeWidth = 1f
-        })
-        paint.apply {
-            strokeWidth = currentPaintStrokeWidth
-            mode = currentPaintMode
-        }
-    }
-
-    @Suppress("SameParameterValue")
-    private fun lerpColor(src: Int, dst: Int, percentage: Double) =
-        Color.makeRGB(
-            lerp(Color.getR(src).toDouble(), Color.getR(dst).toDouble(), percentage).toInt(),
-            lerp(Color.getG(src).toDouble(), Color.getG(dst).toDouble(), percentage).toInt(),
-            lerp(Color.getB(src).toDouble(), Color.getB(dst).toDouble(), percentage).toInt()
-        )
 
     private fun difficultyColor(value: Double) : Int {
         val mapping = listOf(
