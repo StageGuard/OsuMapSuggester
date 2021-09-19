@@ -67,7 +67,7 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
     }
 
     suspend fun addAllViaBid(items: List<Int>) = Database.query { db ->
-        val existBeatmap = db.sequenceOf(BeatmapSkillTable).map { it.bid }
+        val existBeatmap = db.sequenceOf(BeatmapSkillTable).toList()
         val toUpdate = mutableListOf<BeatmapSkill>()
         val toInsert = mutableListOf<BeatmapSkill>()
 
@@ -79,10 +79,6 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
         }
 
         items.forEach { bid ->
-            val beatmapInfo = OsuWebApi.getBeatmap(randomUser, bid).onLeft {
-                OsuMapSuggester.logger.warning { "Error while add beatmap $bid: $it" }
-                return@forEach
-            }.right
             val beatmap = BeatmapCache.getBeatmap(bid).onLeft {
                 OsuMapSuggester.logger.warning { "Error while add beatmap $bid: $it" }
                 return@forEach
@@ -93,8 +89,8 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
             val dao = BeatmapSkill {
                 this.bid = bid
                 this.stars = difficultyAttributes.stars
-                this.bpm = beatmapInfo.bpm
-                this.length = beatmapInfo.totalLength
+                /*this.bpm = beatmapInfo.bpm
+                this.length = beatmapInfo.totalLength*/
                 this.circleSize = beatmap.circleSize
                 this.hpDrain = beatmap.hpDrainRate
                 this.approachingRate = beatmap.approachRate
@@ -106,7 +102,24 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
                 this.precisionStrain = skills.precisionStrain
                 this.rhythmComplexity = skills.accuracyStrain
             }
-            if(bid in existBeatmap) toUpdate.add(dao) else toInsert.add(dao)
+
+            val find = existBeatmap.find { it.bid == bid }
+            if(find != null) {
+                dao.bpm = find.bpm
+                dao.length = find.length
+
+                toUpdate.add(dao)
+            } else {
+                val beatmapInfo = OsuWebApi.getBeatmap(randomUser, bid).onLeft {
+                    OsuMapSuggester.logger.warning { "Error while add beatmap $bid: $it" }
+                    return@forEach
+                }.right
+
+                dao.bpm = beatmapInfo.bpm
+                dao.length = beatmapInfo.totalLength
+
+                toInsert.add(dao)
+            }
         }
 
         BeatmapSkillTable.batchInsert(toInsert)
