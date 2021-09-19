@@ -4,6 +4,8 @@ A [mirai-console](https://github.com/mamoe/mirai-console) plugin that can provid
 
 [![CI](https://github.com/StageGuard/OsuMapSuggester/actions/workflows/build.yml/badge.svg)](https://github.com/StageGuard/OsuMapSuggester/actions/workflows/build.yml) [![CodeFactor](https://www.codefactor.io/repository/github/stageguard/osumapsuggester/badge/main)](https://www.codefactor.io/repository/github/stageguard/osumapsuggester/overview/main)
 
+Develop roadmap：[#1](https://github.com/StageGuard/OsuMapSuggester/issues/1)
+
 ## Features
 
 It can analyze player's **aim**, **speed** and **accuracy** skills of his best performances and [PerformancePlus](https://syrin.me/pp+/) and other factors to infer what type of the player he is.

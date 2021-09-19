@@ -6,6 +6,8 @@ English: [README-en.md](README-en.md)
 
 [![CI](https://github.com/StageGuard/OsuMapSuggester/actions/workflows/build.yml/badge.svg)](https://github.com/StageGuard/OsuMapSuggester/actions/workflows/build.yml) [![CodeFactor](https://www.codefactor.io/repository/github/stageguard/osumapsuggester/badge/main)](https://www.codefactor.io/repository/github/stageguard/osumapsuggester/overview/main)
 
+查看开发进度：[#1](https://github.com/StageGuard/OsuMapSuggester/issues/1)
+
 ## 特性
 
 插件可以从 **osu!standard** 玩家的 **Best Performance** 分析 **aim**, **speed** and **accuracy** 能力和 [PerformancePlus](https://syrin.me/pp+/) 以及其他因素来推断玩家的类型（跳跳人或串串人之类的）。
