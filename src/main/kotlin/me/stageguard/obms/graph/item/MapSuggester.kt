@@ -137,7 +137,7 @@ object MapSuggester {
                 25, transparent40PercentBlack, colorWhite, colorWhite, paint
             )
 
-            translate(0f, difficultyPanelHeight + 22f)
+            translate(3f, difficultyPanelHeight + 22f)
 
             //song attributes
             val lenT = TextLine.make("Length: ", Font(regularFont, 20f))
@@ -181,7 +181,7 @@ object MapSuggester {
                 acc + text.width
             }
 
-            translate(0f, 20f)
+            translate(-3f, 20f)
 
             //suggester
             drawRRect(
@@ -227,7 +227,6 @@ object MapSuggester {
                 }, 2f)
                 acc + pair.second.width
             }
-
 
             val addonTipText = TextLine.make(additionalTip, Font(regularFont, 16f))
             translate(0f, 15f + suggestedByText.capHeight + addonTipText.capHeight)
