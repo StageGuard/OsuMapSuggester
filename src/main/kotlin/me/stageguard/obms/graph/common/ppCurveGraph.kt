@@ -2,7 +2,6 @@ package me.stageguard.obms.graph.common
 
 import me.stageguard.obms.graph.boldFont
 import me.stageguard.obms.graph.drawTextLineWithShadow
-import me.stageguard.obms.graph.item.RecentPlay
 import me.stageguard.obms.graph.semiBoldFont
 import org.jetbrains.skija.*
 import kotlin.math.abs
