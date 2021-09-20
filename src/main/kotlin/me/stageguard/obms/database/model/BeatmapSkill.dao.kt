@@ -77,7 +77,7 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
 
         if(randomUser == null) {
             OsuMapSuggester.logger.warning { "Error while add beatmap: no user exist in database" }
-            return@query
+            return@query 0f
         }
 
         items.forEach { bid ->
