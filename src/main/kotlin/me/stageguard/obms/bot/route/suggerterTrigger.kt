@@ -28,6 +28,7 @@ import me.stageguard.sctimetable.utils.finish
 import me.stageguard.sctimetable.utils.interactiveConversation
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
+import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
 import net.mamoe.mirai.message.data.MessageChain.Companion.deserializeJsonToMessageChain
 import net.mamoe.mirai.message.data.buildMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
@@ -98,7 +99,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                     $ex
                                     Please contact this ruleset creator for more information.
                                     Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
-                                """.trimIndent().deserializeJsonToMessageChain())
+                                """.trimIndent().deserializeMiraiCode())
                                 ruleset.lastError = ex.toString()
                                 ruleset.enabled = 0
                                 ruleset.flushChanges()
@@ -108,7 +109,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                         Return type of this condition expression is not ColumnDeclaring<Boolean>.
                                         Please contact this ruleset creator for more information.
                                         Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
-                                    """.trimIndent().deserializeJsonToMessageChain())
+                                    """.trimIndent().deserializeMiraiCode())
                                 ruleset.lastError = "Return type of this condition expression is not ColumnDeclaring<Boolean>."
                                 ruleset.enabled = 0
                                 ruleset.flushChanges()
