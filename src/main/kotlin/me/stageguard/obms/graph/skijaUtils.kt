@@ -120,3 +120,9 @@ fun lerpColor(src: Int, dst: Int, percentage: Double) =
         lerp(Color.getG(src).toDouble(), Color.getG(dst).toDouble(), percentage).toInt(),
         lerp(Color.getB(src).toDouble(), Color.getB(dst).toDouble(), percentage).toInt()
     )
+
+fun parseTime(second: Int) : String {
+    val minute = (second / 60).run { if(this < 10) "0$this" else this.toString() }
+    val remainSec = (second % 60).run { if(this < 10) "0$this" else this.toString() }
+    return "${minute}:$remainSec"
+}

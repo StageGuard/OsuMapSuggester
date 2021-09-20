@@ -3,23 +3,38 @@ package me.stageguard.obms.bot.route
 import kotlinx.atomicfu.AtomicRef
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
+import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.format2DFix
+import me.stageguard.obms.graph.item.MapSuggester
+import me.stageguard.obms.graph.item.RecentPlay
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.script.ScriptContext
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringBooleanWrapped
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringComparableNumberWrapped
+import me.stageguard.obms.utils.Either
 import me.stageguard.obms.script.synthetic.ConvenientToolsForBeatmapSkill.contains as toolContains
 import me.stageguard.obms.utils.Either.Companion.ifRight
+import me.stageguard.obms.utils.Either.Companion.left
+import me.stageguard.obms.utils.Either.Companion.mapRight
+import me.stageguard.obms.utils.Either.Companion.onLeft
+import me.stageguard.obms.utils.Either.Companion.right
+import me.stageguard.obms.utils.InferredEitherOrISE
 import me.stageguard.sctimetable.utils.QuitConversationExceptions
 import me.stageguard.sctimetable.utils.exception
 import me.stageguard.sctimetable.utils.finish
 import me.stageguard.sctimetable.utils.interactiveConversation
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
+import net.mamoe.mirai.message.data.toMessageChain
+import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
+import org.jetbrains.skija.EncodedImageFormat
 import org.ktorm.entity.*
 import java.time.LocalDate
 
@@ -103,14 +118,27 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
 
             if(selected.value != null) {
                 val unwrapped = selected.value!!
-                atReply("""
+                val beatmapInfo = OsuWebApi.getBeatmap(sender.id, unwrapped.second.bid)
+
+                val bytes = withContext(graphicProcessorDispatcher) {
+                    MapSuggester.drawRecommendBeatmapCard(
+                        beatmapInfo, unwrapped.first, unwrapped.second,
+                        "Additional tip, but not implemented now."
+                    ).bytes(EncodedImageFormat.PNG)
+                }
+                val externalResource = bytes.toExternalResource("png")
+                val image = group.uploadImage(externalResource)
+                runInterruptible { externalResource.close() }
+                atReply(image.toMessageChain())
+
+                /*atReply("""
                     BID: ${unwrapped.second.bid}
                     Stars: ${format2DFix.format(unwrapped.second.stars)}
                     Recommender: ${OsuUserInfo.getOsuIdAndName(unwrapped.first.author).run { 
                         if(this != null) "$second(QQ: ${unwrapped.first.author}, OsuID: $first)" else unwrapped.first.author
                     }}
                     Link: https://osu.ppy.sh/b/${unwrapped.second.bid}
-                """.trimIndent())
+                """.trimIndent())*/
             } else {
                 if(matchedAnyRuleset) {
                     atReply("No proper beatmap found.")

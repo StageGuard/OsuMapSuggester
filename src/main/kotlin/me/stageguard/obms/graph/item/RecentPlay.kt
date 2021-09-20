@@ -887,10 +887,4 @@ object RecentPlay {
 
         return surface
     }
-
-    private fun parseTime(second: Int) : String {
-        val minute = (second / 60).run { if(this < 10) "0$this" else this.toString() }
-        val remainSec = (second % 60).run { if(this < 10) "0$this" else this.toString() }
-        return "${minute}:$remainSec"
-    }
 }
