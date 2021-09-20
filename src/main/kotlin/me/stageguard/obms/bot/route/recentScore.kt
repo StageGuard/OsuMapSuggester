@@ -6,6 +6,7 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
 import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
@@ -42,7 +43,7 @@ import java.lang.NumberFormatException
 import java.util.Optional
 
 fun GroupMessageSubscribersBuilder.recentScore() {
-    startsWith(".bps") {
+    routeLock(startsWith(".bps")) {
         OsuMapSuggester.launch(CoroutineName("Command \"bps\" of ${sender.id}")) {
             val bp = message.contentToString().removePrefix(".bps").trim().run {
                 try {
@@ -67,7 +68,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
             }
         }
     }
-    startsWith(".scr") {
+    routeLock(startsWith(".scr")) {
         OsuMapSuggester.launch(CoroutineName("Command \"scr\" of ${sender.id}")) {
             val bid = message.contentToString().removePrefix(".scr").trim().run {
                 try {
@@ -89,7 +90,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
         }
 
     }
-    startsWith(".rep") {
+    routeLock(startsWith(".rep")) {
         OsuMapSuggester.launch(CoroutineName("Command \"rep\" of ${sender.id}")) {
             getLastScore(5).onRight { score ->
                 processRecentPlayData(score)

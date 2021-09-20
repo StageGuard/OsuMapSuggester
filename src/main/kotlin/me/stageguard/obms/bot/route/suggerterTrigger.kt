@@ -7,6 +7,8 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.RouteLock
+import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.database.Database
@@ -31,14 +33,16 @@ import net.mamoe.mirai.message.data.buildMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import org.ktorm.entity.*
+import org.mozilla.javascript.EcmaError
 import java.time.LocalDate
 
 typealias Wrapper<T> = ColumnDeclaringComparableNumberWrapped<T>
 
+val beatmapMatcherPattern = Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)")
 fun GroupMessageSubscribersBuilder.suggesterTrigger() {
-    finding(Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)")) { mr ->
+    routeLock(finding(beatmapMatcherPattern)) { content ->
         try {
-            val trigger = mr.groupValues[1]
+            val trigger = beatmapMatcherPattern.find(content)!!.groupValues[1]
 
             val recommendedDifficulty = OsuWebApi.searchBeatmapSet(
                 sender.id, "13df7m40t6ynm23f4g07ym"
@@ -87,18 +91,8 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                         "precision" to Wrapper(btColumn.precisionStrain),
                                         "accuracy" to Wrapper(btColumn.rhythmComplexity)
                                     )
-                                )?.unwrap() ?: kotlin.run {
-                                    atReply("""
-                                        Return type of this condition expression is not ColumnDeclaring<Boolean>.
-                                        Please contact this ruleset creator for more information.
-                                        Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
-                                    """.trimIndent().deserializeJsonToMessageChain())
-                                    ruleset.lastError = "Return type of this condition expression is not ColumnDeclaring<Boolean>."
-                                    ruleset.enabled = 0
-                                    ruleset.flushChanges()
-                                    return@filterEach
-                                }
-                            } catch (ex: IllegalStateException) {
+                                ).unwrap()
+                            } catch (ex: EcmaError) {
                                 atReply("""
                                     An error occurred when executing condition expression: 
                                     $ex
@@ -106,6 +100,16 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                     Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
                                 """.trimIndent().deserializeJsonToMessageChain())
                                 ruleset.lastError = ex.toString()
+                                ruleset.enabled = 0
+                                ruleset.flushChanges()
+                                return@filterEach
+                            } catch (ex: ClassCastException) {
+                                atReply("""
+                                        Return type of this condition expression is not ColumnDeclaring<Boolean>.
+                                        Please contact this ruleset creator for more information.
+                                        Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
+                                    """.trimIndent().deserializeJsonToMessageChain())
+                                ruleset.lastError = "Return type of this condition expression is not ColumnDeclaring<Boolean>."
                                 ruleset.enabled = 0
                                 ruleset.flushChanges()
                                 return@filterEach
@@ -122,11 +126,11 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
             if(selected.value != null) {
                 val r = selected.value!!
                 val beatmapInfo = OsuWebApi.getBeatmap(sender.id, r.second.bid)
+                val additionalTip = "Additional tip, but not implemented now."
 
                 val bytes = withContext(graphicProcessorDispatcher) {
                     MapSuggester.drawRecommendBeatmapCard(
-                        beatmapInfo, r.first, r.second,
-                        "Additional tip, but not implemented now."
+                        beatmapInfo, r.first, r.second, additionalTip
                     ).bytes(EncodedImageFormat.PNG)
                 }
                 val externalResource = bytes.toExternalResource("png")
@@ -153,11 +157,11 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
         }
     }
 
-    startsWith(".addRuleset") {
+    routeLock(startsWith(".addRuleset")) {
         try {
             OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
 
-            Database.query { db ->
+            Database.query { db -> RouteLock.withLockSuspend(sender) {
                 interactiveConversation {
                     send("""
                     添加新的谱面类型规则。
@@ -267,7 +271,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                         else -> { }
                     }
                 }
-            }
+            } }
         } catch (ex: Exception) {
             atReply("添加谱面类型规则时发生了错误：${parseExceptions(ex)}")
         }

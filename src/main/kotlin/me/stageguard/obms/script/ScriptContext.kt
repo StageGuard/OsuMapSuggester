@@ -108,13 +108,9 @@ object ScriptContext : CoroutineScope {
     ) = withContext(coroutineContext) {
         initJob.join()
         withProperties(properties) {
-            try {
-                putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
-                compile(source).exec(ctx, topLevelScope)
-                topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as? T
-            } catch (ex: Exception) {
-                throw IllegalStateException("JS_RUNTIME_ERROR: $ex")
-            }
+            putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
+            compile(source).exec(ctx, topLevelScope)
+            topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as T
         }
     }
 

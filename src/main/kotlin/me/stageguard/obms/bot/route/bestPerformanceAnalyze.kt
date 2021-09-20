@@ -9,6 +9,7 @@ import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
 import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
@@ -211,7 +212,7 @@ fun List<String>.parseMods() = map {
 
 @Suppress("SpellCheckingInspection")
 fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
-    startsWith(".bpvs") {
+    routeLock(startsWith(".bpvs")) {
         OsuMapSuggester.launch(CoroutineName("Command \"bpvs\" of ${sender.id}")) {
             //parse message
             var (limit, offset) = 25 to 0
@@ -253,7 +254,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         }
     }
 
-    startsWith(".bpa") {
+    routeLock(startsWith(".bpa")) {
         OsuMapSuggester.launch(CoroutineName("Command \"bpa\" of ${sender.id}")) {
             //parse message
             var (limit, offset) = 25 to 0

@@ -8,6 +8,7 @@ import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusCalculator
 import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusResult
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.bot.MessageRoute.atReply
+import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.cache.BeatmapCache
@@ -17,7 +18,7 @@ import me.stageguard.obms.utils.Either.Companion.right
 import kotlin.math.pow
 
 fun GroupMessageSubscribersBuilder.skill() {
-    startsWith(".skill") {
+    routeLock(startsWith(".skill")) {
         OsuMapSuggester.launch(CoroutineName("Command \"skill\" of ${sender.id}")) {
             val scores = OsuWebApi.userScore(user = sender.id, type = "best", limit = 100).onLeft {
                 atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
