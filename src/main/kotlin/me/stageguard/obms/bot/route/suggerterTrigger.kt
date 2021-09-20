@@ -11,32 +11,23 @@ import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
-import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.frontend.route.IMPORT_BEATMAP_PATH
 import me.stageguard.obms.graph.bytes
-import me.stageguard.obms.graph.format2DFix
 import me.stageguard.obms.graph.item.MapSuggester
-import me.stageguard.obms.graph.item.RecentPlay
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.script.ScriptContext
+import me.stageguard.obms.script.synthetic.ConvenientToolsForBeatmapSkill
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringBooleanWrapped
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringComparableNumberWrapped
-import me.stageguard.obms.utils.Either
-import me.stageguard.obms.script.synthetic.ConvenientToolsForBeatmapSkill.contains as toolContains
 import me.stageguard.obms.utils.Either.Companion.ifRight
-import me.stageguard.obms.utils.Either.Companion.left
-import me.stageguard.obms.utils.Either.Companion.mapRight
-import me.stageguard.obms.utils.Either.Companion.onLeft
-import me.stageguard.obms.utils.Either.Companion.right
-import me.stageguard.obms.utils.InferredEitherOrISE
 import me.stageguard.sctimetable.utils.QuitConversationExceptions
 import me.stageguard.sctimetable.utils.exception
 import me.stageguard.sctimetable.utils.finish
 import me.stageguard.sctimetable.utils.interactiveConversation
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
+import net.mamoe.mirai.message.data.MessageChain.Companion.deserializeJsonToMessageChain
 import net.mamoe.mirai.message.data.buildMessageChain
-import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import org.ktorm.entity.*
@@ -47,7 +38,7 @@ typealias Wrapper<T> = ColumnDeclaringComparableNumberWrapped<T>
 fun GroupMessageSubscribersBuilder.suggesterTrigger() {
     finding(Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)")) { mr ->
         try {
-            val variant = mr.groupValues[1]
+            val trigger = mr.groupValues[1]
 
             val recommendedDifficulty = OsuWebApi.searchBeatmapSet(
                 sender.id, "13df7m40t6ynm23f4g07ym"
@@ -62,19 +53,21 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                 //匹配 matchers，即关键词触发
 
                 allTypes.asSequence().filter { bt ->
-                    bt.triggers.split(";").map { t -> Regex(t) }.any { r ->
-                        r.matches(variant).also { triggerMatchers = r }
+                    bt.enabled == 1 && bt.triggers.split(";").map { t -> Regex(t) }.any { r ->
+                        r.matches(trigger).also { triggerMatchers = r }
                     }
                 }.forEach filterEach@ { ruleset ->
                     matchedAnyRuleset = true
                     if (selected.value == null) {
-                        val triggerMatchesGroup = triggerMatchers.find(variant)?.groupValues
+                        val triggerMatchesGroup = triggerMatchers.find(trigger)?.groupValues
                         val searchedBeatmap = db.sequenceOf(BeatmapSkillTable).filter { btColumn ->
                             try {
                                 ScriptContext.evaluateAndGetResult<ColumnDeclaringBooleanWrapped>(
                                     ruleset.condition, properties = mapOf(
                                         //tool function
-                                        "contains" to ScriptContext.createJSFunctionFromKJvmStatic("contains", ::toolContains),
+                                        "contains" to ScriptContext.createJSFunctionFromKJvmStatic("contains",
+                                            ConvenientToolsForBeatmapSkill::contains
+                                        ),
                                         //variable
                                         "recommendStar" to recommendedDifficulty,
                                         "matchResult" to triggerMatchesGroup,
@@ -99,7 +92,10 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                         Return type of this condition expression is not ColumnDeclaring<Boolean>.
                                         Please contact this ruleset creator for more information.
                                         Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
-                                    """.trimIndent())
+                                    """.trimIndent().deserializeJsonToMessageChain())
+                                    ruleset.lastError = "Return type of this condition expression is not ColumnDeclaring<Boolean>."
+                                    ruleset.enabled = 0
+                                    ruleset.flushChanges()
                                     return@filterEach
                                 }
                             } catch (ex: IllegalStateException) {
@@ -108,7 +104,10 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                     $ex
                                     Please contact this ruleset creator for more information.
                                     Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
-                                """.trimIndent())
+                                """.trimIndent().deserializeJsonToMessageChain())
+                                ruleset.lastError = ex.toString()
+                                ruleset.enabled = 0
+                                ruleset.flushChanges()
                                 return@filterEach
                             }
                         }.map { bsk -> bsk }
@@ -121,12 +120,12 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
             }
 
             if(selected.value != null) {
-                val unwrapped = selected.value!!
-                val beatmapInfo = OsuWebApi.getBeatmap(sender.id, unwrapped.second.bid)
+                val r = selected.value!!
+                val beatmapInfo = OsuWebApi.getBeatmap(sender.id, r.second.bid)
 
                 val bytes = withContext(graphicProcessorDispatcher) {
                     MapSuggester.drawRecommendBeatmapCard(
-                        beatmapInfo, unwrapped.first, unwrapped.second,
+                        beatmapInfo, r.first, r.second,
                         "Additional tip, but not implemented now."
                     ).bytes(EncodedImageFormat.PNG)
                 }
@@ -138,26 +137,16 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                     add("\n谱面链接: https://osu.ppy.sh/")
                     beatmapInfo.ifRight {
                         add("beatmapsets/${it.beatmapset!!.id}#osu/${it.id}")
-                    } ?: add("b/${unwrapped.second.bid}")
+                    } ?: add("b/${r.second.bid}")
                     add("\nosu!direct: ")
-                    add("${PluginConfig.osuAuth.authCallbackBaseUrl}/$IMPORT_BEATMAP_PATH/${unwrapped.second.bid}")
+                    add("${PluginConfig.osuAuth.authCallbackBaseUrl}/$IMPORT_BEATMAP_PATH/${r.second.bid}")
                 })
-
-                /*atReply("""
-                    BID: ${unwrapped.second.bid}
-                    Stars: ${format2DFix.format(unwrapped.second.stars)}
-                    Recommender: ${OsuUserInfo.getOsuIdAndName(unwrapped.first.author).run { 
-                        if(this != null) "$second(QQ: ${unwrapped.first.author}, OsuID: $first)" else unwrapped.first.author
-                    }}
-                    Link: https://osu.ppy.sh/b/${unwrapped.second.bid}
-                """.trimIndent())*/
+            } else if(matchedAnyRuleset) {
+                atReply("未找到任何符合条件的谱面。")
             } else {
-                if(matchedAnyRuleset) {
-                    atReply("No proper beatmap found.")
-                } else {
-                    atReply("No this ruleset.")
-                }
+                atReply("未匹配任何推荐规则，请输入 \".ruleset all\" 查看所有匹配规则。")
             }
+
 
         } catch (ex: Exception) {
             atReply("获取谱面推荐时发生了错误：${parseExceptions(ex)}")
@@ -264,6 +253,8 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                         }
                         addDate = LocalDate.now()
                         lastEdited = LocalDate.now()
+                        enabled = 1
+                        lastError = ""
                     })
                     atReply("添加完成。")
                 }.exception {

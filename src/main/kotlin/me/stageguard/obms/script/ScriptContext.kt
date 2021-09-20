@@ -9,6 +9,7 @@ import net.mamoe.mirai.utils.info
 import org.mozilla.javascript.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KFunction
+import kotlin.reflect.jvm.javaMethod
 
 object ScriptContext : CoroutineScope {
     private lateinit var initJob: Job
@@ -118,5 +119,5 @@ object ScriptContext : CoroutineScope {
     }
 
     fun createJSFunctionFromKJvmStatic(name: String, kFunction: KFunction<*>) =
-        K2JSFunction(name, kFunction, topLevelScope)
+        FunctionObject(name, kFunction.javaMethod, topLevelScope)
 }

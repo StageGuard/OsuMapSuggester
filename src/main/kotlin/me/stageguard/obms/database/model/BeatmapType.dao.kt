@@ -17,6 +17,8 @@ object BeatmapTypeTable : AddableTable<BeatmapType>("beatmap_type") {
     val priority = int("priority").bindTo { it.priority }
     val addDate = date("addDate").bindTo { it.addDate }
     val lastEdited = date("lastEdited").bindTo { it.lastEdited }
+    val enabled = int("enabled").bindTo { it.enabled }
+    val lastError = varchar("lastError").bindTo { it.lastError }
 
     override fun <T : AssignmentsBuilder> T.mapElement(element: BeatmapType) {
         set(triggers, element.triggers)
@@ -25,6 +27,8 @@ object BeatmapTypeTable : AddableTable<BeatmapType>("beatmap_type") {
         set(priority, element.priority)
         set(addDate, element.addDate)
         set(lastEdited, element.lastEdited)
+        set(enabled, element.enabled)
+        set(lastError, element.lastError)
     }
 }
 
@@ -37,4 +41,6 @@ interface BeatmapType : Entity<BeatmapType> {
     var priority: Int
     var addDate: LocalDate
     var lastEdited: LocalDate
+    var enabled: Int
+    var lastError: String
 }

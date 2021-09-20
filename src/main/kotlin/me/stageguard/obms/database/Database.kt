@@ -103,6 +103,8 @@ object Database {
                     `priority` INT NOT NULL COMMENT '优先级',
                     `addDate` DATE NOT NULL COMMENT '添加日期',
                     `lastEdited` DATE NOT NULL COMMENT '修改日期',
+                    `enabled` INT NOT NULL COMMENT '是否启用',
+                    `lastError` VARCHAR(1500) NOT NULL COMMENT '最后一次错误信息',
                     PRIMARY KEY (`id`)
                 );
             """.trimIndent())
