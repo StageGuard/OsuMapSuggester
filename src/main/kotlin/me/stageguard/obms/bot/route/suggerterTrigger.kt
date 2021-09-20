@@ -5,11 +5,14 @@ import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
+import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
+import me.stageguard.obms.frontend.route.IMPORT_BEATMAP_PATH
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.format2DFix
 import me.stageguard.obms.graph.item.MapSuggester
@@ -32,6 +35,7 @@ import me.stageguard.sctimetable.utils.finish
 import me.stageguard.sctimetable.utils.interactiveConversation
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
+import net.mamoe.mirai.message.data.buildMessageChain
 import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
@@ -129,7 +133,15 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                 val externalResource = bytes.toExternalResource("png")
                 val image = group.uploadImage(externalResource)
                 runInterruptible { externalResource.close() }
-                atReply(image.toMessageChain())
+                atReply(buildMessageChain {
+                    add(image)
+                    add("\n谱面链接: https://osu.ppy.sh/")
+                    beatmapInfo.ifRight {
+                        add("beatmapsets/${it.beatmapset!!.id}#osu/${it.id}")
+                    } ?: add("b/${unwrapped.second.bid}")
+                    add("\nosu!direct: ")
+                    add("${PluginConfig.osuAuth.authCallbackBaseUrl}/$IMPORT_BEATMAP_PATH/${unwrapped.second.bid}")
+                })
 
                 /*atReply("""
                     BID: ${unwrapped.second.bid}

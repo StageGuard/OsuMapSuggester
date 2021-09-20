@@ -3,16 +3,9 @@ package me.stageguard.obms.frontend
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import kotlinx.coroutines.*
-import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.frontend.route.authCallback
 import me.stageguard.obms.OsuMapSuggester
-import net.mamoe.mirai.console.plugin.PluginManager
-import net.mamoe.mirai.console.plugin.PluginManager.INSTANCE.description
-import net.mamoe.mirai.utils.info
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import java.io.OutputStream
-import java.io.PrintStream
+import me.stageguard.obms.frontend.route.importBeatmap
 import kotlin.coroutines.CoroutineContext
 
 object NettyHttpServer : CoroutineScope {
@@ -24,7 +17,6 @@ object NettyHttpServer : CoroutineScope {
 
     private lateinit var server: NettyApplicationEngine
 
-
     fun start(host: String, port: Int) {
         server = embeddedServer(Netty, applicationEngineEnvironment {
             parentCoroutineContext = coroutineContext
@@ -35,9 +27,10 @@ object NettyHttpServer : CoroutineScope {
             }
             module {
                 authCallback()
+                importBeatmap()
             }
-        }).also { OsuMapSuggester.launch(CoroutineName("NettyServer")) {
-            (it as ApplicationEngine).start(false)
+        }).also { s -> OsuMapSuggester.launch(CoroutineName("NettyServer")) {
+            (s as ApplicationEngine).start(false)
         } }
     }
 
