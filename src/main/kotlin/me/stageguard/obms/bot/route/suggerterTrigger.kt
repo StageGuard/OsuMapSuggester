@@ -29,7 +29,6 @@ import me.stageguard.sctimetable.utils.interactiveConversation
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
-import net.mamoe.mirai.message.data.MessageChain.Companion.deserializeJsonToMessageChain
 import net.mamoe.mirai.message.data.buildMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
@@ -94,7 +93,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                     )
                                 ).unwrap()
                             } catch (ex: EcmaError) {
-                                atReply("""
+                                atReply(" " + """
                                     An error occurred when executing condition expression: 
                                     $ex
                                     Please contact this ruleset creator for more information.
@@ -105,7 +104,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                 ruleset.flushChanges()
                                 return@filterEach
                             } catch (ex: ClassCastException) {
-                                atReply("""
+                                atReply(" " + """
                                         Return type of this condition expression is not ColumnDeclaring<Boolean>.
                                         Please contact this ruleset creator for more information.
                                         Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}

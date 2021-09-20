@@ -10,7 +10,7 @@ object ConvenientToolsForBeatmapSkill {
     @JvmStatic
     fun contains(beatmapCollection: NativeArray) : ColumnDeclaringBooleanWrapped = kotlin.run {
         fun convert(int: Any?) = if(int == null) -1 else try {
-            int.toString().toDouble().toInt().also { println(it) }
+            int.toString().toDouble().toInt()
         } catch (ex: NumberFormatException) { -1 }
 
         ColumnDeclaringBooleanWrapped(
