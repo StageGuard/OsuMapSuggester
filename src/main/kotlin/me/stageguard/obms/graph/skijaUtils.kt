@@ -1,15 +1,12 @@
 package me.stageguard.obms.graph
 
 import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.graph.item.RecentPlay
 import me.stageguard.obms.utils.lerp
 import org.jetbrains.skija.*
 import org.jetbrains.skija.svg.SVGDOM
 import java.io.File
 import java.io.InputStream
-import java.lang.IllegalStateException
 import kotlin.math.ceil
-import kotlin.math.round
 
 fun resourcePath(path: String) = OsuMapSuggester.dataFolder.absolutePath + File.separator + "resources" + File.separator + path
 fun resourceStream(path: String): InputStream = File(resourcePath(path)).inputStream()
