@@ -22,7 +22,7 @@ fun Canvas.drawPpCurveGraph(
 
     val lineRow = 8
     val ppCurveText = TextLine.make("PP curve", Font(semiBoldFont, 18f))
-    drawTextLine(ppCurveText,
+    drawTextLineWithShadow(ppCurveText,
         (graphCardWidth - ppCurveText.width) / 2, graphCardHeight - 15f,
         paint.setColor(textColor)
     )

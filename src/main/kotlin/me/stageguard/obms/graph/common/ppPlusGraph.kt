@@ -22,7 +22,7 @@ fun Canvas.drawPPPlusGraph(
     })
 
     val ppPlusGraphText = TextLine.make("Strain skill of the beatmap", Font(semiBoldFont, 18f))
-    drawTextLine(ppPlusGraphText,
+    drawTextLineWithShadow(ppPlusGraphText,
         (graphCardWidth - ppPlusGraphText.width) / 2, graphCardHeight - 15f,
         paint.setColor(textColor)
     )
