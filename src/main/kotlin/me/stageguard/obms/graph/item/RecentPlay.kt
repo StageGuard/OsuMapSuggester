@@ -2,6 +2,7 @@ package me.stageguard.obms.graph.item
 
 import me.stageguard.obms.cache.ImageCache
 import me.stageguard.obms.graph.*
+import me.stageguard.obms.graph.common.drawDifficultyRatingCard
 import me.stageguard.obms.graph.common.drawPPPlusGraph
 import me.stageguard.obms.graph.common.drawPpCurveGraph
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
@@ -209,46 +210,12 @@ object RecentPlay {
             translate(0f, mapperAvatarEdgeLength + 23f)
 
             //difficulty rating
-            val actualDifficultyRating = attribute.ifRight {
-                format2DFix.format(it.stars).toDouble()
-            } ?: scoreDTO.beatmap.difficultyRating
-
-            val versionText = TextLine.make(kotlin.run {
-                val version = scoreDTO.beatmap.version
-                if(version.length > 25) version.take(22).plus("...") else version
-            }, Font(semiBoldFont, 22f))
-            val starText = TextLine.make("Star Difficulty: $actualDifficultyRating", Font(
-                semiBoldFont, 18f))
-
-            drawRRect(
-                RRect.makeXYWH(0f, 0f, 60f + max(versionText.width, starText.width) + 45f, difficultyPanelHeight, 90f),
-                paint.apply {
-                    mode = PaintMode.FILL
-                    color = transparent40PercentBlack
-                }
+            drawDifficultyRatingCard(
+                difficultyPanelHeight,
+                attribute.ifRight { format2DFix.format(it.stars).toDouble() } ?: scoreDTO.beatmap.difficultyRating,
+                scoreDTO.beatmap.version, 25,
+                transparent40PercentBlack, colorWhite, colorYellow, paint
             )
-
-            drawCircle(10f + 25f, 10f + 25f, 20f, paint.apply {
-                mode = PaintMode.FILL
-                color = colorWhite
-            })
-            drawCircle(10f + 25f, 10f + 25f, 14f, paint.apply {
-                mode = PaintMode.STROKE
-                color = difficultyColor(actualDifficultyRating)
-                strokeWidth = 5f
-            })
-
-            drawTextLineWithShadow(versionText, difficultyPanelHeight, 17f + versionText.capHeight, paint.apply {
-                mode = PaintMode.FILL
-                color = colorWhite
-            }, 1f)
-
-            drawTextLineWithShadow(starText, difficultyPanelHeight,
-                10f + versionText.capHeight + starText.capHeight + 17f
-                , paint.apply {
-                mode = PaintMode.FILL
-                color = colorYellow
-            }, 1f)
 
             restoreToCount(songInfoSavePoint)
 
@@ -925,34 +892,5 @@ object RecentPlay {
         val minute = (second / 60).run { if(this < 10) "0$this" else this.toString() }
         val remainSec = (second % 60).run { if(this < 10) "0$this" else this.toString() }
         return "${minute}:$remainSec"
-    }
-
-    private fun difficultyColor(value: Double) : Int {
-        val mapping = listOf(
-            1.5 to Color.makeRGB(79, 192, 255),
-            2.0 to Color.makeRGB(79, 255, 213),
-            2.5 to Color.makeRGB(124, 255, 79),
-            3.25 to Color.makeRGB(246, 240, 92),
-            4.5 to Color.makeRGB(255, 128, 104),
-            6.0 to Color.makeRGB(255, 60, 113),
-            7.0 to Color.makeRGB(101, 99, 222),
-            8.0 to Color.makeRGB(24, 21, 142)
-        )
-        return when {
-            value <= 1.5 -> Color.makeRGB(79, 192, 255)
-            value >= 8.0 -> Color.makeRGB(0, 0, 0)
-            else -> kotlin.run {
-                var color = Color.makeRGB(79, 192, 255)
-                (0 until mapping.lastIndex).forEach {
-                    if(value in mapping[it].first..mapping[it + 1].first) {
-                        color = lerpColor(
-                            mapping[it].second, mapping[it + 1].second,
-                            (value - mapping[it].first) / (mapping[it + 1].first - mapping[it].first)
-                        )
-                    }
-                }
-                color
-            }
-        }
     }
 }
