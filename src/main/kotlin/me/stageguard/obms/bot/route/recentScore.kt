@@ -178,19 +178,6 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
         }
     } ?: Either.invoke(this@b.left) }
 
-    val beatmapSet = if(score.beatmapset == null) {
-        val beatmapInfo = OsuWebApi.getBeatmap(sender.id, score.beatmap.id)
-        beatmapInfo.ifRight {
-            InferredEitherOrISE(it.beatmapset!!)
-        } ?: Either.invoke(beatmapInfo.left)
-    } else {
-        InferredEitherOrISE(score.beatmapset)
-    }.run {
-        onLeft {
-            atReply("从服务器获取铺面信息时发生了异常: ${parseExceptions(it)}")
-        }.right
-    }
-
     launch(CoroutineName("Add skillAttribute of beatmap ${score.beatmap.id} to database")) {
         val da = difficultyAttribute.onLeft {
             OsuMapSuggester.logger.warning { "Error while add beatmap ${score.beatmap.id}: $it" }
@@ -216,6 +203,17 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
             this.precisionStrain = sk.precisionStrain
             this.rhythmComplexity = sk.accuracyStrain
         }))
+    }
+
+    val beatmapSet = if(score.beatmapset == null) {
+        OsuWebApi.getBeatmap(sender.id, score.beatmap.id).mapRight { it.beatmapset!! }
+    } else {
+        InferredEitherOrISE(score.beatmapset)
+    }.run {
+        onLeft {
+            atReply("从服务器获取铺面信息时发生了异常: ${parseExceptions(it)}")
+            return@withContext
+        }.right
     }
 
     val bytes = withContext(graphicProcessorDispatcher) {
