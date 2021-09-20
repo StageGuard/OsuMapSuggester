@@ -11,13 +11,10 @@ import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.right
-import net.mamoe.mirai.utils.info
 import net.mamoe.mirai.utils.warning
 import org.ktorm.dsl.AssignmentsBuilder
-import org.ktorm.entity.Entity
-import org.ktorm.entity.map
-import org.ktorm.entity.sequenceOf
-import org.ktorm.entity.toList
+import org.ktorm.dsl.eq
+import org.ktorm.entity.*
 import org.ktorm.schema.*
 
 object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
@@ -55,19 +52,24 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
         set(rhythmComplexity, element.rhythmComplexity)
     }
 
+    suspend fun addSingle(item: BeatmapSkill) = addAll(listOf(item))
+
     suspend fun addAll(items: List<BeatmapSkill>) = Database.query { db ->
-        val existBeatmap = db.sequenceOf(BeatmapSkillTable).map { it.bid }
         val toUpdate = mutableListOf<BeatmapSkill>()
         val toInsert = mutableListOf<BeatmapSkill>()
 
-        items.forEach { b -> if(b.bid in existBeatmap) toUpdate.add(b) else toInsert.add(b) }
+        items.forEach { b ->
+            val find = db.sequenceOf(this@BeatmapSkillTable).find { it.bid eq b.bid }
+            if(find != null) toUpdate.add(b) else toInsert.add(b)
+        }
 
-        if(toInsert.isNotEmpty()) BeatmapSkillTable.batchInsert(toInsert)
-        if(toUpdate.isNotEmpty()) BeatmapSkillTable.batchUpdate1(toUpdate, bid, { this.bid }) { it }
+        var effected = 0
+        if(toInsert.isNotEmpty()) effected += batchInsert(toInsert)?.size ?: 0
+        if(toUpdate.isNotEmpty()) effected += batchUpdate1(toUpdate, bid, { this.bid }) { it }?.size ?: 0
+        effected
     }
 
     suspend fun addAllViaBid(items: List<Int>) = Database.query { db ->
-        val existBeatmap = db.sequenceOf(BeatmapSkillTable).toList()
         val toUpdate = mutableListOf<BeatmapSkill>()
         val toInsert = mutableListOf<BeatmapSkill>()
 
@@ -89,8 +91,6 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
             val dao = BeatmapSkill {
                 this.bid = bid
                 this.stars = difficultyAttributes.stars
-                /*this.bpm = beatmapInfo.bpm
-                this.length = beatmapInfo.totalLength*/
                 this.circleSize = beatmap.circleSize
                 this.hpDrain = beatmap.hpDrainRate
                 this.approachingRate = beatmap.approachRate
@@ -103,7 +103,7 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
                 this.rhythmComplexity = skills.accuracyStrain
             }
 
-            val find = existBeatmap.find { it.bid == bid }
+            val find = db.sequenceOf(this@BeatmapSkillTable).find { it.bid eq bid }
             if(find != null) {
                 dao.bpm = find.bpm
                 dao.length = find.length
@@ -122,8 +122,7 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
             }
         }
 
-        BeatmapSkillTable.batchInsert(toInsert)
-        BeatmapSkillTable.batchUpdate1(toUpdate, bid, { this.bid }) { it }
+        (batchInsert(toInsert)?.size ?: 0) + (batchUpdate1(toUpdate, bid, { this.bid }) { it }?.size ?: 0)
     }
 }
 

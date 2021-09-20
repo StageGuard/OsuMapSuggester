@@ -73,7 +73,8 @@ object ConsoleCommands : CompositeCommand(
                 s.split(".").last() == "osu"
             }?.map { f -> f.nameWithoutExtension.toInt() }
             if (beatmap != null) {
-                BeatmapSkillTable.addAllViaBid(beatmap)
+                val result = BeatmapSkillTable.addAllViaBid(beatmap) ?: 0
+                OsuMapSuggester.logger.info { "Finish refreshing beatmap cache, newly updated: $result" }
             }
         }
     }

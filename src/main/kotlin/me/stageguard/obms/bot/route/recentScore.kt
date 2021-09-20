@@ -188,7 +188,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
             OsuMapSuggester.logger.warning { "Error while add beatmap ${score.beatmap.id}: $it" }
             return@launch
         }.right
-        BeatmapSkillTable.addAll(listOf(BeatmapSkill {
+        BeatmapSkillTable.addSingle(BeatmapSkill {
             this.bid = bid
             this.stars = da.stars
             this.bpm = score.beatmap.bpm
@@ -203,7 +203,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
             this.staminaStrain = sk.staminaStrain
             this.precisionStrain = sk.precisionStrain
             this.rhythmComplexity = sk.accuracyStrain
-        }))
+        })
     }
 
     val beatmapSet = if(score.beatmapset == null) {
