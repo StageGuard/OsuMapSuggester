@@ -24,6 +24,8 @@ object MessageRoute {
             recentScore()
             //suggester
             suggesterTrigger()
+            ruleset()
+
         }
         OsuMapSuggester.logger.info { "Subscribed group and friend messages." }
     }

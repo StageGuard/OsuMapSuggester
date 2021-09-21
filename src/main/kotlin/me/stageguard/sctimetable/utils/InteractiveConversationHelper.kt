@@ -231,9 +231,10 @@ class InteractiveConversationBuilder(
      */
     suspend fun select(
         timeoutLimit: Long = timeoutLimitation,
+        checkBlock: (MessageChain) -> Boolean = { true },
         runBlock: suspend SelectionLambdaExpression.(MessageChain) -> Unit
     ) = SelectionLambdaExpression(
-        recvImpl(tryCountLimitation, timeoutLimit, null, { true }) { it }
+        recvImpl(tryCountLimitation, timeoutLimit, null, checkBlock) { it }
     )(runBlock)
 
     @Suppress("DuplicatedCode")
@@ -301,8 +302,8 @@ class InteractiveConversationBuilder(
          *
          * 只有放到最底部才有效果。
          */
-        suspend fun default(caseLambda: suspend () -> Unit) {
-            if(!matches) caseLambda()
+        suspend fun default(caseLambda: suspend (MessageChain) -> Unit) {
+            if(!matches) caseLambda(chain)
         }
         fun finish(message: String? = null) { throw QuitConversationExceptions.AdvancedQuitException(message) }
 

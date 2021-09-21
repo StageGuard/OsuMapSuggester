@@ -10,6 +10,7 @@ object PluginConfig : AutoSavePluginConfig("OsuMapSuggester.Config") {
     val osuAuth by value<OsuAuthConfig>()
     val frontend by value<FrontendConfig>()
     val functionSettings by value<FunctionSettings>()
+    val helpLink by value("https://github.com/StageGuard/OsuMapSuggester/wiki")
 }
 
 @Serializable
