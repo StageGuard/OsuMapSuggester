@@ -2,12 +2,10 @@ package me.stageguard.obms.bot.route
 
 import kotlinx.atomicfu.AtomicRef
 import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.MessageRoute.atReply
-import me.stageguard.obms.bot.RouteLock
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
@@ -22,11 +20,6 @@ import me.stageguard.obms.script.synthetic.ConvenientToolsForBeatmapSkill
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringBooleanWrapped
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringComparableNumberWrapped
 import me.stageguard.obms.utils.Either.Companion.ifRight
-import me.stageguard.sctimetable.utils.QuitConversationExceptions
-import me.stageguard.sctimetable.utils.exception
-import me.stageguard.sctimetable.utils.finish
-import me.stageguard.sctimetable.utils.interactiveConversation
-import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
 import net.mamoe.mirai.message.data.buildMessageChain
@@ -34,7 +27,6 @@ import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import org.ktorm.entity.*
 import org.mozilla.javascript.EcmaError
-import java.time.LocalDate
 
 typealias Wrapper<T> = ColumnDeclaringComparableNumberWrapped<T>
 
