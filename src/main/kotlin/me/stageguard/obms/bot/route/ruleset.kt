@@ -269,7 +269,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
         Database.query { db ->
             val ruleset = db.sequenceOf(BeatmapTypeTable).toList()
 
-            val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map {  it to OsuUserInfo.getOsuIdAndName(it) }
+            val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map { it to OsuUserInfo.getOsuIdAndName(it) }
 
             val bytes = withContext(graphicProcessorDispatcher) {
                 MapSuggester.drawRulesetList(ruleset, rulesetCreatorsInfo).bytes(EncodedImageFormat.PNG)
@@ -279,6 +279,49 @@ fun GroupMessageSubscribersBuilder.ruleset() {
             runInterruptible { externalResource.close() }
 
             atReply(image.toMessageChain())
+        }
+    }
+
+    routeLock(startWithIgnoreCase(".ruleset delete")) {
+        try {
+            val rulesetId = try {
+                message.contentToString().removePrefix(".ruleset delete").trim().toInt()
+            } catch (ex: NumberFormatException) {
+                throw IllegalStateException("INVALID_INPUT_FORMAT")
+            }
+
+            Database.query { db ->
+                val ruleset = db.sequenceOf(BeatmapTypeTable).find { it.id eq rulesetId }
+                if(ruleset != null && ruleset.author == sender.id) {
+                    interactiveConversation(eachTimeLimit = 10000L) {
+                        send("""
+                        确认要删除 ${ruleset.name} 类型谱面规则吗？
+                        删除后将无法再触发这个谱面规则，且不可恢复。
+                        输入 "确认" 或 "是" 来确认删除。
+                    """.trimIndent())
+                        select {
+                            "是" { collect("delete", true) }
+                            "确认" { collect("delete", true) }
+                            default { collect("delete", false) }
+                        }
+                    }.finish {
+                        if(it["delete"].cast()) {
+                            ruleset.delete()
+                            atReply("删除成功。")
+                        }
+                    }.exception {
+                        when(it) {
+                            is QuitConversationExceptions.TimeoutException -> {
+                                atReply("长时间未输入(10s)，取消删除。")
+                            }
+                        }
+                    }
+                } else {
+                    atReply("没有找到 ID 为 $rulesetId 的谱面规则，或不是这个谱面规则的创建者。")
+                }
+            }
+        } catch (ex: Exception) {
+            atReply("删除谱面类型规则时发生了错误：${parseExceptions(ex)}")
         }
     }
 }
