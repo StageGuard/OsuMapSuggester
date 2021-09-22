@@ -31,7 +31,13 @@ English: [README-en.md](README-en.md)
 
 OsuMapSuggester 将会开启一个 HTTP 前端来处理这些数据。
 
-## 部署
+## 开始
+
+### 使用
+
+如果你已经加了拥有此功能的 BOT 所在的群，想查看使用方法，请前往 [Wiki](https://github.com/StageGuard/OsuMapSuggester/wiki) 界面。
+
+### 部署
 
 #### 准备工作
 
@@ -44,7 +50,7 @@ OsuMapSuggester 将会开启一个 HTTP 前端来处理这些数据。
   </details>
 
 - <details> <summary>osu! OAuth 应用</summary>
-		1. 前往 <a href="https://osu.ppy.sh/home/account/edit">https://osu.ppy.sh/home/account/edit</a><br><br>
+  1. 前往 <a href="https://osu.ppy.sh/home/account/edit">https://osu.ppy.sh/home/account/edit</a><br><br>
       2. 点击 <b>New OAuth Application</b><br>
       <img src="static/new_oauth_app_button.png" alt="new_oauth_app_button"/><br><br>
       3. 把 <b>Application Callback URL</b> 设为 <b>http://&lt;你的服务器 IP 或域名&gt;:端口/authCallback</b><br>
@@ -52,7 +58,7 @@ OsuMapSuggester 将会开启一个 HTTP 前端来处理这些数据。
       4. 复制 <b>Client Id</b> 和 <b>Client Secret</b>.<br>
       <img src="static/oauth.png" height="200" alt="oauth"/>
   </details>
-  
+
 - <details> <summary>osu! v1 api 密钥</summary>
       点击申请一个 v1 api 密钥: <a href="https://osu.ppy.sh/p/api/">https://osu.ppy.sh/p/api/</a>
   </details>

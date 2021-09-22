@@ -78,7 +78,6 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                 为你的规则设置 JavaScript 匹配表达式。
                 输入 "退出" 来终止添加规则过程。
                 当前规则表达式：${conditionExpression ?: "无"}
-                若不了解如何写，请参阅：XXX
             """.trimIndent())
                 select(checkBlock = {
                     val content = it.contentToString()
@@ -145,7 +144,8 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                 interactiveConversation(eachTimeLimit = 30000L) {
                     send("""
                     添加新的谱面类型规则。
-                    请确保熟悉了谱面类型规则表达式后再进行添加，参阅：xxxx
+                    请确保熟悉了谱面类型规则表达式后再进行添加。
+                    查看 https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset 获取更多信息。
                     请选择操作方式：
                       1. 在 QQ 聊天中交互。
                       2. 在 Web 中编辑。
