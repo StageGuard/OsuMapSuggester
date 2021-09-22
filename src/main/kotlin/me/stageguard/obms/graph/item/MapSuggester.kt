@@ -16,6 +16,7 @@ import me.stageguard.obms.utils.ValueOrISE
 import org.jetbrains.skija.*
 
 object MapSuggester {
+    //suggester
     private const val cardHeight = 430f
     private const val cardWidth = 900f
     private const val ppPlusGraphHeight = cardHeight - 20f * 2
@@ -29,6 +30,20 @@ object MapSuggester {
     private val colorGray = Color.makeARGB(100, 255, 255, 255)
     private val colorYellow = Color.makeRGB(255, 204, 34)
     private val colorGreen = Color.makeRGB(179, 255, 102)
+
+    //ruleset list
+    private const val rulesetCardHeight = 40f
+    private const val rulesetCardWidth = 1400f
+    private const val rulesetHeadHeight = 60f
+    private const val rulesetGlobalPadding = 60f
+    private const val rulesetIntervalBetweenCards = 10f
+
+    private val rulesetHeadColor = Color.makeRGB(32, 46, 31)
+    private val rulesetListBackgroundColor = Color.makeRGB(35, 42, 34)
+    private val rulesetBackgroundColor = Color.makeRGB(23, 28, 23)
+    private val rulesetItemBackgroundColor = Color.makeRGB(47, 56, 46)
+    private val rulesetPrimaryTextColor = Color.makeRGB(170,217,166)
+    private val rulesetSecondlyTextColor = Color.makeRGB(145,163,143)
 
     suspend fun drawRecommendBeatmapCard(
         beatmapInfo: ValueOrISE<BeatmapDTO>, beatmapType: BeatmapType,
@@ -45,6 +60,130 @@ object MapSuggester {
         return drawRecommendBeatmapCardImpl(
             beatmapInfo, beatmapType, beatmapSkill, additionalTip, songCover, suggester
         )
+    }
+
+    fun drawRulesetList(ruleset: List<BeatmapType>, creatorsInfo: List<Pair<Long, Pair<Int, String>?>>) : Surface {
+
+        val columnNames = listOf(
+            30f to TextLine.make("ID", Font(semiBoldFont, 16f)),
+            60f to TextLine.make("Name", Font(semiBoldFont, 16f)),
+            250f to TextLine.make("Author", Font(semiBoldFont, 16f)),
+            400f to TextLine.make("QQ", Font(semiBoldFont, 16f)),
+            495f to TextLine.make("osu!ID", Font(semiBoldFont, 16f)),
+            595f to TextLine.make("Triggers", Font(semiBoldFont, 16f)),
+            1048f to TextLine.make("Priority", Font(semiBoldFont, 16f)),
+            1185f to TextLine.make("Added", Font(semiBoldFont, 16f)),
+            1285f to TextLine.make("Last edited", Font(semiBoldFont, 16f))
+        )
+        val maxColumnHeight = columnNames.maxOf { it.second.capHeight }
+
+        val surfaceWidth = rulesetCardWidth + 2 * rulesetGlobalPadding
+        val surfaceHeight = rulesetHeadHeight +
+                2 * rulesetGlobalPadding +
+                maxColumnHeight +
+                rulesetCardHeight * ruleset.size +
+                rulesetIntervalBetweenCards * ruleset.size
+
+        val surface = Surface.makeRasterN32Premul(surfaceWidth.toInt(), surfaceHeight.toInt())
+
+        val paint = Paint().apply {
+            isAntiAlias = true
+            filterQuality = FilterQuality.HIGH
+        }
+
+        surface.canvas.apply {
+            clear(rulesetBackgroundColor)
+
+            drawRect(Rect.makeXYWH(
+                rulesetGlobalPadding / 2f, rulesetHeadHeight + rulesetGlobalPadding / 2f,
+                surfaceWidth - rulesetGlobalPadding,
+                maxColumnHeight + rulesetGlobalPadding +
+                        rulesetCardHeight * ruleset.size +
+                        rulesetIntervalBetweenCards * ruleset.size
+            ), paint.apply {
+                color = rulesetListBackgroundColor
+            })
+
+            val backgroundImage = image("image/background.png")
+            drawImage(backgroundImage, 0f, surfaceHeight - backgroundImage.height.toFloat())
+            drawRect(Rect.makeXYWH(0f, 0f, surfaceWidth, rulesetHeadHeight), paint.apply {
+                color = rulesetHeadColor
+                mode = PaintMode.FILL
+            })
+
+            val rulesetText = TextLine.make("Ruleset", Font(semiBoldFont, 30f))
+            drawTextLineWithShadow(rulesetText,
+                rulesetGlobalPadding,
+                rulesetHeadHeight / 2f + rulesetText.capHeight / 2f + 3f,
+                paint.apply {
+                color = colorWhite
+            })
+
+            translate(0f, rulesetHeadHeight)
+            translate(rulesetGlobalPadding, rulesetGlobalPadding)
+
+            columnNames.forEach {
+                drawTextLineWithShadow(it.second, it.first, maxColumnHeight, paint.apply {
+                    color = rulesetSecondlyTextColor
+                }, 1f)
+            }
+
+            translate(0f, rulesetIntervalBetweenCards + maxColumnHeight)
+
+            ruleset.forEach { r ->
+                drawImage(
+                    drawSingleRulesetItem(r, creatorsInfo.firstOrNull { it.first == r.author }?.second),
+                    0f, 0f
+                )
+                translate(0f, rulesetCardHeight + rulesetIntervalBetweenCards)
+            }
+        }
+
+        return surface
+    }
+
+    private fun drawSingleRulesetItem(skill: BeatmapType, creatorInfo: Pair<Int, String>?): Image {
+        val surface = Surface.makeRasterN32Premul(rulesetCardWidth.toInt(), rulesetCardHeight.toInt())
+
+        val paint = Paint().apply {
+            isAntiAlias = true
+            filterQuality = FilterQuality.HIGH
+        }
+
+        surface.canvas.apply {
+            drawRRect(RRect.makeXYWH(0f, 0f, rulesetCardWidth, rulesetCardHeight, 8f), paint.apply {
+                color = rulesetItemBackgroundColor
+                mode = PaintMode.FILL
+            })
+
+            listOf(
+                30f to (TextLine.make(skill.id.toString(), Font(regularFont, 16f)) to colorWhite),
+                60f to (TextLine.make(skill.name.run {
+                    if(this.length > 12) this.take(12).plus("...") else this
+                }, Font(semiBoldFont, 16f)) to rulesetPrimaryTextColor),
+                250f to (TextLine.make(
+                    (creatorInfo ?.second ?: "<unknown>"), Font(semiBoldFont, 16f)
+                ) to rulesetPrimaryTextColor),
+                380f to (TextLine.make(skill.author.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor),
+                495f to (TextLine.make(
+                    creatorInfo ?.run { first.toString() } ?: "<unknown>", Font(semiBoldFont, 16f)
+                ) to rulesetSecondlyTextColor),
+                595f to (TextLine.make(
+                    skill.triggers.replace(";", "; "), Font(semiBoldFont, 16f)
+                ) to rulesetSecondlyTextColor),
+                1070f to (TextLine.make(skill.priority.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor),
+                1170f to (TextLine.make(skill.addDate.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor),
+                1285f to (TextLine.make(skill.lastEdited.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor)
+            ).forEach {
+                drawTextLine(it.second.first,
+                    it.first, rulesetCardHeight / 2f + it.second.first.capHeight / 2, paint.apply {
+                        color = it.second.second
+                    }
+                )
+            }
+        }
+
+        return surface.makeImageSnapshot()
     }
 
     private fun drawRecommendBeatmapCardImpl(

@@ -1,18 +1,27 @@
 package me.stageguard.obms.bot.route
 
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock
 import me.stageguard.obms.bot.RouteLock.routeLock
+import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.BeatmapType
 import me.stageguard.obms.database.model.BeatmapTypeTable
 import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.graph.bytes
+import me.stageguard.obms.graph.item.MapSuggester
 import me.stageguard.obms.script.ScriptContext
 import me.stageguard.sctimetable.utils.*
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
+import net.mamoe.mirai.message.data.buildMessageChain
+import net.mamoe.mirai.message.data.toMessageChain
+import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
+import org.jetbrains.skija.EncodedImageFormat
 import org.ktorm.dsl.eq
 import org.ktorm.entity.*
 import java.lang.NumberFormatException
@@ -256,6 +265,23 @@ fun GroupMessageSubscribersBuilder.ruleset() {
             }
         } catch (ex: Exception) {
             atReply("编辑谱面类型规则时发生了错误：${parseExceptions(ex)}")
+        }
+    }
+
+    routeLock(startsWith(".ruleset list") or startsWith(".ruleset all")) {
+        Database.query { db ->
+            val ruleset = db.sequenceOf(BeatmapTypeTable).toList()
+
+            val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map {  it to OsuUserInfo.getOsuIdAndName(it) }
+
+            val bytes = withContext(graphicProcessorDispatcher) {
+                MapSuggester.drawRulesetList(ruleset, rulesetCreatorsInfo).bytes(EncodedImageFormat.PNG)
+            }
+            val externalResource = bytes.toExternalResource("png")
+            val image = group.uploadImage(externalResource)
+            runInterruptible { externalResource.close() }
+
+            atReply(image.toMessageChain())
         }
     }
 }
