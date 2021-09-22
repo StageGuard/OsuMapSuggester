@@ -16,7 +16,7 @@ import me.stageguard.obms.utils.ValueOrISE
 import org.jetbrains.skija.*
 
 object MapSuggester {
-    private const val cardHeight = 400f
+    private const val cardHeight = 430f
     private const val cardWidth = 900f
     private const val ppPlusGraphHeight = cardHeight - 20f * 2
     private const val ppPlusGraphWidth = 280f
@@ -201,8 +201,25 @@ object MapSuggester {
 
             translate(20f, 20f)
 
+            val rulesetByText = TextLine.make("Ruleset: ", Font(regularFont, 16f))
+            drawTextLineWithShadow(rulesetByText, 0f, rulesetByText.capHeight, paint.apply {
+                color = colorWhite
+                mode = PaintMode.FILL
+                strokeWidth = 1f
+            }, 2f)
+
+            val rulesetText = TextLine.make(beatmapType.name, Font(regularFont, 16f))
+            drawTextLineWithShadow(rulesetText, rulesetByText.width, rulesetByText.capHeight, paint.apply {
+                color = colorGreen
+                mode = PaintMode.FILL
+                strokeWidth = 1f
+            }, 2f)
+
+            translate(0f, 15f + rulesetByText.capHeight)
+
             val suggestedByText = TextLine.make("suggested by ", Font(regularFont, 16f))
-            drawTextLineWithShadow(suggestedByText, 0f, suggestedByText.capHeight, paint.apply {
+            drawTextLineWithShadow(suggestedByText, 0f, suggestedByText.capHeight,
+                paint.apply {
                 color = colorWhite
                 mode = PaintMode.FILL
                 strokeWidth = 1f
@@ -228,9 +245,10 @@ object MapSuggester {
                 acc + pair.second.width
             }
 
+            translate(0f, 15f + suggestedByText.capHeight)
+
             val addonTipText = TextLine.make(additionalTip, Font(regularFont, 16f))
-            translate(0f, 15f + suggestedByText.capHeight + addonTipText.capHeight)
-            drawTextLineWithShadow(addonTipText, 0f, 0f, paint.apply {
+            drawTextLineWithShadow(addonTipText, 0f, addonTipText.capHeight, paint.apply {
                 color = colorYellow
                 mode = PaintMode.FILL
                 strokeWidth = 1f

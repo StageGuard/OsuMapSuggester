@@ -20,12 +20,33 @@ import java.time.LocalDate
 
 fun GroupMessageSubscribersBuilder.ruleset() {
     suspend fun InteractiveConversationBuilder.processInteractive(
-        triggers: MutableList<String> = mutableListOf(), conditionExpressionArg: String? = null
+        nameArg: String? = null,
+        triggers: MutableList<String> = mutableListOf(),
+        conditionExpressionArg: String? = null
     ) {
-        var (addTriggerStep, conditionStep) = true to true
+        var editNameStep = true
+        var addTriggerStep = true
+        var conditionStep = true
+
         var conditionExpression: String? = conditionExpressionArg
+        var name: String? = nameArg
+
         var editing = true
         while (editing) {
+            if(editNameStep) {
+                send("""
+                为你的规则设置名称，用于显示在推图结果中。
+                输入 "退出" 来终止添加规则过程。
+                当前名称：${name ?: "<空>"}
+            """.trimIndent())
+                select {
+                    "退出" { finish("QUIT_OPERATION") }
+                    default {
+                        name = it.contentToString()
+                        editNameStep = false
+                    }
+                }
+            }
             if(addTriggerStep) {
                 send("""
                 为你的规则设置触发词，一行一个，允许正则表达式，不允许空格。
@@ -83,23 +104,27 @@ fun GroupMessageSubscribersBuilder.ruleset() {
             }
             send("""
             设置初步完成。
+            * 规则名称：$name
             * 触发词：${triggers.ifEmpty { listOf("<空>") }.joinToString()}
             * 规则表达式：$conditionExpression
             若需要修改：
-            * 修改触发词请发送 1，修改规则表达式请发送 2。
+            * 修改名称请发送 1，修改触发词 2，修改规则表达式请发送 3。
             * 输入其他文字将同时重新修改所有两项。
             全部设置已完成，请输入 完成。
         """.trimIndent())
             select {
-                "1" { addTriggerStep = true }
-                "2" { conditionStep = true }
+                "1" { editNameStep = true }
+                "2" { addTriggerStep = true }
+                "3" { conditionStep = true }
                 "完成" { editing = false }
                 default {
+                    editNameStep = true
                     conditionStep = true
                     addTriggerStep = true
                 }
             }
         }
+        collect("name", name!!)
         collect("triggers", triggers)
         collect("condition", conditionExpression!!)
     }
@@ -130,6 +155,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                     }
                 }.finish {
                     BeatmapTypeTable.insert(BeatmapType {
+                        name = it["name"].cast()
                         triggers = it["triggers"].cast<List<String>>().joinToString(";")
                         author = sender.id
                         condition = it["condition"].cast()
@@ -185,7 +211,11 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                     """.trimIndent())
                         select {
                             "1" {
-                                processInteractive(ruleset.triggers.split(";").toMutableList(), ruleset.condition)
+                                processInteractive(
+                                    ruleset.name,
+                                    ruleset.triggers.split(";").toMutableList(),
+                                    ruleset.condition
+                                )
                             }
                             "2" {
                                 atReply("Not implemented.")
@@ -196,6 +226,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                             }
                         }
                     }.finish {
+                        ruleset.name = it["name"].cast()
                         ruleset.triggers = it["triggers"].cast<List<String>>().joinToString(";")
                         ruleset.condition = it["condition"].cast()
                         ruleset.lastEdited = LocalDate.now()
