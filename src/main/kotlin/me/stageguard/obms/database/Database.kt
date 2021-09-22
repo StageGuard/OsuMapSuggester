@@ -97,6 +97,7 @@ object Database {
             statement.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS `beatmap_type` (
                     `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
+                    `name` VARCHAR(200) NOT NULL COMMENT '规则名称'
                     `triggers` VARCHAR(1500) NOT NULL COMMENT '触发条件',
                     `authorQq` BIGINT NOT NULL COMMENT '添加者 QQ',
                     `condition` VARCHAR(1500) NOT NULL COMMENT 'JavaScript条件表达式',

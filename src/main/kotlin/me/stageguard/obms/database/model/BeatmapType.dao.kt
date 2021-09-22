@@ -11,6 +11,7 @@ import java.time.LocalDate
 
 object BeatmapTypeTable : AddableTable<BeatmapType>("beatmap_type") {
     val id = int("id").primaryKey().bindTo { it.id }
+    val name = varchar("name").bindTo { it.name }
     val triggers = varchar("triggers").bindTo { it.triggers }
     val author = long("authorQq").bindTo { it.author }
     val condition = varchar("condition").bindTo { it.condition }
@@ -21,6 +22,7 @@ object BeatmapTypeTable : AddableTable<BeatmapType>("beatmap_type") {
     val lastError = varchar("lastError").bindTo { it.lastError }
 
     override fun <T : AssignmentsBuilder> T.mapElement(element: BeatmapType) {
+        set(name, element.name)
         set(triggers, element.triggers)
         set(author, element.author)
         set(condition, element.condition)
@@ -35,6 +37,7 @@ object BeatmapTypeTable : AddableTable<BeatmapType>("beatmap_type") {
 interface BeatmapType : Entity<BeatmapType> {
     companion object : Entity.Factory<BeatmapType>()
     var id: Int
+    var name: String
     var triggers: String
     var author: Long
     var condition: String
