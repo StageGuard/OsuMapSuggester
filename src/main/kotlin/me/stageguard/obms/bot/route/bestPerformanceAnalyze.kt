@@ -212,7 +212,7 @@ fun List<String>.parseMods() = map {
 
 @Suppress("SpellCheckingInspection")
 fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
-    routeLock(startsWith(".bpvs")) {
+    routeLock(startWithIgnoreCase(".bpvs")) {
         OsuMapSuggester.launch(CoroutineName("Command \"bpvs\" of ${sender.id}")) {
             //parse message
             var (limit, offset) = 25 to 0
@@ -254,7 +254,7 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         }
     }
 
-    routeLock(startsWith(".bpa")) {
+    routeLock(startWithIgnoreCase(".bpa")) {
         OsuMapSuggester.launch(CoroutineName("Command \"bpa\" of ${sender.id}")) {
             //parse message
             var (limit, offset) = 25 to 0

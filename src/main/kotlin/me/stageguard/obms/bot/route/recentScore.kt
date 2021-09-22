@@ -35,15 +35,13 @@ import me.stageguard.obms.utils.Either.Companion.mapRight
 import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.right
-import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.warning
 import org.jetbrains.skija.EncodedImageFormat
 import java.lang.NumberFormatException
-import java.util.Optional
 
 fun GroupMessageSubscribersBuilder.recentScore() {
-    routeLock(startsWith(".bps")) {
+    routeLock(startWithIgnoreCase(".bps")) {
         OsuMapSuggester.launch(CoroutineName("Command \"bps\" of ${sender.id}")) {
             val bp = message.contentToString().removePrefix(".bps").trim().run {
                 try {
@@ -68,7 +66,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
             }
         }
     }
-    routeLock(startsWith(".scr")) {
+    routeLock(startWithIgnoreCase(".scr")) {
         OsuMapSuggester.launch(CoroutineName("Command \"scr\" of ${sender.id}")) {
             val bid = message.contentToString().removePrefix(".scr").trim().run {
                 try {
@@ -90,7 +88,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
         }
 
     }
-    routeLock(startsWith(".rep")) {
+    routeLock(startWithIgnoreCase(".rep")) {
         OsuMapSuggester.launch(CoroutineName("Command \"rep\" of ${sender.id}")) {
             getLastScore(5).onRight { score ->
                 processRecentPlayData(score)

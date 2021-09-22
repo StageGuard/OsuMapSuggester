@@ -18,7 +18,6 @@ import me.stageguard.obms.script.ScriptContext
 import me.stageguard.sctimetable.utils.*
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
-import net.mamoe.mirai.message.data.buildMessageChain
 import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
@@ -138,7 +137,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
         collect("condition", conditionExpression!!)
     }
 
-    routeLock(startsWith(".ruleset add")) {
+    routeLock(startWithIgnoreCase(".ruleset add")) {
         try {
             OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
 
@@ -197,7 +196,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
         }
     }
 
-    routeLock(startsWith(".ruleset edit")) {
+    routeLock(startWithIgnoreCase(".ruleset edit")) {
         try {
             val rulesetId = try {
                 message.contentToString().removePrefix(".ruleset edit").trim().toInt()
@@ -266,7 +265,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
         }
     }
 
-    routeLock(startsWith(".ruleset list") or startsWith(".ruleset all")) {
+    routeLock(startWithIgnoreCase(".ruleset list") or startWithIgnoreCase(".ruleset all")) {
         Database.query { db ->
             val ruleset = db.sequenceOf(BeatmapTypeTable).toList()
 

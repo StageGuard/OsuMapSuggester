@@ -18,7 +18,7 @@ import me.stageguard.obms.utils.Either.Companion.right
 import kotlin.math.pow
 
 fun GroupMessageSubscribersBuilder.skill() {
-    routeLock(startsWith(".skill")) {
+    routeLock(startWithIgnoreCase(".skill")) {
         OsuMapSuggester.launch(CoroutineName("Command \"skill\" of ${sender.id}")) {
             val scores = OsuWebApi.userScore(user = sender.id, type = "best", limit = 100).onLeft {
                 atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")

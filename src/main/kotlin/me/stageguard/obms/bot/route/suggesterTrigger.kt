@@ -35,7 +35,6 @@ fun getRandomWithWeight(weightList: List<Int>) : Int {
     val sum = weightList.sum()
     val possibility = weightList.map { it * 1.0 / sum }
 
-
     var random = Random.Default.nextDouble()
 
     possibility.forEachIndexed { idx, it ->
@@ -45,7 +44,7 @@ fun getRandomWithWeight(weightList: List<Int>) : Int {
     return possibility.lastIndex
 }
 
-val beatmapMatcherPattern = Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)")
+val beatmapMatcherPattern = Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)", RegexOption.IGNORE_CASE)
 fun GroupMessageSubscribersBuilder.suggesterTrigger() {
     routeLock(finding(beatmapMatcherPattern)) { content ->
         try {
