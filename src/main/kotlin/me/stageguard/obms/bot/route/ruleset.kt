@@ -142,7 +142,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
         try {
             OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
 
-            Database.query { db -> RouteLock.withLockSuspend(sender) {
+            RouteLock.withLockSuspend(sender) {
                 interactiveConversation(eachTimeLimit = 30000L) {
                     send("""
                     添加新的谱面类型规则。
@@ -168,9 +168,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         triggers = it["triggers"].cast<List<String>>().joinToString(";")
                         author = sender.id
                         condition = it["condition"].cast()
-                        priority = db.sequenceOf(BeatmapTypeTable).sortedBy { it.priority }.run {
-                            if(isEmpty()) 1 else last().priority + 1
-                        }
+                        priority = 50
                         addDate = LocalDate.now()
                         lastEdited = LocalDate.now()
                         enabled = 1
@@ -193,7 +191,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         }
                     }
                 }
-            } }
+            }
         } catch (ex: Exception) {
             atReply("添加谱面类型规则时发生了错误：${parseExceptions(ex)}")
         }

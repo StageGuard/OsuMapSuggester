@@ -27,8 +27,23 @@ import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import org.ktorm.entity.*
 import org.mozilla.javascript.EcmaError
+import kotlin.random.Random
 
 typealias Wrapper<T> = ColumnDeclaringComparableNumberWrapped<T>
+
+fun getRandomWithWeight(weightList: List<Int>) : Int {
+    val sum = weightList.sum()
+    val possibility = weightList.map { it * 1.0 / sum }
+
+
+    var random = Random.Default.nextDouble()
+
+    possibility.forEachIndexed { idx, it ->
+        random -= it
+        if(random <= 0) return idx
+    }
+    return possibility.lastIndex
+}
 
 val beatmapMatcherPattern = Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)")
 fun GroupMessageSubscribersBuilder.suggesterTrigger() {
@@ -43,76 +58,87 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
             val selected: AtomicRef<Pair<BeatmapType, BeatmapSkill>?> = atomic(null)
             var matchedAnyRuleset = false
             Database.query { db ->
-                val allTypes = db.sequenceOf(BeatmapTypeTable).sortedBy { it.priority }.map { it }
-                // first: 这个 variant 的第几个关键词， second: 这个关键词的正则表达式
-                var triggerMatchers = Regex(String())
+                val allRuleset = db.sequenceOf(BeatmapTypeTable).toList()
                 //匹配 matchers，即关键词触发
+                val matchedRuleset = allRuleset.filter { bt ->
+                    bt.enabled == 1 && bt.triggers
+                        .split(";")
+                        .map { t -> Regex(t) }
+                        .any { r -> r.matches(trigger) }
+                }.sortedByDescending { it.priority }
 
-                allTypes.asSequence().filter { bt ->
-                    bt.enabled == 1 && bt.triggers.split(";").map { t -> Regex(t) }.any { r ->
-                        r.matches(trigger).also { triggerMatchers = r }
-                    }
-                }.forEach filterEach@ { ruleset ->
+                val priorityList = matchedRuleset.map { it.priority }.toMutableList()
+
+                while (
+                    selected.value == null &&
+                    !priorityList.all { it == 0 } &&
+                    matchedRuleset.isNotEmpty()
+                ) { kotlin.run returnPoint@ {
                     matchedAnyRuleset = true
-                    if (selected.value == null) {
-                        val triggerMatchesGroup = triggerMatchers.find(trigger)?.groupValues
-                        val searchedBeatmap = db.sequenceOf(BeatmapSkillTable).filter { btColumn ->
-                            try {
-                                ScriptContext.evaluateAndGetResult<ColumnDeclaringBooleanWrapped>(
-                                    ruleset.condition, properties = mapOf(
-                                        //tool function
-                                        "contains" to ScriptContext.createJSFunctionFromKJvmStatic("contains",
-                                            ConvenientToolsForBeatmapSkill::contains
-                                        ),
-                                        //variable
-                                        "recommendStar" to recommendedDifficulty,
-                                        "matchResult" to triggerMatchesGroup,
-                                        //column
-                                        "bid" to Wrapper(btColumn.bid),
-                                        "star" to Wrapper(btColumn.stars),
-                                        "bpm" to Wrapper(btColumn.bpm),
-                                        "length" to Wrapper(btColumn.length),
-                                        "ar" to Wrapper(btColumn.approachingRate),
-                                        "od" to Wrapper(btColumn.overallDifficulty),
-                                        "cs" to Wrapper(btColumn.circleSize),
-                                        "hp" to Wrapper(btColumn.hpDrain),
-                                        "jump" to Wrapper(btColumn.jumpAimStrain),
-                                        "flow" to Wrapper(btColumn.flowAimStrain),
-                                        "speed" to Wrapper(btColumn.speedStrain),
-                                        "stamina" to Wrapper(btColumn.staminaStrain),
-                                        "precision" to Wrapper(btColumn.precisionStrain),
-                                        "accuracy" to Wrapper(btColumn.rhythmComplexity)
-                                    )
-                                ).unwrap()
-                            } catch (ex: EcmaError) {
-                                atReply(" " + """
-                                    An error occurred when executing condition expression: 
-                                    $ex
-                                    Please contact this ruleset creator for more information.
-                                    Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
-                                """.trimIndent().deserializeMiraiCode())
-                                ruleset.lastError = ex.toString()
-                                ruleset.enabled = 0
-                                ruleset.flushChanges()
-                                return@filterEach
-                            } catch (ex: ClassCastException) {
-                                atReply(" " + """
-                                        Return type of this condition expression is not ColumnDeclaring<Boolean>.
-                                        Please contact this ruleset creator for more information.
-                                        Ruleset info: id=${ruleset.id}, creator qq: ${ruleset.author}
-                                    """.trimIndent().deserializeMiraiCode())
-                                ruleset.lastError = "Return type of this condition expression is not ColumnDeclaring<Boolean>."
-                                ruleset.enabled = 0
-                                ruleset.flushChanges()
-                                return@filterEach
-                            }
-                        }.toList()
+                    val rulesetIndex = getRandomWithWeight(priorityList)
+                    val currentRuleset = matchedRuleset[rulesetIndex]
 
-                        if(searchedBeatmap.isNotEmpty()) {
-                            selected.compareAndSet(null, ruleset to searchedBeatmap.random())
+                    val searchedBeatmap = db.sequenceOf(BeatmapSkillTable).filter { btColumn ->
+                        try {
+                            ScriptContext.evaluateAndGetResult<ColumnDeclaringBooleanWrapped>(
+                                currentRuleset.condition, properties = mapOf(
+                                    //tool function
+                                    "contains" to ScriptContext.createJSFunctionFromKJvmStatic("contains",
+                                        ConvenientToolsForBeatmapSkill::contains
+                                    ),
+                                    //variable
+                                    "recommendStar" to recommendedDifficulty,
+                                    //column
+                                    "bid" to Wrapper(btColumn.bid),
+                                    "star" to Wrapper(btColumn.stars),
+                                    "bpm" to Wrapper(btColumn.bpm),
+                                    "length" to Wrapper(btColumn.length),
+                                    "ar" to Wrapper(btColumn.approachingRate),
+                                    "od" to Wrapper(btColumn.overallDifficulty),
+                                    "cs" to Wrapper(btColumn.circleSize),
+                                    "hp" to Wrapper(btColumn.hpDrain),
+                                    "jump" to Wrapper(btColumn.jumpAimStrain),
+                                    "flow" to Wrapper(btColumn.flowAimStrain),
+                                    "speed" to Wrapper(btColumn.speedStrain),
+                                    "stamina" to Wrapper(btColumn.staminaStrain),
+                                    "precision" to Wrapper(btColumn.precisionStrain),
+                                    "accuracy" to Wrapper(btColumn.rhythmComplexity)
+                                )
+                            ).unwrap()
+                        } catch (ex: EcmaError) {
+                            atReply(" " + """
+                                An error occurred when executing condition expression: 
+                                $ex
+                                Please contact this ruleset creator for more information.
+                                Ruleset info: id=${currentRuleset.id}, creator qq: ${currentRuleset.author}
+                            """.trimIndent().deserializeMiraiCode())
+                            currentRuleset.lastError = ex.toString()
+                            currentRuleset.enabled = 0
+                            currentRuleset.priority --
+                            currentRuleset.flushChanges()
+                            priorityList[rulesetIndex] = 0 //发生错误，不再匹配这个规则
+                            return@returnPoint
+                        } catch (ex: ClassCastException) {
+                            atReply(" " + """
+                                    Return type of this condition expression is not ColumnDeclaring<Boolean>.
+                                    Please contact this ruleset creator for more information.
+                                    Ruleset info: id=${currentRuleset.id}, creator qq: ${currentRuleset.author}
+                                """.trimIndent().deserializeMiraiCode())
+                            currentRuleset.lastError = "Return type of this condition expression is not ColumnDeclaring<Boolean>."
+                            currentRuleset.enabled = 0
+                            currentRuleset.priority --
+                            currentRuleset.flushChanges()
+                            priorityList[rulesetIndex] = 0 //发生错误，不再匹配这个规则
+                            return@returnPoint
                         }
-                    } else return@query //跳出搜图过程
-                }
+                    }.toList()
+
+                    if(searchedBeatmap.isNotEmpty()) { //找到谱面，结束 while 循环
+                        selected.compareAndSet(null, currentRuleset to searchedBeatmap.random())
+                    } else { //未找到谱面，不再匹配这个规则
+                        priorityList[rulesetIndex] = 0
+                    }
+                } }
             }
 
             if(selected.value != null) {
