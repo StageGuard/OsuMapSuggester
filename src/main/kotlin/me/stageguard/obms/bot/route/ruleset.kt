@@ -198,6 +198,8 @@ fun GroupMessageSubscribersBuilder.ruleset() {
 
     routeLock(startWithIgnoreCase(".ruleset edit")) {
         try {
+            OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
+
             val rulesetId = try {
                 message.contentToString().removePrefix(".ruleset edit").trim().toInt()
             } catch (ex: NumberFormatException) {
@@ -266,24 +268,32 @@ fun GroupMessageSubscribersBuilder.ruleset() {
     }
 
     routeLock(startWithIgnoreCase(".ruleset list") or startWithIgnoreCase(".ruleset all")) {
-        Database.query { db ->
-            val ruleset = db.sequenceOf(BeatmapTypeTable).toList()
+        try {
+            OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
 
-            val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map { it to OsuUserInfo.getOsuIdAndName(it) }
+            Database.query { db ->
+                val ruleset = db.sequenceOf(BeatmapTypeTable).toList()
 
-            val bytes = withContext(graphicProcessorDispatcher) {
-                MapSuggester.drawRulesetList(ruleset, rulesetCreatorsInfo).bytes(EncodedImageFormat.PNG)
+                val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map { it to OsuUserInfo.getOsuIdAndName(it) }
+
+                val bytes = withContext(graphicProcessorDispatcher) {
+                    MapSuggester.drawRulesetList(ruleset, rulesetCreatorsInfo).bytes(EncodedImageFormat.PNG)
+                }
+                val externalResource = bytes.toExternalResource("png")
+                val image = group.uploadImage(externalResource)
+                runInterruptible { externalResource.close() }
+
+                atReply(image.toMessageChain())
             }
-            val externalResource = bytes.toExternalResource("png")
-            val image = group.uploadImage(externalResource)
-            runInterruptible { externalResource.close() }
-
-            atReply(image.toMessageChain())
+        } catch (ex: Exception) {
+            atReply("列出所有谱面类型规则时发生了错误：${parseExceptions(ex)}")
         }
     }
 
     routeLock(startWithIgnoreCase(".ruleset delete")) {
         try {
+            OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
+
             val rulesetId = try {
                 message.contentToString().removePrefix(".ruleset delete").trim().toInt()
             } catch (ex: NumberFormatException) {
