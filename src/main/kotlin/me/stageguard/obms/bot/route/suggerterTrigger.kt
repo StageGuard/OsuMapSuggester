@@ -16,7 +16,7 @@ import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.MapSuggester
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.script.ScriptContext
-import me.stageguard.obms.script.synthetic.ConvenientToolsForBeatmapSkill
+import me.stageguard.obms.script.synthetic.wrapped.ConvenientToolsForBeatmapSkill
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringBooleanWrapped
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringComparableNumberWrapped
 import me.stageguard.obms.utils.Either.Companion.ifRight

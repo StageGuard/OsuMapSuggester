@@ -69,7 +69,7 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
         effected
     }
 
-    suspend fun addAllViaBid(items: List<Int>) = Database.query { db ->
+    suspend fun addAllViaBid(items: List<Int>, ifAbsent: Boolean = false) = Database.query { db ->
         val toUpdate = mutableListOf<BeatmapSkill>()
         val toInsert = mutableListOf<BeatmapSkill>()
 
@@ -81,6 +81,10 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
         }
 
         items.forEach { bid ->
+            val find = db.sequenceOf(this@BeatmapSkillTable).find { it.bid eq bid }
+
+            if(find != null && ifAbsent) return@forEach
+
             val beatmap = BeatmapCache.getBeatmap(bid).onLeft {
                 OsuMapSuggester.logger.warning { "Error while add beatmap $bid: $it" }
                 return@forEach
@@ -103,7 +107,6 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
                 this.rhythmComplexity = skills.accuracyStrain
             }
 
-            val find = db.sequenceOf(this@BeatmapSkillTable).find { it.bid eq bid }
             if(find != null) {
                 dao.bpm = find.bpm
                 dao.length = find.length
