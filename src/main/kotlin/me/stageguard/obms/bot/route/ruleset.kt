@@ -138,7 +138,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
             OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
 
             RouteLock.withLockSuspend(sender) {
-                interactiveConversation(eachTimeLimit = 30000L) {
+                interactiveConversation(eachTimeLimit = 60000L) {
                     send("""
                     添加新的谱面类型规则。
                     请确保熟悉了谱面类型规则表达式后再进行添加。
@@ -206,7 +206,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
             Database.query { db ->
                 val ruleset = db.sequenceOf(BeatmapTypeTable).find { it.id eq rulesetId }
                 if(ruleset != null && ruleset.author == sender.id) {
-                    interactiveConversation {
+                    interactiveConversation(eachTimeLimit = 60000L) {
                         send("""
                         正在编辑谱面类型规则。
                         请选择操作方式：
