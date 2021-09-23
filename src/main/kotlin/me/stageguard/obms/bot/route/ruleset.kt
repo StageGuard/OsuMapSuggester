@@ -3,11 +3,9 @@ package me.stageguard.obms.bot.route
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import me.stageguard.obms.bot.*
 import me.stageguard.obms.bot.MessageRoute.atReply
-import me.stageguard.obms.bot.RouteLock
 import me.stageguard.obms.bot.RouteLock.routeLock
-import me.stageguard.obms.bot.graphicProcessorDispatcher
-import me.stageguard.obms.bot.parseExceptions
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.BeatmapType
 import me.stageguard.obms.database.model.BeatmapTypeTable
@@ -15,7 +13,6 @@ import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.MapSuggester
 import me.stageguard.obms.script.ScriptContext
-import me.stageguard.sctimetable.utils.*
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.data.toMessageChain

@@ -7,7 +7,7 @@
  *  https://github.com/KonnyakuCamp/SuperCourseTimetableBot/blob/main/LICENSE
  */
 @file:Suppress("unused", "unchecked")
-package me.stageguard.sctimetable.utils
+package me.stageguard.obms.bot
 
 import kotlinx.coroutines.*
 import net.mamoe.mirai.Bot
@@ -305,12 +305,14 @@ class InteractiveConversationBuilder(
         suspend fun default(caseLambda: suspend (MessageChain) -> Unit) {
             if(!matches) caseLambda(chain)
         }
-        fun finish(message: String? = null) { throw QuitConversationExceptions.AdvancedQuitException(message) }
+        fun finish(message: String? = null) { throw QuitConversationExceptions.AdvancedQuitException(message)
+        }
 
         //For execute
         suspend operator fun invoke(runBlock: suspend SelectionLambdaExpression.(MessageChain) -> Unit) = runBlock(chain)
     }
-    fun finish(message: String? = null) { throw QuitConversationExceptions.AdvancedQuitException(message) }
+    fun finish(message: String? = null) { throw QuitConversationExceptions.AdvancedQuitException(message)
+    }
 
     suspend operator fun invoke() = conversationBlock()
 }
