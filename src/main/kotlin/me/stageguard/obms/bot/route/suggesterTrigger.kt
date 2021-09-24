@@ -77,6 +77,16 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                     val rulesetIndex = getRandomWithWeight(priorityList)
                     val currentRuleset = matchedRuleset[rulesetIndex]
 
+                    val triggerMatchRuleset = lazy r@ {
+                        currentRuleset.triggers.split(";").mapIndexed { idx, t ->
+                            val matchResult = Regex(t, RegexOption.IGNORE_CASE).matchEntire(trigger)
+                            if(matchResult != null) {
+                                return@r idx to matchResult.groupValues
+                            }
+                        }
+                        return@r -1 to listOf<String>()
+                    }
+
                     val searchedBeatmap = db.sequenceOf(BeatmapSkillTable).filter { btColumn ->
                         try {
                             ScriptContext.evaluateAndGetResult<ColumnDeclaringBooleanWrapped>(
@@ -87,6 +97,8 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                     ),
                                     //variable
                                     "recommendStar" to recommendedDifficulty,
+                                    "matchIndex" to triggerMatchRuleset.value.first,
+                                    "matchGroup" to triggerMatchRuleset.value.second.drop(1),
                                     //column
                                     "bid" to Wrapper(btColumn.bid),
                                     "star" to Wrapper(btColumn.stars),
