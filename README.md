@@ -14,7 +14,7 @@ English: [README-en.md](README-en.md)
 
 然后插件可以**针对这个玩家的弱点或强项**给这个玩家推荐特定类型的谱面。(未实现)
 
-用户也可以通过[这些属性](https://github.com/StageGuard/OsuMapSuggester/blob/main/src/main/kotlin/me/stageguard/obms/database/model/BeatmapSkill.dao.kt#L22)来自定义谱面类型规则。
+用户也可以通过[以下方式](https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset)来自定义谱面类型规则。
 
 除此之外，还有其他以下特性：
 
