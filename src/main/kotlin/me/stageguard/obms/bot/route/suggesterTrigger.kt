@@ -62,7 +62,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                 val matchedRuleset = allRuleset.filter { bt ->
                     bt.enabled == 1 && bt.triggers
                         .split(";")
-                        .map { t -> Regex(t) }
+                        .map { t -> Regex(t, RegexOption.IGNORE_CASE) }
                         .any { r -> r.matches(trigger) }
                 }.sortedByDescending { it.priority }
 
