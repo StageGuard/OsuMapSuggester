@@ -59,8 +59,8 @@ fun Image.cutCenter(remainXRatio: Float, remainYRatio: Float): Image =
         ceil(width * remainXRatio).toInt(),
         ceil(height * remainYRatio).toInt()
     ).run {
-        val xOffset = imageInfo.width * (1.0 - remainXRatio) / 2
-        val yOffset = imageInfo.height * (1.0 - remainYRatio) / 2
+        val xOffset = this@cutCenter.width * (1.0 - remainXRatio) / 2
+        val yOffset = this@cutCenter.height * (1.0 - remainYRatio) / 2
         canvas.save()
         canvas.translate(-xOffset.toFloat(), -yOffset.toFloat())
         canvas.drawImage(this@cutCenter, 0F, 0F)
