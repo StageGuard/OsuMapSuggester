@@ -567,7 +567,13 @@ object RecentPlay {
             )
             restoreToCount(otherInfoTextSavePoint)
 
-            if(userBestScore.isRight && userBestScore.right.score.id != scoreDTO.id) {
+            if(userBestScore.isRight
+                && userBestScore.right.score.id != scoreDTO.id
+                && userBestScore.right.score.run {
+                    scoreDTO.score != this.score
+                        && scoreDTO.accuracy != this.accuracy
+                        && scoreDTO.maxCombo != this.maxCombo
+                }){
                 val unwrapped = userBestScore.right.score
 
                 val scoreDiff = scoreDTO.score - unwrapped.score
