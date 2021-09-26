@@ -33,7 +33,6 @@ object OAuthManager {
             append("/")
             append(relatedGroup)
         }, key).run {
-            println(this)
             URLEncoder.encode(this, Charset.forName("UTF-8"))
         })
     }
@@ -44,6 +43,7 @@ object OAuthManager {
         require(code != null) { return OAuthResult.Failed(IllegalArgumentException("Parameter \"code\" is missing.")) }
         return try {
             val decrypted = SimpleEncryptionUtils.aesDecrypt(state.replace(" ", "+"), key).split("/")
+            AuthCachePool.getQQ(decrypted[1])
             val tokenResponse = OsuWebApi.getTokenWithCode(code).rightOrThrow
             val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).rightOrThrow
             OAuthResult.Succeed(decrypted, tokenResponse, userResponse)

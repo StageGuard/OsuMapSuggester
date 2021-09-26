@@ -13,14 +13,8 @@ import org.ktorm.dsl.eq
 import org.ktorm.entity.find
 import org.ktorm.entity.sequenceOf
 
-val DEVELOPING_DEBUG = System.getProperty("me.stageguard.obms.developing_debug", false.toString()).toBoolean()
-
 fun GroupMessageSubscribersBuilder.bindAccount() {
     routeLock(startWithIgnoreCase(".bind")) {
-        /*if(DEVELOPING_DEBUG) {
-            atReply("Bind account is unavailable in debug mode.")
-            return@routeLock
-        }*/
         val user = OsuUserInfo.getOsuIdAndName(sender.id)
         if(user == null) {
             val link = OAuthManager.createOAuthLink(sender.id, group.id, AuthType.BIND_ACCOUNT)
