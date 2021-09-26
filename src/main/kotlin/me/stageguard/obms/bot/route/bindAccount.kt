@@ -6,6 +6,7 @@ import me.stageguard.obms.bot.RouteLock
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.osu.api.oauth.AuthType
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.nextMessage
 import org.ktorm.dsl.eq
@@ -16,13 +17,13 @@ val DEVELOPING_DEBUG = System.getProperty("me.stageguard.obms.developing_debug",
 
 fun GroupMessageSubscribersBuilder.bindAccount() {
     routeLock(startWithIgnoreCase(".bind")) {
-        if(DEVELOPING_DEBUG) {
+        /*if(DEVELOPING_DEBUG) {
             atReply("Bind account is unavailable in debug mode.")
             return@routeLock
-        }
+        }*/
         val user = OsuUserInfo.getOsuIdAndName(sender.id)
         if(user == null) {
-            val link = OAuthManager.createOAuthLink(sender.id, group.id)
+            val link = OAuthManager.createOAuthLink(sender.id, group.id, AuthType.BIND_ACCOUNT)
             atReply("请点击这个链接进行 oAuth 授权来绑定你的 osu 账号: $link")
         } else RouteLock.withLockSuspend(sender) {
             atReply("你已经与 osu 账号 ${user.second}(${user.first}) 绑定，要重新绑定吗？\n发送\"是\"或\"确认\"重绑。")
@@ -30,7 +31,7 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
                     next -> next.sender.id == this@routeLock.sender.id
             }.contentToString().run {
                 if(this == "确认" || this == "是") {
-                    val link = OAuthManager.createOAuthLink(sender.id, group.id)
+                    val link = OAuthManager.createOAuthLink(sender.id, group.id, AuthType.BIND_ACCOUNT)
                     atReply("请点击这个链接进行 oAuth 授权来重新绑定你的 osu 账号: $link")
                 }
             }

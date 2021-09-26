@@ -11,7 +11,7 @@ object AuthCachePool {
         repeat(n) { append(MAPPING.random()) }
     }
 
-    fun getQQ(token: String) = cache[token] ?: throw IllegalStateException("STATE_TOKEN_NOT_FOUND:$token")
+    fun getQQ(token: String) = cache[token] ?: throw IllegalStateException("State token not found: $token")
 
     fun generateToken(qq: Long) = cache.filter {
         it.value == qq

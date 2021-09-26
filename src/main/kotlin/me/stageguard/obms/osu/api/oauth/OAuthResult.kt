@@ -1,0 +1,15 @@
+package me.stageguard.obms.osu.api.oauth
+
+import me.stageguard.obms.osu.api.dto.GetAccessTokenResponseDTO
+import me.stageguard.obms.osu.api.dto.GetUserDTO
+
+sealed class OAuthResult {
+    class Succeed(
+        val state: List<String>,
+        val tokenResponse: GetAccessTokenResponseDTO,
+        val userResponse: GetUserDTO
+    ): OAuthResult()
+    class Failed(
+        val exception: Exception
+    ) : OAuthResult()
+}

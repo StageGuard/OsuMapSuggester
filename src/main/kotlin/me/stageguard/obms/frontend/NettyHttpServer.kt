@@ -5,6 +5,7 @@ import io.ktor.server.netty.*
 import kotlinx.coroutines.*
 import me.stageguard.obms.frontend.route.authCallback
 import me.stageguard.obms.OsuMapSuggester
+import me.stageguard.obms.frontend.route.authorize
 import me.stageguard.obms.frontend.route.importBeatmap
 import kotlin.coroutines.CoroutineContext
 
@@ -26,6 +27,8 @@ object NettyHttpServer : CoroutineScope {
                 this.port = port
             }
             module {
+                //auth 相关
+                authorize()
                 authCallback()
                 importBeatmap()
             }
