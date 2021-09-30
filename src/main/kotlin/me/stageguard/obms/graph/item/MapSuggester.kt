@@ -162,7 +162,7 @@ object MapSuggester {
                     if(this.length > 12) this.take(12).plus("...") else this
                 }, Font(semiBoldFont, 16f)) to rulesetPrimaryTextColor),
                 250f to (TextLine.make(
-                    (creatorInfo ?.second ?: "<unknown>"), Font(semiBoldFont, 16f)
+                    creatorInfo ?.second ?: "<unknown>", Font(semiBoldFont, 16f)
                 ) to rulesetPrimaryTextColor),
                 380f to (TextLine.make(skill.author.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor),
                 495f to (TextLine.make(
@@ -273,7 +273,7 @@ object MapSuggester {
                 difficultyPanelHeight,
                 beatmapInfo.ifRight { it.difficultyRating } ?: beatmapSkill.stars,
                 beatmapInfo.ifRight { it.version } ?: "<Unknown>",
-                25, transparent40PercentBlack, colorWhite, colorWhite, paint
+                25, transparent40PercentBlack, colorWhite, colorYellow, paint
             )
 
             translate(3f, difficultyPanelHeight + 22f)
