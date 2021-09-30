@@ -64,7 +64,7 @@ data class RankHistoryDTO(
 @Serializable
 data class UserStatisticsDTO(
     @SerialName("global_rank")
-    val globalRank: Long,
+    val globalRank: Long? = null,
     @SerialName("grade_counts")
     val gradeCounts: GradeCountsDTO,
     @SerialName("hit_accuracy")
