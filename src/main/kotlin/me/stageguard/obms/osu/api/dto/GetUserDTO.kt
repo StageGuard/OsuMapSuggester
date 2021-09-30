@@ -63,8 +63,6 @@ data class RankHistoryDTO(
 
 @Serializable
 data class UserStatisticsDTO(
-    @SerialName("global_rank")
-    val globalRank: Long? = null,
     @SerialName("grade_counts")
     val gradeCounts: GradeCountsDTO,
     @SerialName("hit_accuracy")
@@ -80,9 +78,7 @@ data class UserStatisticsDTO(
     @SerialName("play_time")
     val playTime: Long,
     @SerialName("pp")
-    val pp: Double,
-    @SerialName("rank")
-    val rank: RankDTO,
+    val pp: Double? = null,
     @SerialName("ranked_score")
     val rankedScore: Long,
     @SerialName("replays_watched_by_others")
@@ -113,12 +109,4 @@ data class LevelDTO(
     val current: Int,
     @SerialName("progress")
     val progress: Int
-)
-
-@Serializable
-data class RankDTO(
-    @SerialName("country")
-    val country: Long,
-    @SerialName("global")
-    val global: Long? = null
 )

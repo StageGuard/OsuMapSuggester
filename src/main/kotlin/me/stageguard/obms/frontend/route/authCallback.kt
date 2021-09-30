@@ -16,6 +16,7 @@ import me.stageguard.obms.osu.api.oauth.OAuthResult
 import net.mamoe.mirai.contact.getMember
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.buildMessageChain
+import net.mamoe.mirai.utils.error
 import org.ktorm.dsl.eq
 import org.ktorm.entity.filter
 import org.ktorm.entity.sequenceOf
@@ -109,7 +110,12 @@ fun Application.authCallback() {
                     }
                 }
             } else {
-                context.respond(HttpStatusCode.InternalServerError, (verified as OAuthResult.Failed).exception.toString())
+                "Exception in binding account:  ${(verified as OAuthResult.Failed).exception}".also {
+                    context.respond(HttpStatusCode.InternalServerError, it)
+                    OsuMapSuggester.logger.error(it)
+                    verified.exception.printStackTrace()
+                }
+
             }
         }
     }
