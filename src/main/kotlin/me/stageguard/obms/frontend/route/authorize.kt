@@ -5,11 +5,6 @@ import io.ktor.http.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import me.stageguard.obms.PluginConfig
-import me.stageguard.obms.osu.api.oauth.AuthCachePool
-import me.stageguard.obms.osu.api.oauth.OAuthManager
-import me.stageguard.obms.utils.SimpleEncryptionUtils
-import java.net.URLEncoder
-import java.nio.charset.Charset
 
 const val AUTHORIZE_PATH = "authorize"
 

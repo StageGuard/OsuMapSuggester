@@ -5,7 +5,8 @@ import me.stageguard.obms.osu.api.dto.GetUserDTO
 
 sealed class OAuthResult {
     class Succeed(
-        val state: List<String>,
+        val type: Int,
+        val additionalData: List<String>,
         val tokenResponse: GetAccessTokenResponseDTO,
         val userResponse: GetUserDTO
     ): OAuthResult()

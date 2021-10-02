@@ -3,10 +3,8 @@ package me.stageguard.obms.frontend
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import kotlinx.coroutines.*
-import me.stageguard.obms.frontend.route.authCallback
 import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.frontend.route.authorize
-import me.stageguard.obms.frontend.route.importBeatmap
+import me.stageguard.obms.frontend.route.*
 import kotlin.coroutines.CoroutineContext
 
 object NettyHttpServer : CoroutineScope {
@@ -30,7 +28,11 @@ object NettyHttpServer : CoroutineScope {
                 //auth 相关
                 authorize()
                 authCallback()
+                //便捷的 osu!direct
                 importBeatmap()
+                //前端相关
+                frontendResource()
+                ruleset()
             }
         }).also { s -> OsuMapSuggester.launch(CoroutineName("NettyServer")) {
             (s as ApplicationEngine).start(false)

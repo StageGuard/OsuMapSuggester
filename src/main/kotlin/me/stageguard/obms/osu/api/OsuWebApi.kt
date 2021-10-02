@@ -206,7 +206,7 @@ object OsuWebApi {
         path: String, user: Long, body: @Serializable REQ
     ): ValueOrISE<RESP> = postImpl(
         url = BASE_URL_V2 + path,
-        token = OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow(),
+        token = OAuthManager.getBindingToken(user).getOrThrow(),
         body = body
     )
 
@@ -214,7 +214,7 @@ object OsuWebApi {
         path: String, user: Long, parameters: Map<String, Any> = mapOf()
     ) = getImpl<String, ValueOrISE<RESP>>(
         url = BASE_URL_V2 + path,
-        headers = mapOf("Authorization" to "Bearer ${OAuthManager.refreshTokenInNeedAndGet(user).getOrThrow()}"),
+        headers = mapOf("Authorization" to "Bearer ${OAuthManager.getBindingToken(user).getOrThrow()}"),
         parameters = parameters
     ) {
         try {

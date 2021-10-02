@@ -109,6 +109,14 @@ object Database {
                     PRIMARY KEY (`id`)
                 );
             """.trimIndent())
+            statement.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS `web_verification` (
+                    `id` INT NOT NULL AUTO_INCREMENT,
+                    `qq` bigint NOT NULL,
+                    `token` VARCHAR(64) NOT NULL,
+                    PRIMARY KEY (`id`)
+                );
+            """.trimIndent())
         }
     }
 

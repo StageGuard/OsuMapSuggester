@@ -23,15 +23,24 @@ object OAuthManager {
 
     private const val key = "c93b1la01b50b0x1"
 
-    fun createOAuthLink(qq: Long, relatedGroup: Long = -1, type: AuthType): String = buildString {
+    private val MAPPING = "0123456789abcdef".toByteArray()
+    // to ensure that every link can only be clicked once
+    private val cache: MutableSet<String> = mutableSetOf()
+
+    private fun generateCache() = buildString {
+        repeat(16) { append(MAPPING.random()) }
+    }
+
+    fun createOAuthLink(type: AuthType, additionalData: List<Any>): String = buildString {
+
         append("${PluginConfig.osuAuth.authCallbackBaseUrl}/$AUTHORIZE_PATH?")
         append("state=")
         append(SimpleEncryptionUtils.aesEncrypt(buildString {
             append(type.value)
-            append("/")
-            append(AuthCachePool.generateToken(qq))
-            append("/")
-            append(relatedGroup)
+            append(":")
+            append(generateCache().also { cache.add(it) })
+            append(":")
+            append(additionalData.joinToString("/"))
         }, key).run {
             URLEncoder.encode(this, Charset.forName("UTF-8"))
         })
@@ -42,17 +51,26 @@ object OAuthManager {
         require(state != null) { return OAuthResult.Failed(IllegalArgumentException("Parameter \"state\" is missing.")) }
         require(code != null) { return OAuthResult.Failed(IllegalArgumentException("Parameter \"code\" is missing.")) }
         return try {
-            val decrypted = SimpleEncryptionUtils.aesDecrypt(state.replace(" ", "+"), key).split("/")
-            AuthCachePool.getQQ(decrypted[1])
-            val tokenResponse = OsuWebApi.getTokenWithCode(code).rightOrThrow
-            val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).rightOrThrow
-            OAuthResult.Succeed(decrypted, tokenResponse, userResponse)
+            val decrypted = SimpleEncryptionUtils.aesDecrypt(
+                state.replace(" ", "+"), key
+            ).split(":")
+            if(cache.remove(decrypted[1])) {
+                val tokenResponse = OsuWebApi.getTokenWithCode(code).rightOrThrow
+                val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).rightOrThrow
+                OAuthResult.Succeed(
+                    decrypted.first().toInt(),
+                    decrypted.drop(2).joinToString(":").split("/"),
+                    tokenResponse, userResponse
+                )
+            } else {
+                OAuthResult.Failed(IllegalStateException("Invalid link."))
+            }
         } catch(ex: Exception) {
-            OAuthResult.Failed(IllegalStateException("INTERNAL_ERROR:$ex"))
+            OAuthResult.Failed(IllegalStateException("Internal error:$ex"))
         }
     }
 
-    suspend fun refreshTokenInNeedAndGet(qq: Long): Result<String> = Database.query { db ->
+    suspend fun getBindingToken(qq: Long): Result<String> = Database.query { db ->
         db.sequenceOf(OsuUserInfo).filter { u -> u.qq eq qq }.toList().runCatching {
             if (isEmpty()) {
                 Result.failure(IllegalStateException("NOT_BIND"))

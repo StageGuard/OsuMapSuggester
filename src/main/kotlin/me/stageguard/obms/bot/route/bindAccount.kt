@@ -12,12 +12,13 @@ import net.mamoe.mirai.message.nextMessage
 import org.ktorm.dsl.eq
 import org.ktorm.entity.find
 import org.ktorm.entity.sequenceOf
+import java.lang.IllegalStateException
 
 fun GroupMessageSubscribersBuilder.bindAccount() {
     routeLock(startWithIgnoreCase(".bind")) {
         val user = OsuUserInfo.getOsuIdAndName(sender.id)
         if(user == null) {
-            val link = OAuthManager.createOAuthLink(sender.id, group.id, AuthType.BIND_ACCOUNT)
+            val link = OAuthManager.createOAuthLink(AuthType.BIND_ACCOUNT, listOf(sender.id, group.id))
             atReply("请点击这个链接进行 oAuth 授权来绑定你的 osu 账号: $link")
         } else RouteLock.withLockSuspend(sender) {
             atReply("你已经与 osu 账号 ${user.second}(${user.first}) 绑定，要重新绑定吗？\n发送\"是\"或\"确认\"重绑。")
@@ -25,7 +26,7 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
                     next -> next.sender.id == this@routeLock.sender.id
             }.contentToString().run {
                 if(this == "确认" || this == "是") {
-                    val link = OAuthManager.createOAuthLink(sender.id, group.id, AuthType.BIND_ACCOUNT)
+                    val link = OAuthManager.createOAuthLink(AuthType.BIND_ACCOUNT, listOf(sender.id, group.id))
                     atReply("请点击这个链接进行 oAuth 授权来重新绑定你的 osu 账号: $link")
                 }
             }
