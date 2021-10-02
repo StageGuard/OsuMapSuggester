@@ -118,6 +118,7 @@ fun Application.authCallback() {
                             val webToken = verified.tokenResponse.accessToken.takeLast(64)
 
                             if(webUserInfo != null) {
+                                webUserInfo.qq = userInfo ?.qq ?: -1
                                 webUserInfo.token = webToken
                                 webUserInfo.osuId = verified.userResponse.id
                                 webUserInfo.flushChanges()
