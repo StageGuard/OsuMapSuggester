@@ -40,7 +40,9 @@ object OAuthManager {
             append(":")
             append(generateCache().also { cache.add(it) })
             append(":")
-            append(additionalData.joinToString("/"))
+            append(additionalData.joinToString("/") {
+                URLEncoder.encode(it.toString(), Charset.forName("UTF-8"))
+            })
         }, key).run {
             URLEncoder.encode(this, Charset.forName("UTF-8"))
         })
@@ -57,11 +59,10 @@ object OAuthManager {
             if(cache.remove(decrypted[1])) {
                 val tokenResponse = OsuWebApi.getTokenWithCode(code).rightOrThrow
                 val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).rightOrThrow
-                OAuthResult.Succeed(
-                    decrypted.first().toInt(),
-                    decrypted.drop(2).joinToString(":").split("/"),
-                    tokenResponse, userResponse
-                )
+                val additionalList = decrypted.drop(2).joinToString(":").split("/").map {
+                    URLDecoder.decode(it, Charset.forName("UTF-8"))
+                }
+                OAuthResult.Succeed(decrypted.first().toInt(), additionalList, tokenResponse, userResponse)
             } else {
                 OAuthResult.Failed(IllegalStateException("Invalid link."))
             }

@@ -109,13 +109,25 @@ fun Application.authCallback() {
                     }
                     AuthType.EDIT_RULESET.value -> {
                         val querySequence = Database.query { db ->
+                            //todo: 如果多个账号qq账号绑定了同一个osu账号，那么find找到的第一个不一定是真正的目标用户
                             val userInfo = db.sequenceOf(OsuUserInfo).find { it.osuId eq verified.userResponse.id }
+                            val webUserInfo = db.sequenceOf(WebVerificationStore).find {
+                                it.osuId eq verified.userResponse.id
+                            }
                             // 随便找一个独一无二的字符串当作 token (
                             val webToken = verified.tokenResponse.accessToken.takeLast(64)
-                            WebVerificationStore.insert(WebVerification {
-                                qq = userInfo ?.qq ?: -1
-                                token = webToken
-                            })
+
+                            if(webUserInfo != null) {
+                                webUserInfo.token = webToken
+                                webUserInfo.osuId = verified.userResponse.id
+                                webUserInfo.flushChanges()
+                            } else {
+                                WebVerificationStore.insert(WebVerification {
+                                    qq = userInfo ?.qq ?: -1
+                                    osuId = verified.userResponse.id
+                                    token = webToken
+                                })
+                            }
                             context.response.cookies.append("token", webToken)
                             context.respondRedirect(
                                 PluginConfig.osuAuth.authCallbackBaseUrl + verified.additionalData.single()
@@ -133,10 +145,10 @@ fun Application.authCallback() {
                     }
                 }
             } catch (ex: Exception) {
-                "Exception in processing authorization request: ${(verified as OAuthResult.Failed).exception}".also {
+                "Exception in processing authorization request: $ex".also {
                     context.respond(HttpStatusCode.InternalServerError, it)
                     OsuMapSuggester.logger.error(it)
-                    verified.exception.printStackTrace()
+                    ex.printStackTrace()
                 }
             } else {
                 "Authorization Failed: ${(verified as OAuthResult.Failed).exception}".also {

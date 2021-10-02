@@ -21,6 +21,7 @@ import me.stageguard.obms.osu.api.oauth.OAuthManager
 import org.ktorm.dsl.eq
 import org.ktorm.entity.find
 import org.ktorm.entity.sequenceOf
+import java.net.URLDecoder
 import java.nio.charset.Charset
 
 const val RULESET_PATH = "ruleset"
@@ -60,27 +61,29 @@ fun Application.ruleset() {
             try {
                 val parameter = Json.decodeFromString<WebVerificationRequestDTO>(context.receiveText())
                 val querySequence = Database.query { db ->
-                    val find = db.sequenceOf(WebVerificationStore).find { it.token eq parameter.token }
+                    val find = db.sequenceOf(WebVerificationStore).find {
+                        it.token eq URLDecoder.decode(parameter.token, Charset.defaultCharset())
+                    }
                     if(find == null) {
                         context.respond(Json.encodeToString(WebVerificationResponseDTO(1)))
                         return@query
                     }
 
                     if(find.qq == -1L) {
-                        context.respond(Json.encodeToString(WebVerificationResponseDTO(2)))
+                        context.respond(Json.encodeToString(WebVerificationResponseDTO(2, osuId = find.osuId)))
                         return@query
                     }
 
                     val userInfo = db.sequenceOf(OsuUserInfo).find { it.qq eq find.qq }
                     if(userInfo == null) {
-                        context.respond(Json.encodeToString(WebVerificationResponseDTO(3, qq = find.qq)))
+                        context.respond(Json.encodeToString(WebVerificationResponseDTO(3, osuId = find.osuId, qq = find.qq)))
                         return@query
                     }
 
-                    context.respond(WebVerificationResponseDTO(
+                    context.respond(Json.encodeToString(WebVerificationResponseDTO(
                         result = 0, qq = userInfo.qq,
                         osuId = userInfo.osuId, osuName = userInfo.osuName
-                    ))
+                    )))
                 }
                 if(querySequence == null) context.respond(HttpStatusCode.InternalServerError,
                     Json.encodeToString(WebVerificationResponseDTO(-1,

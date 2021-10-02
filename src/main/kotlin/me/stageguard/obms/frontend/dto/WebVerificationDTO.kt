@@ -7,8 +7,8 @@ import kotlinx.serialization.Serializable
 data class WebVerificationResponseDTO(
     //  0: success
     //  1: cookie not found
-    //  2: not bind (not a valid qq) -> 用户没有绑定过 QQ 而验证(qq = -1)
-    //  3: not bind (a valid qq) -> 用户之前解绑了而验证
+    //  2: not bind a qq -> 用户没有绑定过 QQ 而验证(qq = -1)
+    //  3: unbound -> 用户之前解绑了而验证
     // -1: internal error
     val result: Int,
     val qq: Long = -1,

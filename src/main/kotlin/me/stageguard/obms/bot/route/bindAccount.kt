@@ -6,6 +6,7 @@ import me.stageguard.obms.bot.RouteLock
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.database.model.WebVerificationStore
 import me.stageguard.obms.osu.api.oauth.AuthType
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.nextMessage
@@ -36,6 +37,7 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
     routeLock(startWithIgnoreCase(".unbind")) {
         Database.query { db ->
             val user = db.sequenceOf(OsuUserInfo).find { it.qq eq sender.id }
+            val webUser = db.sequenceOf(WebVerificationStore).find { it.qq eq sender.id }
 
             if(user == null) {
                 atReply("你并未绑定 osu! 账号。")
@@ -50,6 +52,7 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
                 }.contentToString().run {
                     if(this == "确认" || this == "是") {
                         user.delete()
+                        webUser ?.delete()
                         atReply("解除绑定成功。")
                     }
                 }

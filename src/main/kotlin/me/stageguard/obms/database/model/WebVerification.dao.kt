@@ -10,10 +10,12 @@ import org.ktorm.schema.varchar
 object WebVerificationStore : AddableTable<WebVerification>("web_verification") {
     val id = int("id").primaryKey().bindTo { it.id }
     val qq = long("qq").bindTo { it.qq }
+    val osuId = int("osuId").bindTo { it.osuId }
     val token = varchar("token").bindTo { it.token }
 
     override fun <T : AssignmentsBuilder> T.mapElement(element: WebVerification) {
         set(qq, element.qq)
+        set(osuId, element.osuId)
         set(token, element.token)
     }
 }
@@ -22,5 +24,6 @@ interface WebVerification : Entity<WebVerification> {
     companion object : Entity.Factory<WebVerification>()
     var id: Int
     var qq: Long
+    var osuId: Int
     var token: String
 }
