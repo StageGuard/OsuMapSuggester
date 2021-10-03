@@ -30,10 +30,10 @@ const val RULESET_PATH = "ruleset"
  * 编辑谱面时的身份认证流程：
  * 1. 用户请求 `http://host/ruleset/{id}` 或 `http://host/ruleset/new` (下方的 (`I`))，回应 `ruleset.html` 前端。
  * 2. `ruleset.html` 前端获取 cookies 中的 `token`，认证身份(请求下方的 `II`)。
- * 3. 如果没有 `identification`， `ruleset.html` 前端会请求后端(下方的 (`III`))获取 oauth 链接
+ * 3. 如果没有 `token`， `ruleset.html` 前端会请求后端(下方的 (`III`))获取 oauth 链接
  *    (`OAuthManager.createOAuthLink(type = AuthType.EDIT_RULESET)`)。
  * 4. 点击链接完成认证后，结果会在 `AUTH_CALLBACK_PATH` 中处理(在数据库中创建一个 `token` 并绑定到用户 QQ 上)，
- *    处理后会重定向至 (`I`)，并带有 `Set-Cookie: token`。
+ *    处理后会重定向至 (`I`)，并带有 `Set-Cookie: token`(通过 `context.response.cookies.append("token", ...)`)。
  */
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -57,6 +57,7 @@ fun Application.ruleset() {
         get("/$RULESET_PATH/edit/{rid}") {
             finish()
         }
+        // (II): 认证 `token` 是否绑定了某个 QQ 账号。
         post("/$RULESET_PATH/verify") p@ {
             try {
                 val parameter = Json.decodeFromString<WebVerificationRequestDTO>(context.receiveText())
@@ -99,7 +100,7 @@ fun Application.ruleset() {
             }
             finish()
         }
-        // (III): 回应一个 oauth 链接
+        // (III): 回应一个 `oAuth` 链接
         post("/$RULESET_PATH/getVerifyLink") {
             try {
                 val parameter = Json.decodeFromString<CreateVerificationLinkRequestDTO>(context.receiveText())
