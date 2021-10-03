@@ -74,21 +74,19 @@ fun Application.authCallback() {
                                 }
                             } else {
                                 val existUser = find.single()
+
+                                existUser.token = verified.tokenResponse.accessToken
+                                existUser.refreshToken = verified.tokenResponse.refreshToken
+                                existUser.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + verified.tokenResponse.expiresIn
+
                                 if(existUser.osuId == verified.userResponse.id) {
-                                    existUser.token = verified.tokenResponse.accessToken
-                                    existUser.refreshToken = verified.tokenResponse.refreshToken
-                                    existUser.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + verified.tokenResponse.expiresIn
                                     existUser.flushChanges()
                                     context.respond(HttpStatusCode.OK, "Successfully updated oAuth token of ${verified.userResponse.username}(${verified.userResponse.id}).")
-
                                 } else {
                                     val oldOsuId = existUser.osuId
                                     val oldOsuName = existUser.osuName
                                     existUser.osuId = verified.userResponse.id
                                     existUser.osuName = verified.userResponse.username
-                                    existUser.token = verified.tokenResponse.accessToken
-                                    existUser.refreshToken = verified.tokenResponse.refreshToken
-                                    existUser.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + verified.tokenResponse.expiresIn
                                     existUser.flushChanges()
                                     context.respond(HttpStatusCode.OK, "Successfully change your osu! account binding from $oldOsuName($oldOsuId) to ${verified.userResponse.username}(${verified.userResponse.id}).")
                                     if(groupBind == -1L) {
