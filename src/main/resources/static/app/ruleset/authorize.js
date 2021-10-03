@@ -45,6 +45,19 @@ mainApp.component("authorize", {
         let token = getCookie("token");
         let showButton = false
 
+        async function showButtonFunc() {
+            await appRoot.getVerifyLink(data => {
+                if (Number(data.result) === 0) {
+                    appRoot.verifyLink = data.link
+                    appRoot.showVerifyButton = true
+                } else {
+                    appRoot.verifyMessage += "<span style='color: #dc3545'>无法获取验证链接：<br/>"
+                    appRoot.verifyMessage += data.errorMessage + "<br/>"
+                    appRoot.verifyMessage += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。</span>"
+                }
+            });
+        }
+
         if (token) {
             (await fetch("/ruleset/verify", {
                 method: 'POST',
@@ -90,23 +103,14 @@ mainApp.component("authorize", {
                         break;
                     }
                 }
+                if(showButton) await showButtonFunc()
             });
         } else {
             showButton = true
             appRoot.verifySummary = "初次编辑，请验证你的 osu! 账号";
             appRoot.verifyMessage = "点击下方按钮进行验证。"
+            await showButtonFunc()
         }
-
-        if(showButton) await appRoot.getVerifyLink(data => {
-            if(Number(data.result) === 0) {
-                appRoot.verifyLink = data.link
-                appRoot.showVerifyButton = true
-            } else {
-                appRoot.verifyMessage += "<span style='color: #dc3545'>无法获取验证链接：<br/>"
-                appRoot.verifyMessage += data.errorMessage +"<br/>"
-                appRoot.verifyMessage += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。</span>"
-            }
-        });
     },
 
     methods: {
