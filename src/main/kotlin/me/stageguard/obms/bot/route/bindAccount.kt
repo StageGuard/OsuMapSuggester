@@ -37,7 +37,6 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
     routeLock(startWithIgnoreCase(".unbind")) {
         Database.query { db ->
             val user = db.sequenceOf(OsuUserInfo).find { it.qq eq sender.id }
-            val webUser = db.sequenceOf(WebVerificationStore).find { it.qq eq sender.id }
 
             if(user == null) {
                 atReply("你并未绑定 osu! 账号。")
@@ -52,7 +51,6 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
                 }.contentToString().run {
                     if(this == "确认" || this == "是") {
                         user.delete()
-                        webUser ?.delete()
                         atReply("解除绑定成功。")
                     }
                 }
