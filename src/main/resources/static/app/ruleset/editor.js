@@ -15,39 +15,45 @@ mainApp.component("ruleset-editor", {
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则名称</b><br><small>为你的规则设置名称，用于显示在推图结果中。</small>
                             </h6>
-                            <input type="text" class="form-control form-control-lg" v-model="rulesetName" required/>
+                            <input type="text" class="form-control form-control-lg" v-model="rulesetName"/>
                         </div>
                         
                         <div class="form formItem">
                             <h6 class="form-label" style="line-height: 150%">
-                                <b>规则触发词</b><br><small>为你的规则设置触发词，用于触发你的规则<br/>允许正则表达式，不允许空格。</small>
+                                <b>规则触发词</b><br><small>为你的规则设置触发词，用于触发你的规则。<br/>允许正则表达式，不允许空格，使用英文逗号分隔多个触发词。</small>
                             </h6>
-                            <input type="text" class="form-control form-control-lg" v-model="rulesetTriggers" required/>
+                            <input type="text" class="form-control form-control-lg" v-model="rulesetTriggers"/>
                         </div>
                         
                         <div class="form formItem">
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则表达式</b><br><small>为你的规则设置 JavaScript 匹配表达式。<br/>访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Ruleset-Expression" target="_blank">Beatmap Ruleset Expression</a> 获取更多信息。</small>
                             </h6>
-                            <textarea type="text" class="form-control form-control-lg" v-model="rulesetExpression" @blur="checkExpressionSyntax" required/>
+                            <textarea type="text" class="form-control form-control-lg" v-model="rulesetExpression" @blur="checkExpressionSyntax"/>
                         </div>
                         
-                        <div class="formItem card" v-show="expressionSyntax.hasSyntaxProblem">
+                        <div class="formItem card" v-show="expressionSyntax.hasSyntaxError">
                             <div class="card-header"><b>语法检查结果</b></div>
                             <div v-for="err in expressionSyntax.message">
-                                <div class="alert" :class="{ 
+                                <div class="alert" :class="{
                                     'alert-danger': err.startsWith('ERROR:'), 
                                     'alert-warning': err.startsWith('WARNING:') 
-                                }" >
-                                    <span class="fa" :class="{ 
+                                }" style="margin: 0; border-radius: 0">
+                                    <span class="fa" :class="{
                                         'fa-times-circle': err.startsWith('ERROR:'), 
                                         'fa-exclamation-triangle': err.startsWith('WARNING:') 
-                                   }"></span> {{ err }}
+                                   }" style="border-radius: 0"></span> {{ err }}
                                 </div>
                             </div>
+                            <div class="card-footer">请检查表达式，有 <code>ERROR</code> 将无法保存。</div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary" style="float: right">保存</button>
+                        <button 
+                            type="submit" 
+                            class="btn btn-primary" 
+                            :disabled="!submitClickable" 
+                            style="float: right"
+                        >保存</button>
                     </div>
                 </form>
             </div>
@@ -81,7 +87,7 @@ mainApp.component("ruleset-editor", {
             lastCheckedExpression: "",
 
             expressionSyntax: {
-                hasSyntaxProblem: false,
+                hasSyntaxError: false,
                 message: [],
             }
         }
@@ -93,9 +99,21 @@ mainApp.component("ruleset-editor", {
         },
     },
 
+    computed: {
+        submitClickable() {
+            if(this.rulesetName === "" || this.rulesetTriggers === "" || this.rulesetExpression === "") {
+                return false;
+            }
+            return !this.expressionSyntax.hasSyntaxError
+        }
+    },
+
     methods: {
         async submitRuleset() {
-            alert("Ruleset Name: " + this.rulesetName + "\nRuleset Triggers: " + this.rulesetTriggers + "\nRuleset Expression: " + this.rulesetExpression);
+            let token = getCookie("token")
+            if(!token) {
+
+            }
         },
 
         async checkAccess() {
@@ -156,7 +174,7 @@ mainApp.component("ruleset-editor", {
             const appRoot = this;
 
             if(appRoot.lastCheckedExpression !== appRoot.rulesetExpression) {
-                appRoot.expressionSyntax.hasSyntaxProblem = false;
+                appRoot.expressionSyntax.hasSyntaxError = false;
                 appRoot.expressionSyntax.message = [];
 
                 (await fetch("/ruleset/checkSyntax", {
@@ -164,10 +182,10 @@ mainApp.component("ruleset-editor", {
                     body: JSON.stringify({"code": appRoot.rulesetExpression}),
                 })).json().then(checkResponse => {
                     if (Number(checkResponse.result) === 0) {
-                        appRoot.expressionSyntax.hasSyntaxProblem = checkResponse.message.length !== 0;
+                        appRoot.expressionSyntax.hasSyntaxError = checkResponse.message.length !== 0;
                         appRoot.expressionSyntax.message = checkResponse.message;
                     } else {
-                        appRoot.expressionSyntax.hasSyntaxProblem = true;
+                        appRoot.expressionSyntax.hasSyntaxError = true;
                         appRoot.expressionSyntax.message.push("ERROR: Internal error: " + checkResponse.errorMessage);
                     }
                     appRoot.lastCheckedExpression = appRoot.rulesetExpression;
