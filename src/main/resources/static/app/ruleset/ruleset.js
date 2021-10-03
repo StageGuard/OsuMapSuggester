@@ -1,4 +1,5 @@
-// JSUnusedGlobalSymbols
+// noinspection JSUnusedGlobalSymbols
+
 const getCookie = function (key) {
     let cookieString = ""
     document.cookie.split(';').forEach(e => {
@@ -30,19 +31,56 @@ const rulesetApp = Vue.createApp({
 
     async created() {
         const appRoot = this;
-        let token = getCookie("token")
+        let token = getCookie("token");
+
         if(token) {
             (await fetch("/ruleset/verify", {
                 method: 'POST',
-                body: JSON.stringify({
-                    "token": token
-                }),
-            })).json().then(data => {
-                switch (Number(data.result)) {
+                body: JSON.stringify({ "token": token }),
+            })).json().then(async verifyResponse => {
+                console.log(verifyResponse)
+                switch (Number(verifyResponse.result)) {
                     case 0: {
                         appRoot.verifyResult = "Verify successful.";
-                        appRoot.verifyResult += "\nBind QQ: " + data.qq;
-                        appRoot.verifyResult += "\nOsu info: " + data.osuName + "(" + data.osuId + ")";
+
+                        let editType = (path => {
+                            let sp = path.split("/")
+                            return sp[sp.length - 1]
+                        })(document.location.pathname);
+
+                        (await fetch("/ruleset/checkAccess", {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                "qq": verifyResponse.qq,
+                                "editType": editType === "new" ? 1 : 2,
+                                "rulesetId": editType === "new" ? 0 : Number(editType)
+                            }),
+                        })).json().then(checkResponse => {
+                            console.log(checkResponse)
+                            switch (Number(checkResponse.result)) {
+                                case 0: {
+                                    appRoot.verifyResult = "\n Have permission to ";
+                                    if(checkResponse.ruleset == null) {
+                                        appRoot.verifyResult += "create a new ruleset.";
+                                    } else {
+                                        appRoot.verifyResult += "edit ruleset " + checkResponse.ruleset.name;
+                                    }
+                                    break;
+                                }
+                                case 1: {
+                                    appRoot.verifyResult = "Ruleset " + Number(editType) + " not found"
+                                    break;
+                                }
+                                case 2: {
+                                    appRoot.verifyResult = "\n Not the creator of ruleset " + checkResponse.ruleset.name;
+                                    break;
+                                }
+                                case -1: {
+                                    appRoot.verifyResult = "Internal error: " + checkResponse.errorMessage;
+                                    break;
+                                }
+                            }
+                        })
                         break;
                     }
                     case 1: {
@@ -51,16 +89,16 @@ const rulesetApp = Vue.createApp({
                     }
                     case 2: {
                         appRoot.verifyResult = "Not bind.";
-                        appRoot.verifyResult += "\nOsuId: " + data.osuId;
+                        appRoot.verifyResult += "\nOsuId: " + verifyResponse.osuId;
                         break;
                     }
                     case 3: {
                         appRoot.verifyResult = "Already unbound.";
-                        appRoot.verifyResult += "\nBind QQ: " + data.qq;
+                        appRoot.verifyResult += "\nBind QQ: " + verifyResponse.qq;
                         break;
                     }
                     case -1: {
-                        appRoot.verifyResult = "Internal error: " + data.errorMessage;
+                        appRoot.verifyResult = "Internal error: " + verifyResponse.errorMessage;
                         break;
                     }
                 }
@@ -77,9 +115,7 @@ const rulesetApp = Vue.createApp({
             const appRoot = this;
             (await fetch("/ruleset/getVerifyLink", {
                 method: 'POST',
-                body: JSON.stringify({
-                    "callback": document.location.pathname
-                }),
+                body: JSON.stringify({ "callback": document.location.pathname }),
             })).json().then(data => {
                 if(data.result === 0) {
                     appRoot.verifyLink = "Succeed: " + data.link

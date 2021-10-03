@@ -23,6 +23,36 @@ data class WebVerificationRequestDTO(
 )
 
 @Serializable
+data class CheckEditAccessRequestDTO(
+    val qq: Long,
+    // 1: create a new ruleset
+    // 2: edit a existing ruleset
+    val editType: Int,
+    // equal to 0 when `editType` = 1
+    // or else equal to ruleset id
+    val rulesetId: Int
+)
+
+@Serializable
+data class CheckEditAccessResponseDTO(
+    //  0: have permission
+    //  1: ruleset not found
+    //  2: not the ruleset creator
+    // -1: internal error
+    val result: Int,
+    val ruleset: EditRulesetDTO = EditRulesetDTO(),
+    val errorMessage: String = ""
+)
+
+@Serializable
+data class EditRulesetDTO(
+    val id: Int = 0,
+    val name: String = "",
+    val triggers: List<String> = listOf(),
+    val condition: String = ""
+)
+
+@Serializable
 data class CreateVerificationLinkRequestDTO(
     @SerialName("callback")
     val callbackPath: String

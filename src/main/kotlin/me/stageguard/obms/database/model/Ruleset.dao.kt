@@ -9,7 +9,7 @@ import org.ktorm.schema.long
 import org.ktorm.schema.varchar
 import java.time.LocalDate
 
-object BeatmapTypeTable : AddableTable<BeatmapType>("beatmap_type") {
+object RulesetCollection : AddableTable<Ruleset>("beatmap_type") {
     val id = int("id").primaryKey().bindTo { it.id }
     val name = varchar("name").bindTo { it.name }
     val triggers = varchar("triggers").bindTo { it.triggers }
@@ -21,7 +21,7 @@ object BeatmapTypeTable : AddableTable<BeatmapType>("beatmap_type") {
     val enabled = int("enabled").bindTo { it.enabled }
     val lastError = varchar("lastError").bindTo { it.lastError }
 
-    override fun <T : AssignmentsBuilder> T.mapElement(element: BeatmapType) {
+    override fun <T : AssignmentsBuilder> T.mapElement(element: Ruleset) {
         set(name, element.name)
         set(triggers, element.triggers)
         set(author, element.author)
@@ -34,8 +34,8 @@ object BeatmapTypeTable : AddableTable<BeatmapType>("beatmap_type") {
     }
 }
 
-interface BeatmapType : Entity<BeatmapType> {
-    companion object : Entity.Factory<BeatmapType>()
+interface Ruleset : Entity<Ruleset> {
+    companion object : Entity.Factory<Ruleset>()
     var id: Int
     var name: String
     var triggers: String

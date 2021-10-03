@@ -5,6 +5,7 @@ import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import io.ktor.util.pipeline.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
@@ -14,6 +15,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.database.model.RulesetCollection
 import me.stageguard.obms.database.model.WebVerificationStore
 import me.stageguard.obms.frontend.dto.*
 import me.stageguard.obms.osu.api.oauth.AuthType
@@ -39,8 +41,7 @@ const val RULESET_PATH = "ruleset"
 @OptIn(ExperimentalSerializationApi::class)
 fun Application.ruleset() {
     routing {
-        // (I): 回应前端 HTML，由前端处理 `{type}`
-        get("/$RULESET_PATH/edit/new") {
+        suspend fun PipelineContext<Unit, ApplicationCall>.getRulesetPage() {
             val rulesetPage = getFrontendResourceStream("ruleset.html")
             if(rulesetPage != null) {
                 runInterruptible(Dispatchers.IO) { runBlocking {
@@ -49,16 +50,17 @@ fun Application.ruleset() {
                         ContentType.Text.Html, HttpStatusCode.OK
                     )
                 } }
-                finish()
             } else {
                 context.respond(HttpStatusCode.NotFound, "Page ruleset.html is not found.")
             }
-        }
-        get("/$RULESET_PATH/edit/{rid}") {
             finish()
         }
+
+        // (I): 回应前端 HTML，由前端处理 `{type}`
+        get("/$RULESET_PATH/edit/new") { getRulesetPage() }
+        get("/$RULESET_PATH/edit/{rid}") { getRulesetPage() }
         // (II): 认证 `token` 是否绑定了某个 QQ 账号。
-        post("/$RULESET_PATH/verify") p@ {
+        post("/$RULESET_PATH/verify") {
             try {
                 val parameter = Json.decodeFromString<WebVerificationRequestDTO>(context.receiveText())
                 val querySequence = Database.query { db ->
@@ -86,17 +88,15 @@ fun Application.ruleset() {
                         osuId = userInfo.osuId, osuName = userInfo.osuName
                     )))
                 }
-                if(querySequence == null) context.respond(HttpStatusCode.InternalServerError,
+
+                if(querySequence == null) context.respond(
                     Json.encodeToString(WebVerificationResponseDTO(-1,
                         errorMessage = "Internal error: Database is disconnected from server."
                     )
                 ))
 
             } catch (ex: Exception) {
-                context.respond(
-                    HttpStatusCode.InternalServerError,
-                    Json.encodeToString(WebVerificationResponseDTO(-1, errorMessage = ex.toString()))
-                )
+                context.respond(Json.encodeToString(WebVerificationResponseDTO(-1, errorMessage = ex.toString())))
             }
             finish()
         }
@@ -107,7 +107,53 @@ fun Application.ruleset() {
                 val link = OAuthManager.createOAuthLink(AuthType.EDIT_RULESET, listOf(parameter.callbackPath))
                 context.respond(Json.encodeToString(CreateVerificationLinkResponseDTO(0, link = link)))
             } catch (ex: Exception) {
-                context.respond(Json.encodeToString(CreateVerificationLinkResponseDTO(-1, errorMessage = ex.toString())))
+                context.respond(
+                    Json.encodeToString(CreateVerificationLinkResponseDTO(-1, errorMessage = ex.toString()))
+                )
+            }
+            finish()
+        }
+        // 检测是否有权限编辑这个 ruleset
+        post("/$RULESET_PATH/checkAccess") {
+            try {
+                val parameter = Json.decodeFromString<CheckEditAccessRequestDTO>(context.receiveText())
+
+                if(parameter.editType == 1) {
+                    context.respond(Json.encodeToString(CheckEditAccessResponseDTO(0)))
+                } else if (parameter.editType == 2) {
+                    val querySequence = Database.query { db ->
+                        val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq parameter.rulesetId }
+
+                        if(ruleset == null) {
+                            context.respond(Json.encodeToString(CheckEditAccessResponseDTO(1)))
+                            return@query
+                        }
+
+                        if(ruleset.author != parameter.qq) {
+                            context.respond(Json.encodeToString(CheckEditAccessResponseDTO(2,
+                                EditRulesetDTO(name = ruleset.name)
+                            )))
+                            return@query
+                        }
+
+                        context.respond(Json.encodeToString(
+                            CheckEditAccessResponseDTO(0, EditRulesetDTO(
+                                id = ruleset.id, name = ruleset.name, condition = ruleset.condition,
+                                triggers = ruleset.triggers.split(";").map { it.trim() }
+                            ))
+                        ))
+                    }
+
+                    if(querySequence == null) context.respond(
+                        Json.encodeToString(CheckEditAccessResponseDTO(-1,
+                            errorMessage = "Internal error: Database is disconnected from server."
+                        )
+                    ))
+                } else {
+                    context.respond(Json.encodeToString(CheckEditAccessResponseDTO(1)))
+                }
+            } catch (ex: Exception) {
+                context.respond(Json.encodeToString(CheckEditAccessResponseDTO(-1, errorMessage = ex.toString())))
             }
             finish()
         }

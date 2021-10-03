@@ -2,7 +2,7 @@ package me.stageguard.obms.graph.item
 
 import me.stageguard.obms.cache.ImageCache
 import me.stageguard.obms.database.model.BeatmapSkill
-import me.stageguard.obms.database.model.BeatmapType
+import me.stageguard.obms.database.model.Ruleset
 import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.graph.*
 import me.stageguard.obms.graph.common.drawDifficultyRatingCard
@@ -46,7 +46,7 @@ object MapSuggester {
     private val rulesetSecondlyTextColor = Color.makeRGB(145,163,143)
 
     suspend fun drawRecommendBeatmapCard(
-        beatmapInfo: ValueOrISE<BeatmapDTO>, beatmapType: BeatmapType,
+        beatmapInfo: ValueOrISE<BeatmapDTO>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String
     ) : Surface {
         val songCover = beatmapInfo.mapRight { ImageCache.getImageAsSkijaImage(it.beatmapset!!.covers.cover2x) }
@@ -62,7 +62,7 @@ object MapSuggester {
         )
     }
 
-    fun drawRulesetList(ruleset: List<BeatmapType>, creatorsInfo: List<Pair<Long, Pair<Int, String>?>>) : Surface {
+    fun drawRulesetList(ruleset: List<Ruleset>, creatorsInfo: List<Pair<Long, Pair<Int, String>?>>) : Surface {
 
         val columnNames = listOf(
             30f to TextLine.make("ID", Font(semiBoldFont, 16f)),
@@ -142,7 +142,7 @@ object MapSuggester {
         return surface
     }
 
-    private fun drawSingleRulesetItem(skill: BeatmapType, creatorInfo: Pair<Int, String>?): Image {
+    private fun drawSingleRulesetItem(skill: Ruleset, creatorInfo: Pair<Int, String>?): Image {
         val surface = Surface.makeRasterN32Premul(rulesetCardWidth.toInt(), rulesetCardHeight.toInt())
 
         val paint = Paint().apply {
@@ -187,7 +187,7 @@ object MapSuggester {
     }
 
     private fun drawRecommendBeatmapCardImpl(
-        beatmapInfo: ValueOrISE<BeatmapDTO>, beatmapType: BeatmapType,
+        beatmapInfo: ValueOrISE<BeatmapDTO>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String,
         songCover: ValueOrISE<ValueOrISE<Image>>, suggester: Either<Long, Pair<Int, String>>
     ) : Surface {

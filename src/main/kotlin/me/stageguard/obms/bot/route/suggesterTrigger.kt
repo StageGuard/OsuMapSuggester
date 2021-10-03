@@ -54,10 +54,10 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                 sender.id, "13df7m40t6ynm23f4g07ym"
             ).ifRight { it.recommendedDifficulty } ?: 0.0
 
-            val selected: AtomicRef<Pair<BeatmapType, BeatmapSkill>?> = atomic(null)
+            val selected: AtomicRef<Pair<Ruleset, BeatmapSkill>?> = atomic(null)
             var matchedAnyRuleset = false
             Database.query { db ->
-                val allRuleset = db.sequenceOf(BeatmapTypeTable).toList()
+                val allRuleset = db.sequenceOf(RulesetCollection).toList()
                 //匹配 matchers，即关键词触发
                 val matchedRuleset = allRuleset.filter { bt ->
                     bt.enabled == 1 && bt.triggers

@@ -2,7 +2,6 @@ package me.stageguard.obms.script.synthetic.wrapped
 
 import kotlinx.coroutines.runBlocking
 import me.stageguard.obms.database.model.BeatmapSkillTable
-import me.stageguard.obms.database.model.BeatmapTypeTable
 import org.ktorm.dsl.eq
 import org.ktorm.dsl.or
 import org.mozilla.javascript.NativeArray

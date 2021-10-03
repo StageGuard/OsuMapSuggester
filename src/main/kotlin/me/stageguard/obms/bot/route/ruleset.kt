@@ -7,8 +7,8 @@ import me.stageguard.obms.bot.*
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.database.Database
-import me.stageguard.obms.database.model.BeatmapType
-import me.stageguard.obms.database.model.BeatmapTypeTable
+import me.stageguard.obms.database.model.Ruleset
+import me.stageguard.obms.database.model.RulesetCollection
 import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.MapSuggester
@@ -159,7 +159,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         }
                     }
                 }.finish {
-                    BeatmapTypeTable.insert(BeatmapType {
+                    RulesetCollection.insert(Ruleset {
                         name = it["name"].cast()
                         triggers = it["triggers"].cast<List<String>>().joinToString(";")
                         author = sender.id
@@ -204,7 +204,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
             }
 
             Database.query { db ->
-                val ruleset = db.sequenceOf(BeatmapTypeTable).find { it.id eq rulesetId }
+                val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq rulesetId }
                 if(ruleset != null && ruleset.author == sender.id) {
                     interactiveConversation(eachTimeLimit = 60000L) {
                         send("""
@@ -269,7 +269,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
             OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
 
             Database.query { db ->
-                val ruleset = db.sequenceOf(BeatmapTypeTable).toList()
+                val ruleset = db.sequenceOf(RulesetCollection).toList()
 
                 val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map { it to OsuUserInfo.getOsuIdAndName(it) }
 
@@ -298,7 +298,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
             }
 
             Database.query { db ->
-                val ruleset = db.sequenceOf(BeatmapTypeTable).find { it.id eq rulesetId }
+                val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq rulesetId }
                 if(ruleset != null && ruleset.author == sender.id) {
                     interactiveConversation(eachTimeLimit = 10000L) {
                         send("""
