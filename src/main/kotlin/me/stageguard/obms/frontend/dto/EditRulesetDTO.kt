@@ -66,3 +66,18 @@ data class CreateVerificationLinkResponseDTO(
     val link: String = "",
     val errorMessage: String = ""
 )
+
+@Serializable
+data class CheckSyntaxRequestDTO(
+    val code: String
+)
+
+@Serializable
+data class CheckSyntaxResponseDTO(
+    //  0: success
+    // -1: internal error
+    val result: Int,
+    val haveSyntaxError: Boolean = false,
+    val message: List<String> = listOf(),
+    val errorMessage: String = ""
+)

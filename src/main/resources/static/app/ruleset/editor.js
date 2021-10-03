@@ -29,7 +29,22 @@ mainApp.component("ruleset-editor", {
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则表达式</b><br><small>为你的规则设置 JavaScript 匹配表达式。<br/>访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Ruleset-Expression" target="_blank">Beatmap Ruleset Expression</a> 获取更多信息。</small>
                             </h6>
-                            <textarea type="text" class="form-control form-control-lg" v-model="rulesetExpression" required/>
+                            <textarea type="text" class="form-control form-control-lg" v-model="rulesetExpression" @blur="checkExpressionSyntax" required/>
+                        </div>
+                        
+                        <div class="formItem card" v-show="expressionSyntax.hasSyntaxProblem">
+                            <div class="card-header"><b>语法检查结果</b></div>
+                            <div v-for="err in expressionSyntax.message">
+                                <div class="alert" :class="{ 
+                                    'alert-danger': err.startsWith('ERROR:'), 
+                                    'alert-warning': err.startsWith('WARNING:') 
+                                }" >
+                                    <span class="fa" :class="{ 
+                                        'fa-times-circle': err.startsWith('ERROR:'), 
+                                        'fa-exclamation-triangle': err.startsWith('WARNING:') 
+                                   }"></span> {{ err }}
+                                </div>
+                            </div>
                         </div>
                         
                         <button type="submit" class="btn btn-primary" style="float: right">保存</button>
@@ -62,26 +77,33 @@ mainApp.component("ruleset-editor", {
             rulesetName: "",
             rulesetTriggers: "",
             rulesetExpression: "",
+
+            lastCheckedExpression: "",
+
+            expressionSyntax: {
+                hasSyntaxProblem: false,
+                message: [],
+            }
         }
     },
 
     watch: {
         show(newValue, _) {
-            if(newValue === true) this.checkAccess()
-        }
+            if (newValue === true) this.checkAccess();
+        },
     },
 
     methods: {
         async submitRuleset() {
-            alert("Ruleset Name: " + this.rulesetName + "\nRuleset Triggers: " + this.rulesetTriggers + "\nRuleset Expression: " + this.rulesetExpression)
+            alert("Ruleset Name: " + this.rulesetName + "\nRuleset Triggers: " + this.rulesetTriggers + "\nRuleset Expression: " + this.rulesetExpression);
         },
 
         async checkAccess() {
             const appRoot = this;
 
             let editType = (path => {
-                let sp = path.split("/")
-                return sp[sp.length - 1]
+                let sp = path.split("/");
+                return sp[sp.length - 1];
             })(document.location.pathname);
 
             (await fetch("/ruleset/checkAccess", {
@@ -95,39 +117,62 @@ mainApp.component("ruleset-editor", {
                 switch (Number(checkResponse.result)) {
                     case 0: {
                         if (checkResponse.ruleset == null) {
-                            appRoot.mainTitle = "添加谱面规则"
-                            appRoot.subTitle = "请确保熟悉了谱面类型规则后再进行添加。<br/>"
-                            appRoot.subTitle += '访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset">Beatmap Type Ruleset<a/> 获取更多信息。'
+                            appRoot.mainTitle = "添加谱面规则";
+                            appRoot.subTitle = "请确保熟悉了谱面类型规则后再进行添加。<br/>";
+                            appRoot.subTitle += '访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset">Beatmap Type Ruleset<a/> 获取更多信息。';
                         } else {
-                            appRoot.rulesetName = checkResponse.ruleset.name
-                            appRoot.rulesetTriggers = checkResponse.ruleset.triggers
-                            appRoot.rulesetExpression = checkResponse.ruleset.condition
+                            appRoot.rulesetName = checkResponse.ruleset.name;
+                            appRoot.rulesetTriggers = checkResponse.ruleset.triggers;
+                            appRoot.rulesetExpression = checkResponse.ruleset.condition;
 
-                            appRoot.mainTitle = "编辑谱面规则"
+                            appRoot.mainTitle = "编辑谱面规则";
                             appRoot.subTitle = "<b>" + appRoot.rulesetName + "</b> by QQ: <b>" + appRoot.qq + "</b>";
                         }
-                        appRoot.showEditor = true
+                        appRoot.showEditor = true;
                         break;
                     }
                     case 1: {
-                        appRoot.mainTitle = "谱面规则未找到"
-                        appRoot.subTitle = "未找到 ID 为 " + editType + " 的谱面规则，请确保 ID 正确。"
+                        appRoot.mainTitle = "谱面规则未找到";
+                        appRoot.subTitle = "未找到 ID 为 " + editType + " 的谱面规则，请确保 ID 正确。";
                         break;
                     }
                     case 2: {
-                        appRoot.mainTitle = "无法编辑谱面规则"
-                        appRoot.subTitle = "你不是谱面规则 <b>" + checkResponse.ruleset.name + "</b> 的创建者，无法编辑。"
+                        appRoot.mainTitle = "无法编辑谱面规则";
+                        appRoot.subTitle = "你不是谱面规则 <b>" + checkResponse.ruleset.name + "</b> 的创建者，无法编辑。";
                         break;
                     }
                     case -1: {
-                        appRoot.mainTitle = "内部错误"
-                        appRoot.subTitle = "发生了内部错误：<br/>"
-                        appRoot.subTitle += checkResponse.errorMessage + "<br/>"
-                        appRoot.subTitle += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。"
+                        appRoot.mainTitle = "内部错误";
+                        appRoot.subTitle = "发生了内部错误：<br/>";
+                        appRoot.subTitle += checkResponse.errorMessage + "<br/>";
+                        appRoot.subTitle += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。";
                         break;
                     }
                 }
             })
+        },
+
+        async checkExpressionSyntax() {
+            const appRoot = this;
+
+            if(appRoot.lastCheckedExpression !== appRoot.rulesetExpression) {
+                appRoot.expressionSyntax.hasSyntaxProblem = false;
+                appRoot.expressionSyntax.message = [];
+
+                (await fetch("/ruleset/checkSyntax", {
+                    method: 'POST',
+                    body: JSON.stringify({"code": appRoot.rulesetExpression}),
+                })).json().then(checkResponse => {
+                    if (Number(checkResponse.result) === 0) {
+                        appRoot.expressionSyntax.hasSyntaxProblem = checkResponse.message.length !== 0;
+                        appRoot.expressionSyntax.message = checkResponse.message;
+                    } else {
+                        appRoot.expressionSyntax.hasSyntaxProblem = true;
+                        appRoot.expressionSyntax.message.push("ERROR: Internal error: " + checkResponse.errorMessage);
+                    }
+                    appRoot.lastCheckedExpression = appRoot.rulesetExpression;
+                });
+            }
         }
     }
 })
