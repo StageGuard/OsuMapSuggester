@@ -134,7 +134,7 @@ mainApp.component("ruleset-editor", {
             })).json().then(checkResponse => {
                 switch (Number(checkResponse.result)) {
                     case 0: {
-                        if (checkResponse.ruleset == null) {
+                        if (Number(checkResponse.ruleset.id) === 0) {
                             appRoot.mainTitle = "添加谱面规则";
                             appRoot.subTitle = "请确保熟悉了谱面类型规则后再进行添加。<br/>";
                             appRoot.subTitle += '访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset">Beatmap Type Ruleset<a/> 获取更多信息。';
