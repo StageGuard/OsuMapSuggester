@@ -141,7 +141,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                 interactiveConversation(eachTimeLimit = 60000L) {
                     send("""
                     添加新的谱面类型规则。
-                    请确保熟悉了谱面类型规则表达式后再进行添加。
+                    请确保熟悉了谱面类型规则后再进行添加。
                     查看 https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset 获取更多信息。
                     请选择操作方式：
                       1. 在 QQ 聊天中交互。

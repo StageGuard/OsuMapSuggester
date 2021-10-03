@@ -3,10 +3,10 @@
 mainApp.component("ruleset-editor", {
     template: `
         <div class="row" v-show="show">
-            <h2 class="mainTitle"><b>编辑谱面信息</b></h2>
-            <h4 class="mainTitle"><b>{{ rulesetName }} by {{ rulesetCreator }}</b></h4>
+            <h2 class="mainTitle"><b>{{ mainTitle }}</b></h2>
+            <h4 class="mainTitle" v-html="subTitle"></h4>
             <!-- form area -->
-            <div class="col-sm-5 mainColumn">
+            <div class="col-sm-5 mainColumn" v-show="showEditor">
                 <form class="card bg-light" @submit.prevent="submitRuleset">
                     <div class="card-header"><b>谱面规则信息</b></div>
                     <div class="card-body">
@@ -15,29 +15,29 @@ mainApp.component("ruleset-editor", {
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则名称</b><br><small>为你的规则设置名称，用于显示在推图结果中。</small>
                             </h6>
-                            <input type="text" v-model="rulesetName" class="form-control form-control-lg" required/>
+                            <input type="text" class="form-control form-control-lg" v-model="rulesetName" required/>
                         </div>
                         
                         <div class="form formItem">
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则触发词</b><br><small>为你的规则设置触发词，用于触发你的规则<br/>允许正则表达式，不允许空格。</small>
                             </h6>
-                            <input type="text" v-model="rulesetTriggers" class="form-control form-control-lg" required/>
+                            <input type="text" class="form-control form-control-lg" v-model="rulesetTriggers" required/>
                         </div>
                         
                         <div class="form formItem">
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则表达式</b><br><small>为你的规则设置 JavaScript 匹配表达式。<br/>访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Ruleset-Expression" target="_blank">Beatmap Ruleset Expression</a> 获取更多信息。</small>
                             </h6>
-                            <textarea type="text" v-model="rulesetExpression" class="form-control form-control-lg" required/>
+                            <textarea type="text" class="form-control form-control-lg" v-model="rulesetExpression" required/>
                         </div>
                         
                         <button type="submit" class="btn btn-primary" style="float: right">保存</button>
                     </div>
                 </form>
             </div>
-            <div class="col-sm-7 mainColumn">
-                .col-sm-7
+            <div class="col-sm-7 mainColumn" v-show="showEditor">
+                Not implemented.
             </div>
         </div>`,
 
@@ -54,16 +54,21 @@ mainApp.component("ruleset-editor", {
 
     data() {
         return {
-            rulesetName: "abc",
-            rulesetTriggers: "triggers",
-            rulesetExpression: "expression",
-            rulesetCreator: "creator"
+            mainTitle: "权限检查",
+            subTitle: "检查权限中，请确保你是 <b>QQ: " + this.qq + "</b>",
+
+            showEditor: false,
+
+            rulesetName: "",
+            rulesetTriggers: "",
+            rulesetExpression: "",
         }
     },
 
-    async created() {
-        console.log("editor created")
-
+    watch: {
+        show(newValue, _) {
+            if(newValue === true) this.checkAccess()
+        }
     },
 
     methods: {
@@ -72,6 +77,8 @@ mainApp.component("ruleset-editor", {
         },
 
         async checkAccess() {
+            const appRoot = this;
+
             let editType = (path => {
                 let sp = path.split("/")
                 return sp[sp.length - 1]
@@ -80,32 +87,43 @@ mainApp.component("ruleset-editor", {
             (await fetch("/ruleset/checkAccess", {
                 method: 'POST',
                 body: JSON.stringify({
-                    "qq": verifyResponse.qq,
+                    "qq": appRoot.qq,
                     "editType": editType === "new" ? 1 : 2,
                     "rulesetId": editType === "new" ? 0 : Number(editType)
                 }),
             })).json().then(checkResponse => {
-                console.log(checkResponse)
                 switch (Number(checkResponse.result)) {
                     case 0: {
-                        appRoot.verifyResult = "\n Have permission to ";
                         if (checkResponse.ruleset == null) {
-                            appRoot.verifyResult += "create a new ruleset.";
+                            appRoot.mainTitle = "添加谱面规则"
+                            appRoot.subTitle = "请确保熟悉了谱面类型规则后再进行添加。<br/>"
+                            appRoot.subTitle += '访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset">Beatmap Type Ruleset<a/> 获取更多信息。'
                         } else {
-                            appRoot.verifyResult += "edit ruleset " + checkResponse.ruleset.name;
+                            appRoot.rulesetName = checkResponse.ruleset.name
+                            appRoot.rulesetTriggers = checkResponse.ruleset.triggers
+                            appRoot.rulesetExpression = checkResponse.ruleset.condition
+
+                            appRoot.mainTitle = "编辑谱面规则"
+                            appRoot.subTitle = "<b>" + appRoot.rulesetName + "</b> by QQ: <b>" + appRoot.qq + "</b>";
                         }
+                        appRoot.showEditor = true
                         break;
                     }
                     case 1: {
-                        appRoot.verifyResult = "Ruleset " + Number(editType) + " not found"
+                        appRoot.mainTitle = "谱面规则未找到"
+                        appRoot.subTitle = "未找到 ID 为 " + editType + " 的谱面规则，请确保 ID 正确。"
                         break;
                     }
                     case 2: {
-                        appRoot.verifyResult = "\n Not the creator of ruleset " + checkResponse.ruleset.name;
+                        appRoot.mainTitle = "无法编辑谱面规则"
+                        appRoot.subTitle = "你不是谱面规则 <b>" + checkResponse.ruleset.name + "</b> 的创建者，无法编辑。"
                         break;
                     }
                     case -1: {
-                        appRoot.verifyResult = "Internal error: " + checkResponse.errorMessage;
+                        appRoot.mainTitle = "内部错误"
+                        appRoot.subTitle = "发生了内部错误：<br/>"
+                        appRoot.subTitle += checkResponse.errorMessage + "<br/>"
+                        appRoot.subTitle += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。"
                         break;
                     }
                 }

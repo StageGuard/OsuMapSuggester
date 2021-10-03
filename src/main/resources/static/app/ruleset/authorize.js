@@ -29,6 +29,8 @@ mainApp.component("authorize", {
         }
     },
 
+    emits: ["verified-broadcast"],
+
     data() {
         return {
             showVerifyButton: false,
