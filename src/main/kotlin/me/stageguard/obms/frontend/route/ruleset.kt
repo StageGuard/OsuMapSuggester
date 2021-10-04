@@ -174,5 +174,14 @@ fun Application.ruleset() {
                 context.respond(json.encodeToString(CheckSyntaxResponseDTO(-1, errorMessage = ex.toString())))
             }
         }
+        // 提交修改
+        post("/$RULESET_PATH/submit") {
+            try {
+                val parameter = json.decodeFromString<SubmitRequestDTO>(context.receiveText())
+
+            } catch (ex: Exception) {
+                context.respond(json.encodeToString(SubmitResponseDTO(-1, errorMessage = ex.toString())))
+            }
+        }
     }
 }

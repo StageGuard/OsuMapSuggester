@@ -29,7 +29,7 @@ mainApp.component("authorize", {
         }
     },
 
-    emits: ["verified-broadcast"],
+    emits: ["verified-broadcast", "error-broadcast"],
 
     data() {
         return {
@@ -66,8 +66,9 @@ mainApp.component("authorize", {
                 switch (Number(verifyResponse.result)) {
                     case -1: {
                         appRoot.verifySummary = "内部错误";
-                        appRoot.verifyMessage = verifyResponse.errorMessage + "<br/>";
                         appRoot.verifyMessage += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。"
+
+                        appRoot.$emit("error-broadcast", verifyResponse.errorMessage)
                         break;
                     }
                     case 0: {

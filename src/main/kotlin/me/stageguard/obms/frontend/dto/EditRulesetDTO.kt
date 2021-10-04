@@ -81,3 +81,21 @@ data class CheckSyntaxResponseDTO(
     val message: List<String> = listOf(),
     val errorMessage: String = ""
 )
+
+@Serializable
+data class SubmitRequestDTO(
+    val token: String,
+    // ruleset.id 为 -1 时为创建新的 ruleset
+    val ruleset: EditRulesetDTO
+)
+
+@Serializable
+data class SubmitResponseDTO(
+    //  0: success
+    //  1: authorization failed
+    //  2: illegal access
+    //  3: illegal parameter
+    // -1: internal error
+    val result: Int,
+    val errorMessage: String = ""
+)

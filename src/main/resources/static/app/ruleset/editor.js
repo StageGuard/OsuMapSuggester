@@ -39,10 +39,10 @@ mainApp.component("ruleset-editor", {
                                     'alert-danger': err.startsWith('ERROR:'), 
                                     'alert-warning': err.startsWith('WARNING:') 
                                 }" style="margin: 0; border-radius: 0">
-                                    <span class="fa" :class="{
+                                    <i class="fa" :class="{
                                         'fa-times-circle': err.startsWith('ERROR:'), 
                                         'fa-exclamation-triangle': err.startsWith('WARNING:') 
-                                   }" style="border-radius: 0"></span> {{ err }}
+                                   }" style="border-radius: 0"></i> {{ err }}
                                 </div>
                             </div>
                             <div class="card-footer">请检查表达式，有 <code>ERROR</code> 将无法保存。</div>
@@ -72,6 +72,8 @@ mainApp.component("ruleset-editor", {
             required: true
         }
     },
+
+    emits: ["error-broadcast", "warning-broadcast", "success-broadcast"],
 
     data() {
         return {
@@ -110,10 +112,24 @@ mainApp.component("ruleset-editor", {
 
     methods: {
         async submitRuleset() {
-            let token = getCookie("token")
+            const appRoot = this;
+            let token = getCookie("token");
             if(!token) {
-
+                appRoot.$emit("error-broadcast", "认证失效，请刷新界面重新认证（编辑内容将丢失）。", 4000);
+                return;
             }
+
+            if(!appRoot.submitClickable) {
+                appRoot.$emit("error-broadcast", "参数不合法，请检查各项填写是否有误。", 4000);
+                return;
+            }
+
+            (await fetch("/ruleset/submit", {
+                method: 'POST',
+
+            })).json().then(submitResult => {
+
+            });
         },
 
         async checkAccess() {
@@ -162,8 +178,9 @@ mainApp.component("ruleset-editor", {
                     case -1: {
                         appRoot.mainTitle = "内部错误";
                         appRoot.subTitle = "发生了内部错误：<br/>";
-                        appRoot.subTitle += checkResponse.errorMessage + "<br/>";
                         appRoot.subTitle += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。";
+
+                        appRoot.$emit("error-broadcast", checkResponse.errorMessage)
                         break;
                     }
                 }
