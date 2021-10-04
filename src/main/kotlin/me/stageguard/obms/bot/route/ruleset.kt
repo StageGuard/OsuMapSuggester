@@ -130,7 +130,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
         }
         collect("name", name!!)
         collect("triggers", triggers)
-        collect("condition", conditionExpression!!)
+        collect("expression", conditionExpression!!)
     }
 
     routeLock(startWithIgnoreCase(".ruleset add")) {
@@ -163,7 +163,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         name = it["name"].cast()
                         triggers = it["triggers"].cast<List<String>>().joinToString(";")
                         author = sender.id
-                        condition = it["condition"].cast()
+                        expression = it["expression"].cast()
                         priority = 50
                         addDate = LocalDate.now()
                         lastEdited = LocalDate.now()
@@ -219,7 +219,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                                 processInteractive(
                                     ruleset.name,
                                     ruleset.triggers.split(";").toMutableList(),
-                                    ruleset.condition
+                                    ruleset.expression
                                 )
                             }
                             "2" {
@@ -233,7 +233,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                     }.finish {
                         ruleset.name = it["name"].cast()
                         ruleset.triggers = it["triggers"].cast<List<String>>().joinToString(";")
-                        ruleset.condition = it["condition"].cast()
+                        ruleset.expression = it["expression"].cast()
                         ruleset.lastEdited = LocalDate.now()
                         ruleset.enabled = 1
                         ruleset.lastError = ""

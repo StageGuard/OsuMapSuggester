@@ -14,7 +14,7 @@ object RulesetCollection : AddableTable<Ruleset>("beatmap_type") {
     val name = varchar("name").bindTo { it.name }
     val triggers = varchar("triggers").bindTo { it.triggers }
     val author = long("authorQq").bindTo { it.author }
-    val condition = varchar("condition").bindTo { it.condition }
+    val expression = varchar("expression").bindTo { it.expression }
     val priority = int("priority").bindTo { it.priority }
     val addDate = date("addDate").bindTo { it.addDate }
     val lastEdited = date("lastEdited").bindTo { it.lastEdited }
@@ -25,7 +25,7 @@ object RulesetCollection : AddableTable<Ruleset>("beatmap_type") {
         set(name, element.name)
         set(triggers, element.triggers)
         set(author, element.author)
-        set(condition, element.condition)
+        set(expression, element.expression)
         set(priority, element.priority)
         set(addDate, element.addDate)
         set(lastEdited, element.lastEdited)
@@ -40,7 +40,7 @@ interface Ruleset : Entity<Ruleset> {
     var name: String
     var triggers: String
     var author: Long
-    var condition: String
+    var expression: String
     var priority: Int
     var addDate: LocalDate
     var lastEdited: LocalDate

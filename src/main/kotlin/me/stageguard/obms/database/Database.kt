@@ -100,7 +100,7 @@ object Database {
                     `name` VARCHAR(200) NOT NULL COMMENT '规则名称',
                     `triggers` VARCHAR(1500) NOT NULL COMMENT '触发条件',
                     `authorQq` BIGINT NOT NULL COMMENT '添加者 QQ',
-                    `condition` VARCHAR(1500) NOT NULL COMMENT 'JavaScript条件表达式',
+                    `expression` VARCHAR(1500) NOT NULL COMMENT 'JavaScript条件表达式',
                     `priority` INT NOT NULL COMMENT '优先级',
                     `addDate` DATE NOT NULL COMMENT '添加日期',
                     `lastEdited` DATE NOT NULL COMMENT '修改日期',

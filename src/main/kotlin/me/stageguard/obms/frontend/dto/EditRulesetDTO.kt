@@ -49,7 +49,7 @@ data class EditRulesetDTO(
     val id: Int = 0,
     val name: String = "",
     val triggers: List<String> = listOf(),
-    val condition: String = ""
+    val expression: String = ""
 )
 
 @Serializable
@@ -95,7 +95,9 @@ data class SubmitResponseDTO(
     //  1: authorization failed
     //  2: illegal access
     //  3: illegal parameter
+    //  4: ruleset not found
     // -1: internal error
     val result: Int,
+    val newId: Int = 0,
     val errorMessage: String = ""
 )

@@ -91,7 +91,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                     val searchedBeatmap = db.sequenceOf(BeatmapSkillTable).filter { btColumn ->
                         try {
                             ScriptContext.evaluateAndGetResult<ColumnDeclaringBooleanWrapped>(
-                                currentRuleset.condition, properties = mapOf(
+                                currentRuleset.expression, properties = mapOf(
                                     //tool function
                                     "contains" to ScriptContext.createJSFunctionFromKJvmStatic("contains",
                                         ConvenientToolsForBeatmapSkill::contains

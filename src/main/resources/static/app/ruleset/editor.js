@@ -1,4 +1,9 @@
 // noinspection JSUnusedGlobalSymbols
+let lastSubmitted = {
+    name: "",
+    triggers: "",
+    expression: ""
+};
 
 mainApp.component("ruleset-editor", {
     template: `
@@ -15,21 +20,21 @@ mainApp.component("ruleset-editor", {
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则名称</b><br><small>为你的规则设置名称，用于显示在推图结果中。</small>
                             </h6>
-                            <input type="text" class="form-control form-control-lg" v-model="rulesetName"/>
+                            <input type="text" class="form-control form-control-lg" v-model="ruleset.name"/>
                         </div>
                         
                         <div class="form formItem">
                             <h6 class="form-label" style="line-height: 150%">
-                                <b>规则触发词</b><br><small>为你的规则设置触发词，用于触发你的规则。<br/>允许正则表达式，不允许空格，使用英文逗号分隔多个触发词。</small>
+                                <b>规则触发词</b><br><small>为你的规则设置触发词，用于触发你的规则。<br/>允许正则表达式，不允许空格，使用英文分号分隔多个触发词。</small>
                             </h6>
-                            <input type="text" class="form-control form-control-lg" v-model="rulesetTriggers"/>
+                            <input type="text" class="form-control form-control-lg" v-model="ruleset.triggers"/>
                         </div>
                         
                         <div class="form formItem">
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则表达式</b><br><small>为你的规则设置 JavaScript 匹配表达式。<br/>访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Ruleset-Expression" target="_blank">Beatmap Ruleset Expression</a> 获取更多信息。</small>
                             </h6>
-                            <textarea type="text" class="form-control form-control-lg" v-model="rulesetExpression" @blur="checkExpressionSyntax"/>
+                            <textarea type="text" class="form-control form-control-lg" v-model="ruleset.expression" @blur="checkExpressionSyntax"/>
                         </div>
                         
                         <div class="formItem card" v-show="expressionSyntax.hasSyntaxError">
@@ -58,7 +63,7 @@ mainApp.component("ruleset-editor", {
                 </form>
             </div>
             <div class="col-sm-7 mainColumn" v-show="showEditor">
-                Not implemented.
+                这里将展示匹配结果，但是还没做好。
             </div>
         </div>`,
 
@@ -77,14 +82,16 @@ mainApp.component("ruleset-editor", {
 
     data() {
         return {
-            mainTitle: "权限检查",
-            subTitle: "检查权限中，请确保你是 <b>QQ: " + this.qq + "</b>",
+            mainTitle: "权限检查中",
+            subTitle: "很快就好。",
 
             showEditor: false,
 
-            rulesetName: "",
-            rulesetTriggers: "",
-            rulesetExpression: "",
+            ruleset: {
+                name: "",
+                triggers: "",
+                expression: ""
+            },
 
             lastCheckedExpression: "",
 
@@ -101,13 +108,25 @@ mainApp.component("ruleset-editor", {
         },
     },
 
+    created() {
+        if(window.location.search?.includes("new_redirect")) {
+            this.$emit("success-broadcast", "铺面规则保存成功。");
+        }
+    },
+
     computed: {
         submitClickable() {
-            if(this.rulesetName === "" || this.rulesetTriggers === "" || this.rulesetExpression === "") {
+            if(this.ruleset.name === "" || this.ruleset.triggers === "" || this.ruleset.expression === "") {
                 return false;
             }
-            return !this.expressionSyntax.hasSyntaxError
-        }
+            if(!this.modifiedRulesetName && !this.modifiedRulesetTriggers && !this.modifiedRulesetExpression) {
+                return false;
+            }
+            return !this.expressionSyntax.hasSyntaxError;
+        },
+        modifiedRulesetName() { return lastSubmitted.name !== this.ruleset.name; },
+        modifiedRulesetTriggers() { return lastSubmitted.triggers !== this.ruleset.triggers; },
+        modifiedRulesetExpression() { return lastSubmitted.expression !== this.ruleset.expression; },
     },
 
     methods: {
@@ -124,11 +143,56 @@ mainApp.component("ruleset-editor", {
                 return;
             }
 
+            let editType = (path => {
+                let sp = path.split("/");
+                return sp[sp.length - 1];
+            })(document.location.pathname);
+
             (await fetch("/ruleset/submit", {
                 method: 'POST',
-
+                body: JSON.stringify({
+                    "token": token,
+                    "ruleset": {
+                        "id": editType === "new" ? 0 : Number(editType),
+                        "name": appRoot.ruleset.name,
+                        "triggers": appRoot.ruleset.triggers.split(";"),
+                        "expression": appRoot.ruleset.expression
+                    }
+                }),
             })).json().then(submitResult => {
-
+                switch (Number(submitResult.result)) {
+                    case 0: {
+                        if(submitResult.newId !== 0) {
+                            window.location.href = "/ruleset/edit/" + submitResult.newId + "?new_redirect"
+                        } else {
+                            appRoot.$emit("success-broadcast", "铺面规则保存成功。");
+                            lastSubmitted.name = appRoot.ruleset.name;
+                            lastSubmitted.triggers = appRoot.ruleset.triggers;
+                            lastSubmitted.expression = appRoot.ruleset.expression;
+                        }
+                        break;
+                    }
+                    case 1: {
+                        appRoot.$emit("error-broadcast", "认证失效，请刷新界面重新认证（编辑内容将丢失）。", 4000);
+                        break;
+                    }
+                    case 2: {
+                        appRoot.$emit("error-broadcast", "权限拒绝，你没有权限编辑这个谱面规则。", 4000);
+                        break;
+                    }
+                    case 3: {
+                        appRoot.$emit("error-broadcast", "参数不合法，请检查各项填写是否有误。", 4000);
+                        break;
+                    }
+                    case 4: {
+                        appRoot.$emit("error-broadcast", "无法找到这个谱面规则，可能已经被删除。", 4000);
+                        break;
+                    }
+                    case -1: {
+                        appRoot.$emit("error-broadcast", "内部错误：" + submitResult.errorMessage + "<br/>请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。", 10000);
+                        break;
+                    }
+                }
             });
         },
 
@@ -155,12 +219,12 @@ mainApp.component("ruleset-editor", {
                             appRoot.subTitle = "请确保熟悉了谱面类型规则后再进行添加。<br/>";
                             appRoot.subTitle += '访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset">Beatmap Type Ruleset<a/> 获取更多信息。';
                         } else {
-                            appRoot.rulesetName = checkResponse.ruleset.name;
-                            appRoot.rulesetTriggers = checkResponse.ruleset.triggers;
-                            appRoot.rulesetExpression = checkResponse.ruleset.condition;
+                            appRoot.ruleset.name = lastSubmitted.name = checkResponse.ruleset.name;
+                            appRoot.ruleset.triggers = lastSubmitted.triggers = checkResponse.ruleset.triggers.join(";");
+                            appRoot.ruleset.expression = lastSubmitted.expression = checkResponse.ruleset.expression;
 
                             appRoot.mainTitle = "编辑谱面规则";
-                            appRoot.subTitle = "<b>" + appRoot.rulesetName + "</b> by QQ: <b>" + appRoot.qq + "</b>";
+                            appRoot.subTitle = "<b>" + appRoot.ruleset.name + "</b> by QQ: <b>" + appRoot.qq + "</b>";
                         }
                         appRoot.showEditor = true;
                         break;
@@ -190,13 +254,13 @@ mainApp.component("ruleset-editor", {
         async checkExpressionSyntax() {
             const appRoot = this;
 
-            if(appRoot.lastCheckedExpression !== appRoot.rulesetExpression) {
+            if(appRoot.lastCheckedExpression !== appRoot.ruleset.expression) {
                 appRoot.expressionSyntax.hasSyntaxError = false;
                 appRoot.expressionSyntax.message = [];
 
                 (await fetch("/ruleset/checkSyntax", {
                     method: 'POST',
-                    body: JSON.stringify({"code": appRoot.rulesetExpression}),
+                    body: JSON.stringify({"code": appRoot.ruleset.expression}),
                 })).json().then(checkResponse => {
                     if (Number(checkResponse.result) === 0) {
                         appRoot.expressionSyntax.hasSyntaxError = checkResponse.message.length !== 0;
@@ -205,7 +269,7 @@ mainApp.component("ruleset-editor", {
                         appRoot.expressionSyntax.hasSyntaxError = true;
                         appRoot.expressionSyntax.message.push("ERROR: Internal error: " + checkResponse.errorMessage);
                     }
-                    appRoot.lastCheckedExpression = appRoot.rulesetExpression;
+                    appRoot.lastCheckedExpression = appRoot.ruleset.expression;
                 });
             }
         }

@@ -15,17 +15,22 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.database.model.Ruleset
 import me.stageguard.obms.database.model.RulesetCollection
 import me.stageguard.obms.database.model.WebVerificationStore
 import me.stageguard.obms.frontend.dto.*
 import me.stageguard.obms.osu.api.oauth.AuthType
 import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.script.ScriptContext
+import org.ktorm.dsl.and
 import org.ktorm.dsl.eq
+import org.ktorm.entity.filter
 import org.ktorm.entity.find
+import org.ktorm.entity.last
 import org.ktorm.entity.sequenceOf
 import java.net.URLDecoder
 import java.nio.charset.Charset
+import java.time.LocalDate
 
 const val RULESET_PATH = "ruleset"
 
@@ -71,31 +76,22 @@ fun Application.ruleset() {
                 val querySequence = Database.query { db ->
                     val find = db.sequenceOf(WebVerificationStore).find {
                         it.token eq URLDecoder.decode(parameter.token, Charset.defaultCharset())
-                    }
-                    if(find == null) {
-                        context.respond(json.encodeToString(WebVerificationResponseDTO(1)))
-                        return@query
-                    }
+                    } ?: return@query WebVerificationResponseDTO(1)
 
-                    if(find.qq == -1L) {
-                        context.respond(json.encodeToString(WebVerificationResponseDTO(2, osuId = find.osuId)))
-                        return@query
-                    }
+                    if(find.qq == -1L)
+                        return@query WebVerificationResponseDTO(2, osuId = find.osuId)
 
                     val userInfo = db.sequenceOf(OsuUserInfo).find { it.qq eq find.qq }
-                    if(userInfo == null) {
-                        context.respond(json.encodeToString(WebVerificationResponseDTO(3, osuId = find.osuId, qq = find.qq)))
-                        return@query
-                    }
+                        ?: return@query WebVerificationResponseDTO(3, osuId = find.osuId, qq = find.qq)
 
-                    context.respond(json.encodeToString(WebVerificationResponseDTO(
+                    WebVerificationResponseDTO(
                         result = 0, qq = userInfo.qq,
                         osuId = userInfo.osuId, osuName = userInfo.osuName
-                    )))
+                    )
                 }
 
-                if(querySequence == null) context.respond(
-                    json.encodeToString(WebVerificationResponseDTO(-1,
+                context.respond(json.encodeToString(
+                querySequence ?: WebVerificationResponseDTO(-1,
                         errorMessage = "Internal error: Database is disconnected from server."
                     )
                 ))
@@ -128,29 +124,19 @@ fun Application.ruleset() {
                 } else if (parameter.editType == 2) {
                     val querySequence = Database.query { db ->
                         val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq parameter.rulesetId }
+                            ?: return@query CheckEditAccessResponseDTO(1)
 
-                        if(ruleset == null) {
-                            context.respond(json.encodeToString(CheckEditAccessResponseDTO(1)))
-                            return@query
-                        }
+                        if(ruleset.author != parameter.qq)
+                            return@query CheckEditAccessResponseDTO(2, EditRulesetDTO(name = ruleset.name))
 
-                        if(ruleset.author != parameter.qq) {
-                            context.respond(json.encodeToString(CheckEditAccessResponseDTO(2,
-                                EditRulesetDTO(name = ruleset.name)
-                            )))
-                            return@query
-                        }
-
-                        context.respond(json.encodeToString(
-                            CheckEditAccessResponseDTO(0, EditRulesetDTO(
-                                id = ruleset.id, name = ruleset.name, condition = ruleset.condition,
-                                triggers = ruleset.triggers.split(";").map { it.trim() }
-                            ))
+                        CheckEditAccessResponseDTO(0, EditRulesetDTO(
+                            id = ruleset.id, name = ruleset.name, expression = ruleset.expression,
+                            triggers = ruleset.triggers.split(";").map { it.trim() }
                         ))
                     }
 
-                    if(querySequence == null) context.respond(
-                        json.encodeToString(CheckEditAccessResponseDTO(-1,
+                    context.respond(json.encodeToString(
+                        querySequence ?: CheckEditAccessResponseDTO(-1,
                             errorMessage = "Internal error: Database is disconnected from server."
                         )
                     ))
@@ -173,15 +159,76 @@ fun Application.ruleset() {
             } catch (ex: Exception) {
                 context.respond(json.encodeToString(CheckSyntaxResponseDTO(-1, errorMessage = ex.toString())))
             }
+            finish()
         }
         // 提交修改
         post("/$RULESET_PATH/submit") {
             try {
                 val parameter = json.decodeFromString<SubmitRequestDTO>(context.receiveText())
 
+                val querySequence = Database.query { db ->
+                    val webUser = db.sequenceOf(WebVerificationStore).find {
+                        it.token eq URLDecoder.decode(parameter.token, Charset.defaultCharset())
+                    } ?: return@query SubmitResponseDTO(1)
+
+                    if(webUser.qq <= 0)
+                        return@query SubmitResponseDTO(1)
+
+                    if(parameter.ruleset.run {
+                        name.isEmpty() || triggers.isEmpty() ||
+                        triggers.any { it.contains(";") } ||
+                        ScriptContext.checkSyntax(expression).first
+                    }) return@query SubmitResponseDTO(3)
+
+                    if(parameter.ruleset.id > 0) {
+                        val existRuleset = db.sequenceOf(RulesetCollection).find { it.id eq parameter.ruleset.id }
+                            ?: return@query SubmitResponseDTO(4)
+
+                        if(existRuleset.author != webUser.qq)
+                            return@query SubmitResponseDTO(2)
+
+                        existRuleset.name = parameter.ruleset.name
+                        existRuleset.triggers = parameter.ruleset.triggers.joinToString(";")
+                        existRuleset.expression = parameter.ruleset.expression
+                        existRuleset.lastEdited = LocalDate.now()
+                        existRuleset.enabled = 1
+                        existRuleset.lastError = ""
+                        existRuleset.flushChanges()
+                    } else {
+                        RulesetCollection.insert(Ruleset {
+                            name = parameter.ruleset.name
+                            triggers = parameter.ruleset.triggers.joinToString(";")
+                            author = webUser.qq
+                            expression = parameter.ruleset.expression
+                            priority = 50
+                            addDate = LocalDate.now()
+                            lastEdited = LocalDate.now()
+                            enabled = 1
+                            lastError = ""
+                        })
+                    }
+                    SubmitResponseDTO(0, newId = db.sequenceOf(RulesetCollection).filter {
+                        (it.name eq parameter.ruleset.name) and
+                        (it.triggers eq parameter.ruleset.triggers.joinToString(";")) and
+                        (it.author eq webUser.qq) and
+                        (it.expression eq parameter.ruleset.expression) and
+                        (it.priority eq 50) and
+                        (it.lastEdited eq LocalDate.now()) and
+                        (it.enabled eq 1) and
+                        (it.lastError eq "")
+                    }.last().id)
+                }
+
+                context.respond(json.encodeToString(
+                    querySequence ?: SubmitResponseDTO(-1,
+                        errorMessage = "Internal error: Database is disconnected from server."
+                    )
+                ))
+
             } catch (ex: Exception) {
                 context.respond(json.encodeToString(SubmitResponseDTO(-1, errorMessage = ex.toString())))
             }
+            finish()
         }
     }
 }

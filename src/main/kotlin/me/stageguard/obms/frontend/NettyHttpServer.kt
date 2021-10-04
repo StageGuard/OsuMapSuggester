@@ -1,5 +1,6 @@
 package me.stageguard.obms.frontend
 
+import io.ktor.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import kotlinx.coroutines.*
