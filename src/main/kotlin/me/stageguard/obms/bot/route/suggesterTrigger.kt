@@ -2,6 +2,7 @@ package me.stageguard.obms.bot.route
 
 import kotlinx.atomicfu.AtomicRef
 import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.PluginConfig
@@ -136,6 +137,18 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                                     Ruleset info: id=${currentRuleset.id}, creator qq: ${currentRuleset.author}
                                 """.trimIndent().deserializeMiraiCode())
                             currentRuleset.lastError = "Return type of this condition expression is not ColumnDeclaring<Boolean>."
+                            currentRuleset.enabled = 0
+                            currentRuleset.priority --
+                            currentRuleset.flushChanges()
+                            priorityList[rulesetIndex] = 0 //发生错误，不再匹配这个规则
+                            return@returnPoint
+                        } catch (ex: TimeoutCancellationException) {
+                            atReply(" " + """
+                                    Evaluation timeout waiting for 2000ms.
+                                    Please contact this ruleset creator for more information.
+                                    Ruleset info: id=${currentRuleset.id}, creator qq: ${currentRuleset.author}
+                                """.trimIndent().deserializeMiraiCode())
+                            currentRuleset.lastError = "Evaluation timeout waiting for 2000ms"
                             currentRuleset.enabled = 0
                             currentRuleset.priority --
                             currentRuleset.flushChanges()

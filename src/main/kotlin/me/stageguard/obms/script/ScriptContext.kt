@@ -41,8 +41,6 @@ object ScriptContext : CoroutineScope {
             ctx.languageVersion = Context.VERSION_ES6
             topLevelScope = ImporterTopLevel()
             ScriptRuntime.initSafeStandardObjects(ctx, topLevelScope, true)
-            //init global objects
-            //ScriptableObject.putProperty(topLevelScope, "_propertyName", Context.javaToJS(Any(), topLevelScope))
             OsuMapSuggester.logger.info { "JavaScript context initialized." }
         }
     }
@@ -108,10 +106,12 @@ object ScriptContext : CoroutineScope {
         source: String, properties: Map<String, Any?> = mapOf()
     ) = withContext(coroutineContext) {
         initJob.join()
-        withProperties(properties) {
-            putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
-            compile(source).exec(ctx, topLevelScope)
-            topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as T
+        withTimeout(2000) {
+            withProperties(properties) {
+                putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
+                compile(source).exec(ctx, topLevelScope)
+                topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as T
+            }
         }
     }
 
