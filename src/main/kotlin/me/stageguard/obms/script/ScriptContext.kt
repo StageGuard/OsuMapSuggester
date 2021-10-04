@@ -39,7 +39,8 @@ object ScriptContext : CoroutineScope {
             ctx = Context.enter()
             ctx.optimizationLevel = optLv
             ctx.languageVersion = Context.VERSION_ES6
-            topLevelScope = ImporterTopLevel(ctx)
+            topLevelScope = ImporterTopLevel()
+            ScriptRuntime.initSafeStandardObjects(ctx, topLevelScope, true)
             //init global objects
             //ScriptableObject.putProperty(topLevelScope, "_propertyName", Context.javaToJS(Any(), topLevelScope))
             OsuMapSuggester.logger.info { "JavaScript context initialized." }
