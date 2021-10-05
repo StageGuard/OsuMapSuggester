@@ -97,6 +97,7 @@ fun Application.ruleset() {
                 ))
 
             } catch (ex: Exception) {
+                ex.printStackTrace()
                 context.respond(json.encodeToString(WebVerificationResponseDTO(-1, errorMessage = ex.toString())))
             }
             finish()
@@ -108,6 +109,7 @@ fun Application.ruleset() {
                 val link = OAuthManager.createOAuthLink(AuthType.EDIT_RULESET, listOf(parameter.callbackPath))
                 context.respond(json.encodeToString(CreateVerificationLinkResponseDTO(0, link = link)))
             } catch (ex: Exception) {
+                ex.printStackTrace()
                 context.respond(
                     json.encodeToString(CreateVerificationLinkResponseDTO(-1, errorMessage = ex.toString()))
                 )
@@ -144,6 +146,7 @@ fun Application.ruleset() {
                     context.respond(json.encodeToString(CheckEditAccessResponseDTO(1)))
                 }
             } catch (ex: Exception) {
+                ex.printStackTrace()
                 context.respond(json.encodeToString(CheckEditAccessResponseDTO(-1, errorMessage = ex.toString())))
             }
             finish()
@@ -157,6 +160,7 @@ fun Application.ruleset() {
                     CheckSyntaxResponseDTO(0, result.first, result.second)
                 ))
             } catch (ex: Exception) {
+                ex.printStackTrace()
                 context.respond(json.encodeToString(CheckSyntaxResponseDTO(-1, errorMessage = ex.toString())))
             }
             finish()
@@ -174,49 +178,72 @@ fun Application.ruleset() {
                     if(webUser.qq <= 0)
                         return@query SubmitResponseDTO(1)
 
-                    if(parameter.ruleset.run {
-                        name.isEmpty() || triggers.isEmpty() ||
-                        triggers.any { it.contains(";") } ||
-                        ScriptContext.checkSyntax(expression).first
-                    }) return@query SubmitResponseDTO(3)
+                    when(parameter.type) {
+                        0 -> {
+                            if(parameter.ruleset.run {
+                                name.isEmpty() || triggers.isEmpty() ||
+                                    triggers.any { it.contains(";") } ||
+                                    ScriptContext.checkSyntax(expression).first
+                            }) return@query SubmitResponseDTO(3)
 
-                    if(parameter.ruleset.id > 0) {
-                        val existRuleset = db.sequenceOf(RulesetCollection).find { it.id eq parameter.ruleset.id }
-                            ?: return@query SubmitResponseDTO(4)
+                            var newId = 0
+                            if(parameter.ruleset.id > 0) {
+                                val existRuleset = db.sequenceOf(RulesetCollection).find {
+                                    it.id eq parameter.ruleset.id
+                                } ?: return@query SubmitResponseDTO(4)
 
-                        if(existRuleset.author != webUser.qq)
-                            return@query SubmitResponseDTO(2)
+                                if(existRuleset.author != webUser.qq)
+                                    return@query SubmitResponseDTO(2)
 
-                        existRuleset.name = parameter.ruleset.name
-                        existRuleset.triggers = parameter.ruleset.triggers.joinToString(";")
-                        existRuleset.expression = parameter.ruleset.expression
-                        existRuleset.lastEdited = LocalDate.now()
-                        existRuleset.enabled = 1
-                        existRuleset.lastError = ""
-                        existRuleset.flushChanges()
-                    } else {
-                        RulesetCollection.insert(Ruleset {
-                            name = parameter.ruleset.name
-                            triggers = parameter.ruleset.triggers.joinToString(";")
-                            author = webUser.qq
-                            expression = parameter.ruleset.expression
-                            priority = 50
-                            addDate = LocalDate.now()
-                            lastEdited = LocalDate.now()
-                            enabled = 1
-                            lastError = ""
-                        })
+                                existRuleset.name = parameter.ruleset.name
+                                existRuleset.triggers = parameter.ruleset.triggers.joinToString(";")
+                                existRuleset.expression = parameter.ruleset.expression
+                                existRuleset.lastEdited = LocalDate.now()
+                                existRuleset.enabled = 1
+                                existRuleset.lastError = ""
+                                existRuleset.flushChanges()
+                            } else {
+                                RulesetCollection.insert(Ruleset {
+                                    name = parameter.ruleset.name
+                                    triggers = parameter.ruleset.triggers.joinToString(";")
+                                    author = webUser.qq
+                                    expression = parameter.ruleset.expression
+                                    priority = 50
+                                    addDate = LocalDate.now()
+                                    lastEdited = LocalDate.now()
+                                    enabled = 1
+                                    lastError = ""
+                                })
+
+                                newId = db.sequenceOf(RulesetCollection).filter {
+                                    (it.name eq parameter.ruleset.name) and
+                                            (it.triggers eq parameter.ruleset.triggers.joinToString(";")) and
+                                            (it.author eq webUser.qq) and
+                                            (it.expression eq parameter.ruleset.expression) and
+                                            (it.priority eq 50) and
+                                            (it.lastEdited eq LocalDate.now()) and
+                                            (it.enabled eq 1) and
+                                            (it.lastError eq "")
+                                }.last().id
+                            }
+                            SubmitResponseDTO(0, newId = newId)
+                        }
+                        1 -> {
+                            if(parameter.ruleset.id > 0) {
+                                val existRuleset = db.sequenceOf(RulesetCollection).find {
+                                    it.id eq parameter.ruleset.id
+                                } ?: return@query SubmitResponseDTO(4)
+
+                                if(existRuleset.author != webUser.qq)
+                                    return@query SubmitResponseDTO(2)
+
+                                existRuleset.delete()
+                                SubmitResponseDTO(5)
+                            } else {
+                                SubmitResponseDTO(4)
+                            }
+                        } else -> SubmitResponseDTO(6)
                     }
-                    SubmitResponseDTO(0, newId = db.sequenceOf(RulesetCollection).filter {
-                        (it.name eq parameter.ruleset.name) and
-                        (it.triggers eq parameter.ruleset.triggers.joinToString(";")) and
-                        (it.author eq webUser.qq) and
-                        (it.expression eq parameter.ruleset.expression) and
-                        (it.priority eq 50) and
-                        (it.lastEdited eq LocalDate.now()) and
-                        (it.enabled eq 1) and
-                        (it.lastError eq "")
-                    }.last().id)
                 }
 
                 context.respond(json.encodeToString(
@@ -226,6 +253,7 @@ fun Application.ruleset() {
                 ))
 
             } catch (ex: Exception) {
+                ex.printStackTrace()
                 context.respond(json.encodeToString(SubmitResponseDTO(-1, errorMessage = ex.toString())))
             }
             finish()

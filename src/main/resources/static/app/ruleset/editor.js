@@ -7,15 +7,37 @@ let lastSubmitted = {
 
 mainApp.component("ruleset-editor", {
     template: `
-        <div class="row" v-show="show">
+        <!-- modal -->
+        <div
+            class="modal fade"
+            id="deleteConfirm"
+            data-mdb-backdrop="static"
+            data-mdb-keyboard="false"
+            tabindex="-1"
+            aria-labelledby="deleteConfirmLabel"
+            aria-hidden="true"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteConfirmLabel">删除谱面类型规则</h5>
+                    </div>
+                    <div class="modal-body">确认要删除 {{ ruleset.name }} 谱面类型规则吗？<br/><b>该操作不可撤销！</b></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" data-mdb-dismiss="modal" @click="deleteRuleset">确认</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row gx-sm-5 gy-sm-3" v-show="show">
             <h2 class="mainTitle"><b>{{ mainTitle }}</b></h2>
             <h4 class="mainTitle" v-html="subTitle"></h4>
             <!-- form area -->
-            <div class="col-sm-5 mainColumn" v-show="showEditor">
+            <div class="col-sm-5" v-show="showEditor">
                 <form class="card bg-light" @submit.prevent="submitRuleset">
                     <div class="card-header"><b>谱面规则信息</b></div>
                     <div class="card-body">
-                    
                         <div class="form formItem">
                             <h6 class="form-label" style="line-height: 150%">
                                 <b>规则名称</b><br><small>为你的规则设置名称，用于显示在推图结果中。</small>
@@ -52,17 +74,27 @@ mainApp.component("ruleset-editor", {
                             </div>
                             <div class="card-footer">请检查表达式，有 <code>ERROR</code> 将无法保存。</div>
                         </div>
-                        
+                    </div>
+
+                    <div class="card-footer">
                         <button 
-                            type="submit" 
+                            type="submit"
                             class="btn btn-primary" 
-                            :disabled="!submitClickable" 
-                            style="float: right"
+                            style="float: right; margin: 3px"
+                            :disabled="!submitClickable"
                         >保存</button>
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            style="float: right; margin: 3px"
+                            v-show="deleteShow"
+                            data-mdb-toggle="modal"
+                            data-mdb-target="#deleteConfirm"
+                        >删除</button>
                     </div>
                 </form>
             </div>
-            <div class="col-sm-7 mainColumn" v-show="showEditor">
+            <div class="col-sm-7" v-show="showEditor">
                 这里将展示匹配结果，但是还没做好。
             </div>
         </div>`,
@@ -109,8 +141,12 @@ mainApp.component("ruleset-editor", {
     },
 
     created() {
-        if(window.location.search?.includes("new_redirect")) {
-            this.$emit("success-broadcast", "铺面规则保存成功。");
+        if(getCookie("new_redirect") === "true") {
+            this.$emit("success-broadcast", "保存成功。");
+            document.cookie = "new_redirect=false";
+        } else if(getCookie("delete_direct") === "true") {
+            this.$emit("success-broadcast", "删除成功。");
+            document.cookie = "delete_direct=false";
         }
     },
 
@@ -123,6 +159,9 @@ mainApp.component("ruleset-editor", {
                 return false;
             }
             return !this.expressionSyntax.hasSyntaxError;
+        },
+        deleteShow() {
+            return !document.location.pathname.includes("new");
         },
         modifiedRulesetName() { return lastSubmitted.name !== this.ruleset.name; },
         modifiedRulesetTriggers() { return lastSubmitted.triggers !== this.ruleset.triggers; },
@@ -152,6 +191,7 @@ mainApp.component("ruleset-editor", {
                 method: 'POST',
                 body: JSON.stringify({
                     "token": token,
+                    "type": 0,
                     "ruleset": {
                         "id": editType === "new" ? 0 : Number(editType),
                         "name": appRoot.ruleset.name,
@@ -160,40 +200,67 @@ mainApp.component("ruleset-editor", {
                     }
                 }),
             })).json().then(submitResult => {
-                switch (Number(submitResult.result)) {
-                    case 0: {
-                        if(submitResult.newId !== 0) {
-                            window.location.href = "/ruleset/edit/" + submitResult.newId + "?new_redirect"
-                        } else {
-                            appRoot.$emit("success-broadcast", "铺面规则保存成功。");
-                            lastSubmitted.name = appRoot.ruleset.name;
-                            lastSubmitted.triggers = appRoot.ruleset.triggers;
-                            lastSubmitted.expression = appRoot.ruleset.expression;
-                        }
-                        break;
+                appRoot.processSubmitResult(submitResult, () => {
+                    if(submitResult.newId !== 0 && editType === "new") {
+                        document.cookie = "new_redirect=true";
+                        window.location.href = "/ruleset/edit/" + submitResult.newId
+                    } else {
+                        appRoot.$emit("success-broadcast", "保存成功。");
+                        lastSubmitted.name = appRoot.ruleset.name;
+                        lastSubmitted.triggers = appRoot.ruleset.triggers;
+                        lastSubmitted.expression = appRoot.ruleset.expression;
                     }
-                    case 1: {
-                        appRoot.$emit("error-broadcast", "认证失效，请刷新界面重新认证（编辑内容将丢失）。", 4000);
-                        break;
-                    }
-                    case 2: {
-                        appRoot.$emit("error-broadcast", "权限拒绝，你没有权限编辑这个谱面规则。", 4000);
-                        break;
-                    }
-                    case 3: {
-                        appRoot.$emit("error-broadcast", "参数不合法，请检查各项填写是否有误。", 4000);
-                        break;
-                    }
-                    case 4: {
-                        appRoot.$emit("error-broadcast", "无法找到这个谱面规则，可能已经被删除。", 4000);
-                        break;
-                    }
-                    case -1: {
-                        appRoot.$emit("error-broadcast", "内部错误：" + submitResult.errorMessage + "<br/>请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。", 10000);
-                        break;
-                    }
-                }
+                });
             });
+        },
+
+        async deleteRuleset() {
+            const appRoot = this;
+            let token = getCookie("token");
+            if(!token) {
+                appRoot.$emit("error-broadcast", "认证失效，请刷新界面重新认证（编辑内容将丢失）。", 4000);
+                return;
+            }
+
+            let editType = (path => {
+                let sp = path.split("/");
+                return sp[sp.length - 1];
+            })(document.location.pathname);
+
+            if(editType === "new") {
+                appRoot.$emit("error-broadcast", "无法找到这个谱面类型规则，可能已经被删除。", 4000);
+                return;
+            }
+
+            (await fetch("/ruleset/submit", {
+                method: 'POST',
+                body: JSON.stringify({
+                    "token": token,
+                    "type": 1,
+                    "ruleset": { "id": Number(editType) }
+                }),
+            })).json().then(submitResult => {
+                appRoot.processSubmitResult(submitResult, () => {
+                    document.cookie = "delete_direct=true";
+                    window.location.href = "/ruleset/edit/new";
+                });
+            });
+        },
+
+        processSubmitResult(submitResult, onSuccess) {
+            const appRoot = this;
+            switch (Number(submitResult.result)) {
+                case 0: case 5: onSuccess(); break;
+                case 1: appRoot.$emit("error-broadcast", "认证失效，请刷新界面重新认证（编辑内容将丢失）。", 4000); break;
+                case 2: appRoot.$emit("error-broadcast", "权限拒绝，你没有权限操作这个谱面类型规则。", 4000); break;
+                case 3: appRoot.$emit("error-broadcast", "参数不合法，请检查各项填写是否有误。", 4000); break;
+                case 4: appRoot.$emit("error-broadcast", "无法找到这个谱面类型规则，可能已经被删除。", 4000); break;
+                case 6: appRoot.$emit("warning-broadcast", "未知的操作。", 4000); break;
+                case -1: {
+                    appRoot.$emit("error-broadcast", "内部错误：" + submitResult.errorMessage + "<br/>请前往 <a href='https://github.com/StageGuard/OsuMapSuggester' target='_blank'>GitHub<a/> 反馈这个问题。", 10000);
+                    break;
+                }
+            }
         },
 
         async checkAccess() {
@@ -215,34 +282,34 @@ mainApp.component("ruleset-editor", {
                 switch (Number(checkResponse.result)) {
                     case 0: {
                         if (Number(checkResponse.ruleset.id) === 0) {
-                            appRoot.mainTitle = "添加谱面规则";
+                            appRoot.mainTitle = "添加谱面类型规则";
                             appRoot.subTitle = "请确保熟悉了谱面类型规则后再进行添加。<br/>";
-                            appRoot.subTitle += '访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset">Beatmap Type Ruleset<a/> 获取更多信息。';
+                            appRoot.subTitle += '访问 <a href="https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset" target="_blank">Beatmap Type Ruleset<a/> 获取更多信息。';
                         } else {
                             appRoot.ruleset.name = lastSubmitted.name = checkResponse.ruleset.name;
                             appRoot.ruleset.triggers = lastSubmitted.triggers = checkResponse.ruleset.triggers.join(";");
                             appRoot.ruleset.expression = lastSubmitted.expression = checkResponse.ruleset.expression;
 
-                            appRoot.mainTitle = "编辑谱面规则";
+                            appRoot.mainTitle = "编辑谱面类型规则";
                             appRoot.subTitle = "<b>" + appRoot.ruleset.name + "</b> by QQ: <b>" + appRoot.qq + "</b>";
                         }
                         appRoot.showEditor = true;
                         break;
                     }
                     case 1: {
-                        appRoot.mainTitle = "谱面规则未找到";
-                        appRoot.subTitle = "未找到 ID 为 " + editType + " 的谱面规则，请确保 ID 正确。";
+                        appRoot.mainTitle = "谱面类型规则未找到";
+                        appRoot.subTitle = "未找到 ID 为 " + editType + " 的谱面类型规则，请确保 ID 正确。";
                         break;
                     }
                     case 2: {
-                        appRoot.mainTitle = "无法编辑谱面规则";
-                        appRoot.subTitle = "你不是谱面规则 <b>" + checkResponse.ruleset.name + "</b> 的创建者，无法编辑。";
+                        appRoot.mainTitle = "无法编辑谱面类型规则";
+                        appRoot.subTitle = "你不是谱面类型规则 <b>" + checkResponse.ruleset.name + "</b> 的创建者，无法编辑。";
                         break;
                     }
                     case -1: {
                         appRoot.mainTitle = "内部错误";
-                        appRoot.subTitle = "发生了内部错误：<br/>";
-                        appRoot.subTitle += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。";
+                        appRoot.subTitle = "发生了内部错误<br/>";
+                        appRoot.subTitle += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester' target='_blank'>GitHub<a/> 反馈这个问题。";
 
                         appRoot.$emit("error-broadcast", checkResponse.errorMessage)
                         break;
@@ -268,6 +335,7 @@ mainApp.component("ruleset-editor", {
                     } else {
                         appRoot.expressionSyntax.hasSyntaxError = true;
                         appRoot.expressionSyntax.message.push("ERROR: Internal error: " + checkResponse.errorMessage);
+                        appRoot.$emit("error-broadcast", checkResponse.errorMessage);
                     }
                     appRoot.lastCheckedExpression = appRoot.ruleset.expression;
                 });

@@ -85,6 +85,9 @@ data class CheckSyntaxResponseDTO(
 @Serializable
 data class SubmitRequestDTO(
     val token: String,
+    //  0: modify / create ruleset
+    //  1: delete ruleset
+    val type: Int,
     // ruleset.id 为 -1 时为创建新的 ruleset
     val ruleset: EditRulesetDTO
 )
@@ -96,6 +99,8 @@ data class SubmitResponseDTO(
     //  2: illegal access
     //  3: illegal parameter
     //  4: ruleset not found
+    //  5: delete success
+    //  6: unknown operation
     // -1: internal error
     val result: Int,
     val newId: Int = 0,
