@@ -3,6 +3,7 @@ package me.stageguard.obms.bot.route
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.*
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
@@ -10,6 +11,7 @@ import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.Ruleset
 import me.stageguard.obms.database.model.RulesetCollection
 import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.frontend.route.RULESET_PATH
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.MapSuggester
 import me.stageguard.obms.script.ScriptContext
@@ -145,15 +147,12 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                     查看 https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset 获取更多信息。
                     请选择操作方式：
                       1. 在 QQ 聊天中交互。
-                      2. 在 Web 中编辑。
+                      2. 在 Web 中编辑（推荐）。
                     发送序号以决定。
                 """.trimIndent())
                     select {
                         "1" { processInteractive() }
-                        "2" {
-                            atReply("Not implemented.")
-                            finish("EDIT_IN_WEB")
-                        }
+                        "2" { finish("EDIT_IN_WEB") }
                         default {
                             finish("UNKNOWN_OPERATION")
                         }
@@ -178,7 +177,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                                 it.toString().contains("QUIT_OPERATION") -> atReply("结束操作。")
                                 it.toString().contains("UNKNOWN_OPERATION") -> atReply("未知的操作方式。")
                                 it.toString().contains("EDIT_IN_WEB") -> {
-
+                                    atReply("请访问 ${PluginConfig.osuAuth.authCallbackBaseUrl}/$RULESET_PATH/edit/new 添加。")
                                 }
                             }
                         }
@@ -211,7 +210,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         正在编辑谱面类型规则。
                         请选择操作方式：
                           1. 在 QQ 聊天中交互。
-                          2. 在 Web 中编辑。
+                          2. 在 Web 中编辑（推荐）。
                         发送序号以决定。
                     """.trimIndent())
                         select {
@@ -222,10 +221,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                                     ruleset.expression
                                 )
                             }
-                            "2" {
-                                atReply("Not implemented.")
-                                finish("EDIT_IN_WEB")
-                            }
+                            "2" { finish("EDIT_IN_WEB") }
                             default {
                                 finish("UNKNOWN_OPERATION")
                             }
@@ -246,7 +242,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                                     it.toString().contains("QUIT_OPERATION") -> atReply("结束操作。")
                                     it.toString().contains("UNKNOWN_OPERATION") -> atReply("未知的操作方式。")
                                     it.toString().contains("EDIT_IN_WEB") -> {
-
+                                        atReply("请访问 ${PluginConfig.osuAuth.authCallbackBaseUrl}/$RULESET_PATH/edit/${rulesetId} 编辑。")
                                     }
                                 }
                             }
