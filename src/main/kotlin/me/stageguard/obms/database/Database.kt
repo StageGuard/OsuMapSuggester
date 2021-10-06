@@ -118,6 +118,16 @@ object Database {
                     PRIMARY KEY (`id`)
                 );
             """.trimIndent())
+            statement.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS `beatmap_comment` (
+                    `id` INT NOT NULL AUTO_INCREMENT,
+                    `bid` INT NOT NULL,
+                    `rulesetId` INT NOT NULL,
+                    `commenterQq` bigint NOT NULL,
+                    `content` VARCHAR(256) NOT NULL,
+                    PRIMARY KEY (`id`)
+                );
+            """.trimIndent())
         }
     }
 
