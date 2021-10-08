@@ -1,5 +1,6 @@
 package me.stageguard.obms.bot.route
 
+import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock
@@ -10,6 +11,7 @@ import me.stageguard.obms.database.model.WebVerificationStore
 import me.stageguard.obms.osu.api.oauth.AuthType
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.nextMessage
+import net.mamoe.mirai.utils.info
 import org.ktorm.dsl.eq
 import org.ktorm.entity.find
 import org.ktorm.entity.sequenceOf
@@ -50,6 +52,7 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
                     next -> next.sender.id == this@routeLock.sender.id
                 }.contentToString().run {
                     if(this == "确认" || this == "是") {
+                        OsuMapSuggester.logger.info { "User unbind: qq ${sender.id} of osu ${user.osuName}(${user.osuId})" }
                         user.delete()
                         atReply("解除绑定成功。")
                     }

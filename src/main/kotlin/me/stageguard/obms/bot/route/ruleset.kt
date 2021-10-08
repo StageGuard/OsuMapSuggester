@@ -3,6 +3,7 @@ package me.stageguard.obms.bot.route
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.*
 import me.stageguard.obms.bot.MessageRoute.atReply
@@ -19,6 +20,7 @@ import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
+import net.mamoe.mirai.utils.info
 import org.jetbrains.skija.EncodedImageFormat
 import org.ktorm.dsl.eq
 import org.ktorm.entity.*
@@ -169,6 +171,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         enabled = 1
                         lastError = ""
                     })
+                    OsuMapSuggester.logger.info { "New ruleset added from from interactive chat: ${it["name"]} by qq ${sender.id}." }
                     atReply("添加完成。")
                 }.exception {
                     when(it) {
@@ -235,6 +238,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         ruleset.lastError = ""
                         ruleset.flushChanges()
                         atReply("修改完成。")
+                        OsuMapSuggester.logger.info { "Ruleset changed from interactive chat: ${it["name"]}(id=${rulesetId}) by qq ${sender.id}." }
                     }.exception {
                         when(it) {
                             is QuitConversationExceptions.AdvancedQuitException -> {
@@ -309,6 +313,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         }
                     }.finish {
                         if(it["delete"].cast()) {
+                            OsuMapSuggester.logger.info { "Ruleset deleted from interactive chat: ${ruleset.name}(id=${ruleset.id}) by qq ${ruleset.author}." }
                             ruleset.delete()
                             atReply("删除成功。")
                         }

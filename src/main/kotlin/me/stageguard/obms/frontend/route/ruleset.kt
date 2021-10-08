@@ -13,6 +13,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.database.model.Ruleset
@@ -22,6 +23,7 @@ import me.stageguard.obms.frontend.dto.*
 import me.stageguard.obms.osu.api.oauth.AuthType
 import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.script.ScriptContext
+import net.mamoe.mirai.utils.info
 import org.ktorm.dsl.and
 import org.ktorm.dsl.eq
 import org.ktorm.entity.filter
@@ -202,6 +204,7 @@ fun Application.ruleset() {
                                 existRuleset.enabled = 1
                                 existRuleset.lastError = ""
                                 existRuleset.flushChanges()
+                                OsuMapSuggester.logger.info { "Ruleset changed from web: ${parameter.ruleset.name}(id=${newId}) by qq ${webUser.qq}." }
                             } else {
                                 RulesetCollection.insert(Ruleset {
                                     name = parameter.ruleset.name
@@ -226,6 +229,7 @@ fun Application.ruleset() {
                                             (it.lastError eq "")
                                 }.last().id
                             }
+                            OsuMapSuggester.logger.info { "New ruleset added from web: ${parameter.ruleset.name}(id=${newId}) by qq ${webUser.qq}." }
                             SubmitResponseDTO(0, newId = newId)
                         }
                         1 -> {
@@ -238,6 +242,7 @@ fun Application.ruleset() {
                                     return@query SubmitResponseDTO(2)
 
                                 existRuleset.delete()
+                                OsuMapSuggester.logger.info { "Ruleset deleted from web: ${parameter.ruleset.name}(id=${parameter.ruleset.id}) by qq ${webUser.qq}." }
                                 SubmitResponseDTO(5)
                             } else {
                                 SubmitResponseDTO(4)

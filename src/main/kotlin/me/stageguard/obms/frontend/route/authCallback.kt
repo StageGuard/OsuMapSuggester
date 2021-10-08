@@ -4,7 +4,6 @@ import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.response.*
 import io.ktor.routing.*
-import io.ktor.util.date.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -23,6 +22,7 @@ import me.stageguard.obms.osu.api.oauth.OAuthResult
 import net.mamoe.mirai.contact.getMember
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.buildMessageChain
+import net.mamoe.mirai.utils.info
 import org.ktorm.dsl.eq
 import org.ktorm.entity.filter
 import org.ktorm.entity.find
@@ -73,6 +73,7 @@ fun Application.authCallback() {
                                         add(" Successfully bind your qq to osu! account ${verified.userResponse.username}(${verified.userResponse.id}).")
                                     })
                                 }
+                                OsuMapSuggester.logger.info { "New user bind: qq $userQq to osu ${verified.userResponse.username}(${verified.userResponse.id})." }
                             } else {
                                 val existUser = find.single()
 
@@ -103,6 +104,7 @@ fun Application.authCallback() {
                                         })
                                     }
                                 }
+                                OsuMapSuggester.logger.info { "User change binding: qq $userQq to osu ${verified.userResponse.username}(${verified.userResponse.id})." }
                             }
                         }
                     }
@@ -132,6 +134,7 @@ fun Application.authCallback() {
                             context.respondRedirect(
                                 PluginConfig.osuAuth.authCallbackBaseUrl + verified.additionalData.single()
                             )
+                            OsuMapSuggester.logger.info { "Web user authorized: osu ${verified.userResponse.username}(${verified.userResponse.id})." }
                             return@query
                         }
                         if(querySequence == null) context.respond(HttpStatusCode.InternalServerError,
