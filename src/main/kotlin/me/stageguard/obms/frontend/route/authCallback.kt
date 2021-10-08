@@ -4,6 +4,7 @@ import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import io.ktor.util.date.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -127,7 +128,7 @@ fun Application.authCallback() {
                                     token = webToken
                                 })
                             }
-                            context.response.cookies.append("token", webToken)
+                            context.response.cookies.append("token", webToken, maxAge = 1000L * 60 * 60 * 24 * 365 * 10)
                             context.respondRedirect(
                                 PluginConfig.osuAuth.authCallbackBaseUrl + verified.additionalData.single()
                             )
