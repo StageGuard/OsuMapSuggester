@@ -14,6 +14,7 @@ data class WebVerificationResponseDTO(
     val qq: Long = -1,
     val osuId: Int = -1,
     val osuName: String = "",
+    val osuApiToken: String = "",
     val errorMessage: String = ""
 )
 
@@ -104,5 +105,46 @@ data class SubmitResponseDTO(
     // -1: internal error
     val result: Int,
     val newId: Int = 0,
+    val errorMessage: String = ""
+)
+
+@Serializable
+data class SubmitBeatmapCommentRequestDTO(
+    val token: String,
+    val rulesetId: String,
+    val beatmap: List<BeatmapIDWithCommentDTO>
+)
+
+@Serializable
+data class SubmitBeatmapCommentResponseDTO(
+    //  0: success
+    //  1: authorization failed
+    //  2: illegal access
+    //  3: empty list
+    //  4: ruleset not found
+    // -1: internal error
+    val result: Int,
+    val errorMessage: String = "",
+    val failedSubmit: List<Int> = listOf()
+)
+
+@Serializable
+data class BeatmapIDWithCommentDTO(
+    val bid: Int,
+    val comment: String = ""
+)
+
+@Serializable
+data class GetBeatmapCommentRequestDTO(
+    val rulesetId: Int,
+    val beatmap: List<Int>
+)
+
+@Serializable
+data class GetBeatmapCommentResponseDTO(
+    //  0: success
+    // -1: internal error
+    val result: Int,
+    val comments: List<BeatmapIDWithCommentDTO> = listOf(),
     val errorMessage: String = ""
 )

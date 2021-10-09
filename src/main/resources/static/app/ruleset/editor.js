@@ -66,7 +66,7 @@ mainApp.component("ruleset-editor", {
                                     'alert-danger': err.startsWith('ERROR:'), 
                                     'alert-warning': err.startsWith('WARNING:') 
                                 }" style="margin: 0; border-radius: 0">
-                                    <i class="fa" :class="{
+                                    <i class="me-3 fa" :class="{
                                         'fa-times-circle': err.startsWith('ERROR:'), 
                                         'fa-exclamation-triangle': err.startsWith('WARNING:') 
                                    }" style="border-radius: 0"></i> {{ err }}
@@ -94,8 +94,35 @@ mainApp.component("ruleset-editor", {
                     </div>
                 </form>
             </div>
-            <div class="col-sm-7" v-show="showEditor">
-                这里将展示匹配结果，但是还没做好。
+            <div class="col-sm-7">
+                <div class="card bg-light">
+                    <div class="card-header"><b><code>contains</code> 匹配结果</b></div>
+                    <div v-if="editType === 'new'" class="alert alert-primary" style="margin: 0; border-radius: 0">
+                        <i class="fa fa-info-circle me-2" style="border-radius: 0"></i>新建谱面规则时无法编辑谱面备注。<br/>将在保存谱面规则后显示匹配谱面。
+                    </div>
+                    <div v-else-if="containsExprMatched.comments.length == 0" class="alert alert-primary" style="margin: 0; border-radius: 0">
+                        <i class="fa fa-info-circle me-2" style="border-radius: 0"></i>表达式中没有 <code>contains</code> 表达式。
+                    </div>
+                    <div v-else v-for="comment in containsExprMatched.comments">
+                        <div class="alert alert-light" style="margin: 0; border-radius: 0">
+                            <div style="display: inline;">
+                                <label for="basic-url" class="form-label">BID: </label><span class="text-info me-3">{{ comment.bid }}</span>
+                                <div v-if="containsExprMatched.cachedBeatmapInfo[String(comment.bid)] != null" v-html="getBeatmapInfo(comment.bid)"></div>
+                            </div>
+                            <input type="text" class="form-control form-control-lg" v-model="comment.comment" :disabled="modifiedRulesetExpression" @input="containsExprMatched.edited = true;"/>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            style="float: right; margin: 3px"
+                            data-mdb-toggle="modal"
+                            data-mdb-target="#deleteConfirm"
+                            :disabled="!containsExprMatched.edited"
+                        >保存</button>
+                    </div>
+                </div>
             </div>
         </div>`,
 
@@ -107,6 +134,10 @@ mainApp.component("ruleset-editor", {
         qq: {
             type: Number,
             required: true
+        },
+        osuApiToken: {
+            type: String,
+            required: false
         }
     },
 
@@ -130,7 +161,18 @@ mainApp.component("ruleset-editor", {
             expressionSyntax: {
                 hasSyntaxError: false,
                 message: [],
-            }
+            },
+
+            containsExprMatched: {
+                edited: false,
+                comments: [],
+                cachedBeatmapInfo: [],
+            },
+
+            editType: (path => {
+                let sp = path.split("/");
+                return sp[sp.length - 1];
+            })(document.location.pathname)
         }
     },
 
@@ -182,18 +224,13 @@ mainApp.component("ruleset-editor", {
                 return;
             }
 
-            let editType = (path => {
-                let sp = path.split("/");
-                return sp[sp.length - 1];
-            })(document.location.pathname);
-
             (await fetch("/ruleset/submit", {
                 method: 'POST',
                 body: JSON.stringify({
                     "token": token,
                     "type": 0,
                     "ruleset": {
-                        "id": editType === "new" ? 0 : Number(editType),
+                        "id": appRoot.editType === "new" ? 0 : Number(appRoot.editType),
                         "name": appRoot.ruleset.name,
                         "triggers": appRoot.ruleset.triggers.split(";"),
                         "expression": appRoot.ruleset.expression
@@ -201,7 +238,7 @@ mainApp.component("ruleset-editor", {
                 }),
             })).json().then(submitResult => {
                 appRoot.processSubmitResult(submitResult, () => {
-                    if(submitResult.newId !== 0 && editType === "new") {
+                    if(submitResult.newId !== 0 && appRoot.editType === "new") {
                         document.cookie = "new_redirect=true";
                         window.location.href = "/ruleset/edit/" + submitResult.newId
                     } else {
@@ -222,12 +259,7 @@ mainApp.component("ruleset-editor", {
                 return;
             }
 
-            let editType = (path => {
-                let sp = path.split("/");
-                return sp[sp.length - 1];
-            })(document.location.pathname);
-
-            if(editType === "new") {
+            if(appRoot.editType === "new") {
                 appRoot.$emit("error-broadcast", "无法找到这个谱面类型规则，可能已经被删除。", 4000);
                 return;
             }
@@ -237,7 +269,7 @@ mainApp.component("ruleset-editor", {
                 body: JSON.stringify({
                     "token": token,
                     "type": 1,
-                    "ruleset": { "id": Number(editType) }
+                    "ruleset": { "id": Number(appRoot.editType) }
                 }),
             })).json().then(submitResult => {
                 appRoot.processSubmitResult(submitResult, () => {
@@ -257,7 +289,7 @@ mainApp.component("ruleset-editor", {
                 case 4: appRoot.$emit("error-broadcast", "无法找到这个谱面类型规则，可能已经被删除。", 4000); break;
                 case 6: appRoot.$emit("warning-broadcast", "未知的操作。", 4000); break;
                 case -1: {
-                    appRoot.$emit("error-broadcast", "内部错误：" + submitResult.errorMessage + "<br/>请前往 <a href='https://github.com/StageGuard/OsuMapSuggester' target='_blank'>GitHub<a/> 反馈这个问题。", 10000);
+                    appRoot.$emit("error-broadcast", "提交修改时发生了内部错误：" + submitResult.errorMessage + "<br/>请前往 <a href='https://github.com/StageGuard/OsuMapSuggester' target='_blank'>GitHub<a/> 反馈这个问题。", 10000);
                     break;
                 }
             }
@@ -266,17 +298,12 @@ mainApp.component("ruleset-editor", {
         async checkAccess() {
             const appRoot = this;
 
-            let editType = (path => {
-                let sp = path.split("/");
-                return sp[sp.length - 1];
-            })(document.location.pathname);
-
             (await fetch("/ruleset/checkAccess", {
                 method: 'POST',
                 body: JSON.stringify({
                     "qq": appRoot.qq,
-                    "editType": editType === "new" ? 1 : 2,
-                    "rulesetId": editType === "new" ? 0 : Number(editType)
+                    "editType": appRoot.editType === "new" ? 1 : 2,
+                    "rulesetId": appRoot.editType === "new" ? 0 : Number(appRoot.editType)
                 }),
             })).json().then(checkResponse => {
                 switch (Number(checkResponse.result)) {
@@ -294,11 +321,12 @@ mainApp.component("ruleset-editor", {
                             appRoot.subTitle = "<b>" + appRoot.ruleset.name + "</b> by QQ: <b>" + appRoot.qq + "</b>";
                         }
                         appRoot.showEditor = true;
+                        appRoot.getBeatmapComment()
                         break;
                     }
                     case 1: {
                         appRoot.mainTitle = "谱面类型规则未找到";
-                        appRoot.subTitle = "未找到 ID 为 " + editType + " 的谱面类型规则，请确保 ID 正确。";
+                        appRoot.subTitle = "未找到 ID 为 " + appRoot.editType + " 的谱面类型规则，请确保 ID 正确。";
                         break;
                     }
                     case 2: {
@@ -311,7 +339,7 @@ mainApp.component("ruleset-editor", {
                         appRoot.subTitle = "发生了内部错误<br/>";
                         appRoot.subTitle += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester' target='_blank'>GitHub<a/> 反馈这个问题。";
 
-                        appRoot.$emit("error-broadcast", checkResponse.errorMessage)
+                        appRoot.$emit("error-broadcast", "检查权限时发生了内部错误：" + checkResponse.errorMessage + "<br/>请前往 <a href='https://github.com/StageGuard/OsuMapSuggester' target='_blank'>GitHub<a/> 反馈这个问题。", 10000);
                         break;
                     }
                 }
@@ -332,14 +360,128 @@ mainApp.component("ruleset-editor", {
                     if (Number(checkResponse.result) === 0) {
                         appRoot.expressionSyntax.hasSyntaxError = checkResponse.message.length !== 0;
                         appRoot.expressionSyntax.message = checkResponse.message;
+                        if(checkResponse.message.length) appRoot.getBeatmapComment();
                     } else {
                         appRoot.expressionSyntax.hasSyntaxError = true;
                         appRoot.expressionSyntax.message.push("ERROR: Internal error: " + checkResponse.errorMessage);
-                        appRoot.$emit("error-broadcast", checkResponse.errorMessage);
+                        appRoot.$emit("error-broadcast", "语法检查发生了内部错误：" + checkResponse.errorMessage + "<br/>请前往 <a href='https://github.com/StageGuard/OsuMapSuggester' target='_blank'>GitHub<a/> 反馈这个问题。", 10000);
                     }
                     appRoot.lastCheckedExpression = appRoot.ruleset.expression;
                 });
             }
+        },
+
+        async getBeatmapComment() {
+            if(this.editType === "new") return;
+
+            const appRoot = this;
+
+            let beatmap = (function () {
+                let r = []
+
+                function contains() { r = arguments; }
+                let bid = new ColumnStub();
+                let star = new ColumnStub();
+                let bpm = new ColumnStub();
+                let length = new ColumnStub();
+                let ar = new ColumnStub();
+                let od = new ColumnStub();
+                let hp = new ColumnStub();
+                let cs = new ColumnStub();
+                let jump = new ColumnStub();
+                let flow = new ColumnStub();
+                let speed = new ColumnStub();
+                let stamina = new ColumnStub();
+                let precision = new ColumnStub();
+                let accuracy = new ColumnStub();
+                let recommendStar = Number();
+                let matchIndex = Number();
+                let matchGroup = Array();
+
+                try { eval(appRoot.ruleset.expression); } catch (_) { }
+
+                return r;
+            }());
+
+            (await fetch("/ruleset/getBeatmapComment", {
+                method: 'POST',
+                body: JSON.stringify({
+                    "rulesetId": appRoot.editType === "new" ? 0 : Number(appRoot.editType),
+                    "beatmap": beatmap["0"]
+                }),
+            })).json().then(response => {
+                switch (Number(response.result)) {
+                    case 0: {
+                        appRoot.containsExprMatched.comments = response.comments;
+                        appRoot.containsExprMatched.edited = false;
+                        for(let c of response.comments) {
+                            appRoot.cacheBeatmapInfo(c.bid)
+                        }
+                        break;
+                    }
+                    case -1: {
+                        appRoot.$emit("error-broadcast", "获取谱面备注时发生了内部错误：" + response.errorMessage + "<br/>请前往 <a href='https://github.com/StageGuard/OsuMapSuggester' target='_blank'>GitHub<a/> 反馈这个问题。", 10000);
+                        break;
+                    }
+                }
+            });
+        },
+
+        async cacheBeatmapInfo(bid) {
+            const appRoot = this;
+
+            if(appRoot.containsExprMatched.cachedBeatmapInfo[String(bid)] == null) {
+                (await fetch("https://osu.ppy.sh/api/v2/beatmaps/" + bid + "/", {
+                    method: 'GET',
+                    mode: 'no-cors',
+                    headers: [["Authentication", 'Bearer ' + appRoot.osuApiToken]]
+                })).json().then(response => {
+                    if(response.version !== null && response.beatmapset !== null) {
+                        appRoot.containsExprMatched.cachedBeatmapInfo[String(response.id)] = {
+                            source: response.beatmapset.source,
+                            title: response.beatmapset.title,
+                            artist: response.beatmapset.artist,
+                            difficulty: response.difficulty_rating,
+                            version: response.version
+                        }
+                    }
+                }).catch(ex => appRoot.$emit("warning-broadcast", "获取谱面 " + bid + " 信息时出错：" + ex));
+            }
+        },
+
+        getBeatmapInfo(bid) {
+            let info = appRoot.containsExprMatched.cachedBeatmapInfo[String(bid)];
+
+            if (info == null) return ``;
+
+            if (info.source) {
+                return `<span class="text-info me-3"><b>` + info.source + `(` + info.artist + `) - ` + info.title + ` [` + info.version + `]</b></span>
+                        <span class="me-1">` + info.version + `</span><i class="fa fa-star"></i>`;
+            } else {
+                return `<span class="text-info me-3"><b>` + info.artist + ` - ` + info.title + ` [` + info.version + `]</b></span>
+                        <span class="me-1">` + info.version + `</span><i class="fa fa-star"></i>`;
+            }
         }
+
     }
-})
+});
+
+const ColumnStub = (function() {
+    let clazz = function () {}
+    clazz.prototype = {
+        eq: (_) => new clazz(),
+        notEq: (_) => new clazz(),
+        and: (_) => new clazz(),
+        or: (_) => new clazz(),
+        xor: (_) => new clazz(),
+        plus: (_) => new clazz(),
+        minus: (_) => new clazz(),
+        times: (_) => new clazz(),
+        div: (_) => new clazz(),
+        rem: (_) => new clazz(),
+        less: (_) => new clazz(),
+        greater: (_) => new clazz(),
+        greaterEq: (_) => new clazz()
+    }
+    return clazz;
+}());

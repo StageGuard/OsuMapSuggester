@@ -15,21 +15,17 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.database.Database
-import me.stageguard.obms.database.model.OsuUserInfo
-import me.stageguard.obms.database.model.Ruleset
-import me.stageguard.obms.database.model.RulesetCollection
-import me.stageguard.obms.database.model.WebVerificationStore
+import me.stageguard.obms.database.model.*
 import me.stageguard.obms.frontend.dto.*
 import me.stageguard.obms.osu.api.oauth.AuthType
 import me.stageguard.obms.osu.api.oauth.OAuthManager
+import me.stageguard.obms.osu.api.oauth.OAuthManager.updateToken
 import me.stageguard.obms.script.ScriptContext
 import net.mamoe.mirai.utils.info
 import org.ktorm.dsl.and
 import org.ktorm.dsl.eq
-import org.ktorm.entity.filter
-import org.ktorm.entity.find
-import org.ktorm.entity.last
-import org.ktorm.entity.sequenceOf
+import org.ktorm.dsl.or
+import org.ktorm.entity.*
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.time.LocalDate
@@ -88,7 +84,8 @@ fun Application.ruleset() {
 
                     WebVerificationResponseDTO(
                         result = 0, qq = userInfo.qq,
-                        osuId = userInfo.osuId, osuName = userInfo.osuName
+                        osuId = userInfo.osuId, osuName = userInfo.osuName,
+                        osuApiToken = userInfo.updateToken().token
                     )
                 }
 
@@ -262,6 +259,40 @@ fun Application.ruleset() {
                 context.respond(json.encodeToString(SubmitResponseDTO(-1, errorMessage = ex.toString())))
             }
             finish()
+        }
+        // 获取谱面评价
+        post("/$RULESET_PATH/getBeatmapComment") {
+            try {
+                val parameter = json.decodeFromString<GetBeatmapCommentRequestDTO>(context.receiveText())
+
+                val querySequence = Database.query { db ->
+                    val comments = mutableMapOf(*parameter.beatmap.map { it to "" }.toTypedArray())
+
+                    db.sequenceOf(BeatmapCommentTable).filter { col ->
+                        if(parameter.beatmap.isEmpty()) {
+                            col.bid.eq(-1)
+                        } else if(parameter.beatmap.size == 1) {
+                            col.bid.eq(parameter.beatmap.single())
+                        } else {
+                            parameter.beatmap.drop(1).map { col.bid.eq(it) }
+                                .fold(col.bid.eq(parameter.beatmap.first())) { r, t -> r.or(t) }
+                        } and (col.rulesetId eq parameter.rulesetId)
+                    }.forEach { comments[it.bid] = it.content }
+
+                    GetBeatmapCommentResponseDTO(0, comments = comments.map {
+                        BeatmapIDWithCommentDTO(it.key, it.value)
+                    })
+                }
+
+                context.respond(json.encodeToString(
+                    querySequence ?: GetBeatmapCommentResponseDTO(-1,
+                        errorMessage = "Internal error: Database is disconnected from server."
+                    )
+                ))
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                context.respond(json.encodeToString(GetBeatmapCommentResponseDTO(-1, errorMessage = ex.toString())))
+            }
         }
     }
 }

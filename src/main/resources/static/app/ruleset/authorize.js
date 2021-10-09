@@ -29,7 +29,7 @@ mainApp.component("authorize", {
         }
     },
 
-    emits: ["verified-broadcast", "error-broadcast"],
+    emits: ["verified-broadcast", "error-broadcast", "set-osu-api-token"],
 
     data() {
         return {
@@ -69,6 +69,7 @@ mainApp.component("authorize", {
                         appRoot.verifySummary = "验证成功";
                         appRoot.verifyMessage = "绑定信息 : QQ(<b>" + verifyResponse.qq + "</b>), osu!Id(<b>" + verifyResponse.osuId + "</b>)";
 
+                        appRoot.$emit("set-osu-api-token", verifyResponse.osuApiToken);
                         appRoot.$emit("verified-broadcast", verifyResponse.qq, verifyResponse.osuId, verifyResponse.osuName);
                         break;
                     }
@@ -91,7 +92,7 @@ mainApp.component("authorize", {
                     }
                     case 3: {
                         appRoot.verifySummary = "验证失败：已解绑";
-                        appRoot.verifyMessage = "此 osu! 账号(Id: <b>" + verifyResponse.osuId  + "<b/>)已与 QQ 号(<b>" + verifyResponse.qq  + "</>)解除绑定。<br/>";
+                        appRoot.verifyMessage = "此 osu! 账号(Id: <b>" + verifyResponse.osuId  + "<b/>)已与 QQ 号(<b>" + verifyResponse.qq  + "<b/>)解除绑定。<br/>";
                         appRoot.verifyMessage += "若想继续编辑，请重新绑定你的 QQ。<br/>";
                         appRoot.verifyMessage += "绑定成功后点击下方按钮重新认证。<br/>";
                         showButton = true
@@ -99,7 +100,7 @@ mainApp.component("authorize", {
                     }
                     case -1: {
                         appRoot.verifySummary = "发生了内部错误";
-                        appRoot.verifyMessage += "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。";
+                        appRoot.verifyMessage = "请前往 <a href='https://github.com/StageGuard/OsuMapSuggester'>GitHub<a/> 反馈这个问题。";
 
                         appRoot.$emit("error-broadcast", verifyResponse.errorMessage);
                         break;

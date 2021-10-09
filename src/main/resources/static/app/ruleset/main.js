@@ -31,11 +31,13 @@ const mainApp = Vue.createApp({
         <authorize 
             :show="showAuthorizationDialog" 
             @verified-broadcast="initRulesetEditor"
+            @set-osu-api-token="setOsuApiToken"
             @error-broadcast="toastError"
         ></authorize>
         <ruleset-editor
             :qq="qq"
             :show="showRulesetEditor"
+            :osuApiToken="osuApiToken"
             @error-broadcast="toastError"
             @warning-broadcast="toastWarning"
             @success-broadcast="toastSuccess"
@@ -55,6 +57,7 @@ const mainApp = Vue.createApp({
             qq: Number(),
             osuId: Number(),
             osuName: String(),
+            osuApiToken: String()
         }
     },
 
@@ -70,6 +73,10 @@ const mainApp = Vue.createApp({
 
             this.showAuthorizationDialog = false;
             this.showRulesetEditor = true;
+        },
+
+        setOsuApiToken(token) {
+            this.osuApiToken = token;
         },
 
         _onWindowResize() {

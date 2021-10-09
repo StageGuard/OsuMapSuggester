@@ -76,20 +76,21 @@ object OAuthManager {
             if (isEmpty()) {
                 Result.failure(IllegalStateException("NOT_BIND"))
             } else {
-                val item = single()
-                if (item.tokenExpireUnixSecond < LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)) {
-                    val response = OsuWebApi.refreshToken(item.refreshToken).rightOrThrow
-                    item.tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + response.expiresIn
-                    item.refreshToken = response.refreshToken
-                    item.token = response.accessToken
-                    item.flushChanges()
-                    Result.success(response.accessToken)
-                } else {
-                    Result.success(item.token)
-                }
+                Result.success(single().updateToken().token)
             }
         }.getOrElse {
             Result.failure(IllegalStateException("INTERNAL_ERROR:$it"))
         }
     }!!
+
+    suspend fun User.updateToken() : User {
+        if (tokenExpireUnixSecond < LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)) {
+            val response = OsuWebApi.refreshToken(refreshToken).rightOrThrow
+            tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + response.expiresIn
+            refreshToken = response.refreshToken
+            token = response.accessToken
+            flushChanges()
+        }
+        return this
+    }
 }
