@@ -373,7 +373,8 @@ fun Application.ruleset() {
                                 set(BeatmapCommentTable.content, u.comment)
                                 where {
                                     BeatmapCommentTable.rulesetId eq parameter.rulesetId and
-                                            (BeatmapCommentTable.commenterQq eq webUser.qq)
+                                            (BeatmapCommentTable.commenterQq eq webUser.qq) and
+                                            (BeatmapCommentTable.bid eq u.bid)
                                 }
                             }
                         }
