@@ -241,6 +241,7 @@ fun Application.ruleset() {
                                 if(existRuleset.author != webUser.qq)
                                     return@query SubmitResponseDTO(2)
 
+                                db.sequenceOf(BeatmapCommentTable).removeIf { it.rulesetId eq parameter.ruleset.id }
                                 existRuleset.delete()
                                 OsuMapSuggester.logger.info { "Ruleset deleted from web: ${parameter.ruleset.name}(id=${parameter.ruleset.id}) by qq ${webUser.qq}." }
                                 SubmitResponseDTO(5)

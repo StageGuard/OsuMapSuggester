@@ -9,6 +9,7 @@ import me.stageguard.obms.bot.*
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.database.Database
+import me.stageguard.obms.database.model.BeatmapCommentTable
 import me.stageguard.obms.database.model.Ruleset
 import me.stageguard.obms.database.model.RulesetCollection
 import me.stageguard.obms.database.model.OsuUserInfo
@@ -313,6 +314,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         }
                     }.finish {
                         if(it["delete"].cast()) {
+                            db.sequenceOf(BeatmapCommentTable).removeIf { col -> col.rulesetId eq ruleset.id }
                             OsuMapSuggester.logger.info { "Ruleset deleted from interactive chat: ${ruleset.name}(id=${ruleset.id}) by qq ${ruleset.author}." }
                             ruleset.delete()
                             atReply("删除成功。")
