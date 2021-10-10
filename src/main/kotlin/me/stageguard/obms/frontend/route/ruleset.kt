@@ -17,10 +17,13 @@ import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
 import me.stageguard.obms.frontend.dto.*
+import me.stageguard.obms.osu.api.OsuWebApi
+import me.stageguard.obms.osu.api.dto.BeatmapDTO
 import me.stageguard.obms.osu.api.oauth.AuthType
 import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.osu.api.oauth.OAuthManager.updateToken
 import me.stageguard.obms.script.ScriptContext
+import me.stageguard.obms.utils.SimpleEncryptionUtils
 import net.mamoe.mirai.utils.info
 import org.ktorm.dsl.and
 import org.ktorm.dsl.eq
@@ -31,6 +34,7 @@ import java.nio.charset.Charset
 import java.time.LocalDate
 
 const val RULESET_PATH = "ruleset"
+const val ENC_KEY = "tg@#F%^J*^I(%f19"
 
 /**
  * 编辑谱面时的身份认证流程：
@@ -45,7 +49,6 @@ const val RULESET_PATH = "ruleset"
 @OptIn(ExperimentalSerializationApi::class)
 fun Application.ruleset() {
     val json = Json {
-        encodeDefaults = true
         ignoreUnknownKeys = true
     }
     routing {
@@ -85,7 +88,7 @@ fun Application.ruleset() {
                     WebVerificationResponseDTO(
                         result = 0, qq = userInfo.qq,
                         osuId = userInfo.osuId, osuName = userInfo.osuName,
-                        osuApiToken = userInfo.updateToken().token
+                        osuApiToken = SimpleEncryptionUtils.aesEncrypt(userInfo.updateToken().token, ENC_KEY)
                     )
                 }
 
@@ -260,7 +263,7 @@ fun Application.ruleset() {
             }
             finish()
         }
-        // 获取谱面评价
+        // 获取谱面备注
         post("/$RULESET_PATH/getBeatmapComment") {
             try {
                 val parameter = json.decodeFromString<GetBeatmapCommentRequestDTO>(context.receiveText())
@@ -292,6 +295,122 @@ fun Application.ruleset() {
             } catch (ex: Exception) {
                 ex.printStackTrace()
                 context.respond(json.encodeToString(GetBeatmapCommentResponseDTO(-1, errorMessage = ex.toString())))
+            }
+        }
+        // 获取谱面信息，由于 osu!api 的 cors 限制，不能从前端访问 osu!api。
+        post("/$RULESET_PATH/cacheBeatmapInfo") {
+            try {
+                val parameter = json.decodeFromString<CacheBeatmapInfoRequestDTO>(context.receiveText())
+                val decryptedOsuApiToken = SimpleEncryptionUtils.aesDecrypt(parameter.osuApiToken, ENC_KEY)
+
+                // 不直接使用 OAuthManager.getBindingToken 因为每次使用就要查询一次数据库。
+                val apiResponse = OsuWebApi.getImpl<String, BeatmapDTO>(
+                    url = OsuWebApi.BASE_URL_V2 + "/beatmaps/${parameter.bid}/",
+                    parameters = mapOf(),
+                    mapOf("Authorization" to "Bearer $decryptedOsuApiToken")
+                ) { json.decodeFromString(this) }
+
+                context.respond(json.encodeToString(CacheBeatmapInfoResponseDTO(0,
+                    source = apiResponse.beatmapset!!.source,
+                    title = apiResponse.beatmapset.title,
+                    artist = apiResponse.beatmapset.artist,
+                    difficulty = apiResponse.difficultyRating,
+                    version = apiResponse.version
+                )))
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                context.respond(json.encodeToString(CacheBeatmapInfoResponseDTO(-1, errorMessage = ex.toString())))
+            }
+        }
+        // 提交谱面备注
+        post("/$RULESET_PATH/submitBeatmapComment") {
+            try {
+                val parameter = json.decodeFromString<SubmitBeatmapCommentRequestDTO>(context.receiveText())
+
+                val querySequence = Database.query { db ->
+                    val webUser = db.sequenceOf(WebVerificationStore).find {
+                        it.token eq URLDecoder.decode(parameter.token, Charset.defaultCharset())
+                    } ?: return@query SubmitBeatmapCommentResponseDTO(1)
+
+                    if(webUser.qq <= 0)
+                        return@query SubmitBeatmapCommentResponseDTO(1)
+
+                    val existRuleset = db.sequenceOf(RulesetCollection).find {
+                        it.id eq parameter.rulesetId
+                    } ?: return@query SubmitBeatmapCommentResponseDTO(4)
+
+                    if(existRuleset.author != webUser.qq)
+                        return@query SubmitBeatmapCommentResponseDTO(2)
+
+                    // 筛选不为空的备注
+                    val toInsert = parameter.comments.filter { it.comment.trim().isNotEmpty() }.toMutableList()
+                    val toUpdate = mutableListOf<BeatmapIDWithCommentDTO>()
+
+                    // 查找已存在的备注
+                    db.sequenceOf(BeatmapCommentTable).filter { col ->
+                        if(toInsert.isEmpty()) {
+                            col.bid.eq(-1)
+                        } else if(toInsert.size == 1) {
+                            col.bid.eq(toInsert.single().bid)
+                        } else {
+                            toInsert.drop(1).map { col.bid.eq(it.bid) }
+                                .fold(col.bid.eq(toInsert.first().bid)) { r, t -> r.or(t) }
+                        } and (col.rulesetId eq parameter.rulesetId) and (col.commenterQq eq webUser.qq)
+                    }.forEach { bc ->
+                        val exist = toInsert.find { c -> c.bid == bc.bid }
+                        // 如果数据库已经存在就更新然后移除原列表的项目
+                        if(exist != null) {
+                            toUpdate.add(exist)
+                            toInsert.remove(exist)
+                        }
+                    }
+
+                    // 更新已存在的备注
+                    if (toUpdate.isNotEmpty()) BeatmapCommentTable.batchUpdate {
+                        toUpdate.forEach { u ->
+                            item {
+                                set(BeatmapCommentTable.content, u.comment)
+                                where {
+                                    BeatmapCommentTable.rulesetId eq parameter.rulesetId and
+                                            (BeatmapCommentTable.commenterQq eq webUser.qq)
+                                }
+                            }
+                        }
+                    }
+
+                    // 添加新的备注
+                    if (toInsert.isNotEmpty()) BeatmapCommentTable.batchInsert(toInsert) {
+                        BeatmapComment {
+                            bid = it.bid
+                            rulesetId = parameter.rulesetId
+                            commenterQq = webUser.qq
+                            content = it.comment
+                        }
+                    }
+
+                    // 删除空备注（无论是原先有现在删除还是原先就没有）
+                    val emptyCommentsBid = parameter.comments.filter { it.comment.trim().isEmpty() }.map { it.bid }
+                    db.sequenceOf(BeatmapCommentTable).removeIf { col ->
+                        if(emptyCommentsBid.isEmpty()) {
+                            col.bid.eq(-1)
+                        } else if(emptyCommentsBid.size == 1) {
+                            col.bid.eq(emptyCommentsBid.single())
+                        } else {
+                            emptyCommentsBid.drop(1).map { col.bid.eq(it) }
+                                .fold(col.bid.eq(emptyCommentsBid.first())) { r, t -> r.or(t) }
+                        } and (col.rulesetId eq parameter.rulesetId) and (col.commenterQq eq webUser.qq)
+                    }
+                    SubmitBeatmapCommentResponseDTO(0)
+                }
+
+                context.respond(json.encodeToString(
+                    querySequence ?: SubmitBeatmapCommentResponseDTO(-1,
+                        errorMessage = "Internal error: Database is disconnected from server."
+                    )
+                ))
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                context.respond(json.encodeToString(SubmitBeatmapCommentResponseDTO(-1, errorMessage = ex.toString())))
             }
         }
     }
