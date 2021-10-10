@@ -26,6 +26,8 @@ import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
 import net.mamoe.mirai.message.data.buildMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
+import org.ktorm.dsl.and
+import org.ktorm.dsl.eq
 import org.ktorm.entity.*
 import org.mozilla.javascript.EcmaError
 import kotlin.random.Random
@@ -168,7 +170,11 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
             if(selected.value != null) {
                 val r = selected.value!!
                 val beatmapInfo = OsuWebApi.getBeatmap(sender.id, r.second.bid)
-                val additionalTip = "Additional tip, but not implemented now."
+                val additionalTip = Database.query { db ->
+                    db.sequenceOf(BeatmapCommentTable).find {
+                        it.rulesetId eq r.first.id and (it.bid eq r.second.bid)
+                    } ?.content ?: ""
+                } ?: ""
 
                 val bytes = withContext(graphicProcessorDispatcher) {
                     MapSuggester.drawRecommendBeatmapCard(

@@ -386,9 +386,9 @@ object MapSuggester {
 
             translate(0f, 15f + suggestedByText.capHeight)
 
-            val addonTipText = TextLine.make(additionalTip, Font(regularFont, 16f))
+            val addonTipText = TextLine.make(additionalTip.ifEmpty { "No comment" }, Font(regularFont, 16f))
             drawTextLineWithShadow(addonTipText, 0f, addonTipText.capHeight, paint.apply {
-                color = colorYellow
+                color = if(additionalTip.isEmpty()) colorGray else colorYellow
                 mode = PaintMode.FILL
                 strokeWidth = 1f
             }, 2f)

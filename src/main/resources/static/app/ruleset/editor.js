@@ -92,7 +92,7 @@ mainApp.component("ruleset-editor", {
             <div class="col-sm-7" v-show="showEditor">
                 <div class="card bg-light">
                     <div class="card-header" style="display: block;">
-                        <b><code>contains</code> 匹配结果</b><br/>当值设置为空则表示不添加备注。
+                        <b><code>contains</code> 匹配结果</b><br/>当值设置为空则表示不添加备注或删除备注。
                     </div>
                     <div v-if="editType === 'new'" class="alert alert-primary" style="margin: 0; border-radius: 0">
                         <i class="fa fa-info-circle me-2" style="border-radius: 0"></i>新建谱面规则时无法编辑谱面备注。<br/>将在保存谱面规则后显示匹配谱面。
