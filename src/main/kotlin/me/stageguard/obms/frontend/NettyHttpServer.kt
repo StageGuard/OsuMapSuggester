@@ -6,6 +6,7 @@ import io.ktor.server.netty.*
 import kotlinx.coroutines.*
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.frontend.route.*
+import net.mamoe.mirai.utils.info
 import kotlin.coroutines.CoroutineContext
 
 object NettyHttpServer : CoroutineScope {
@@ -17,6 +18,7 @@ object NettyHttpServer : CoroutineScope {
 
     private lateinit var server: NettyApplicationEngine
 
+    @Suppress("HttpUrlsUsage")
     fun start(host: String, port: Int) {
         server = embeddedServer(Netty, applicationEngineEnvironment {
             parentCoroutineContext = coroutineContext
@@ -37,6 +39,7 @@ object NettyHttpServer : CoroutineScope {
             }
         }).also { s -> launch(CoroutineName("NettyServer")) {
             (s as ApplicationEngine).start(false)
+            OsuMapSuggester.logger.info { "Frontend server respond at http://$host:$port" }
         } }
     }
 
