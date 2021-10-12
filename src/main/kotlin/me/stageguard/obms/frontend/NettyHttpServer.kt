@@ -11,8 +11,8 @@ import kotlin.coroutines.CoroutineContext
 object NettyHttpServer : CoroutineScope {
     @OptIn(ExperimentalCoroutinesApi::class)
     override val coroutineContext: CoroutineContext
-        get() = CoroutineExceptionHandler {
-                _, throwable -> OsuMapSuggester.logger.error("Http server occurred an error", throwable)
+        get() = OsuMapSuggester.coroutineContext + CoroutineExceptionHandler {
+            _, throwable -> OsuMapSuggester.logger.error("Http server occurred an error", throwable)
         }
 
     private lateinit var server: NettyApplicationEngine
@@ -35,7 +35,7 @@ object NettyHttpServer : CoroutineScope {
                 frontendResource()
                 ruleset()
             }
-        }).also { s -> OsuMapSuggester.launch(CoroutineName("NettyServer")) {
+        }).also { s -> launch(CoroutineName("NettyServer")) {
             (s as ApplicationEngine).start(false)
         } }
     }
