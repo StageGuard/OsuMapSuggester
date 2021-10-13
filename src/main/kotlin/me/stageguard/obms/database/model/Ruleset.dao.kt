@@ -9,7 +9,7 @@ import org.ktorm.schema.long
 import org.ktorm.schema.varchar
 import java.time.LocalDate
 
-object RulesetCollection : AddableTable<Ruleset>("beatmap_type") {
+object RulesetCollection : AddableTable<Ruleset>("ruleset") {
     val id = int("id").primaryKey().bindTo { it.id }
     val name = varchar("name").bindTo { it.name }
     val triggers = varchar("triggers").bindTo { it.triggers }

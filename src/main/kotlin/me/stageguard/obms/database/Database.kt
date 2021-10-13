@@ -4,8 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.database.model.BeatmapSkillTable
-import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.database.model.*
 import me.stageguard.obms.utils.retry
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.utils.error
@@ -95,7 +94,7 @@ object Database {
                 );
             """.trimIndent())
             statement.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS `beatmap_type` (
+                CREATE TABLE IF NOT EXISTS `${RulesetCollection.tableName}` (
                     `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
                     `name` VARCHAR(200) NOT NULL COMMENT '规则名称',
                     `triggers` VARCHAR(1500) NOT NULL COMMENT '触发条件',
@@ -110,7 +109,7 @@ object Database {
                 );
             """.trimIndent())
             statement.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS `web_verification` (
+                CREATE TABLE IF NOT EXISTS `${WebVerificationStore.tableName}` (
                     `id` INT NOT NULL AUTO_INCREMENT,
                     `qq` bigint NOT NULL,
                     `osuId` INT NOT NULL,
@@ -119,12 +118,21 @@ object Database {
                 );
             """.trimIndent())
             statement.executeUpdate("""
-                CREATE TABLE IF NOT EXISTS `beatmap_comment` (
+                CREATE TABLE IF NOT EXISTS `${BeatmapCommentTable.tableName}` (
                     `id` INT NOT NULL AUTO_INCREMENT,
                     `bid` INT NOT NULL,
                     `rulesetId` INT NOT NULL,
                     `commenterQq` bigint NOT NULL,
                     `content` VARCHAR(256) NOT NULL,
+                    PRIMARY KEY (`id`)
+                );
+            """.trimIndent())
+            statement.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS `${RulesetCommentTable.tableName}` (
+                    `id` INT NOT NULL AUTO_INCREMENT,
+                    `rulesetId` INT NOT NULL,
+                    `commenterQq` bigint NOT NULL,
+                    `positive` INT NOT NULL,
                     PRIMARY KEY (`id`)
                 );
             """.trimIndent())

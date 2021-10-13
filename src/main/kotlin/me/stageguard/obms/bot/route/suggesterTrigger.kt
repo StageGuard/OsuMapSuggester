@@ -10,6 +10,7 @@ import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.parseExceptions
+import me.stageguard.obms.bot.route.SuggestedBeatmapCache.SUGBMPInfo
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
 import me.stageguard.obms.frontend.route.IMPORT_BEATMAP_PATH
@@ -23,7 +24,8 @@ import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringComparableNumb
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
-import net.mamoe.mirai.message.data.buildMessageChain
+import net.mamoe.mirai.message.data.*
+import net.mamoe.mirai.message.sourceIds
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import org.jetbrains.skija.EncodedImageFormat
 import org.ktorm.dsl.and
@@ -45,6 +47,12 @@ fun getRandomWithWeight(weightList: List<Int>) : Int {
         if(random <= 0) return idx
     }
     return possibility.lastIndex
+}
+
+object SuggestedBeatmapCache {
+    val cache : HashMap<Int, SUGBMPInfo> = hashMapOf()
+
+    class SUGBMPInfo(val groupId: Long, val rulesetId: Int, val bid: Int)
 }
 
 val beatmapMatcherPattern = Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)", RegexOption.IGNORE_CASE)
@@ -192,7 +200,11 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                     } ?: add("b/${r.second.bid}")
                     add("\nosu!direct: ")
                     add("${PluginConfig.osuAuth.authCallbackBaseUrl}/$IMPORT_BEATMAP_PATH/${r.second.bid}")
-                })
+                }).also { receipt ->
+                    SuggestedBeatmapCache.cache[receipt.sourceIds.sum()] = SUGBMPInfo(
+                        groupId = group.id, rulesetId = r.first.id, bid = r.second.bid
+                    )
+                }
             } else if(matchedAnyRuleset) {
                 atReply("未找到任何符合条件的谱面。")
             } else {
@@ -202,6 +214,54 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
 
         } catch (ex: Exception) {
             atReply("获取谱面推荐时发生了错误：${parseExceptions(ex)}")
+        }
+    }
+
+    routeLock(startsWith("+") or startsWith("-")) {
+        val quote = message[QuoteReply] ?: return@routeLock
+
+        val msgCache = SuggestedBeatmapCache.cache[quote.source.ids.sum()]
+        val att = message.findIsInstance<PlainText>()!!.content.take(1)
+
+        if(msgCache != null && msgCache.groupId == group.id) {
+            Database.query { db ->
+                val existComment = db.sequenceOf(RulesetCommentTable).find {
+                    it.rulesetId eq msgCache.rulesetId and (it.commenterQq eq sender.id)
+                }
+                val targetRuleset = db.sequenceOf(RulesetCollection).find { it.id eq msgCache.rulesetId }
+
+                if (targetRuleset != null) {
+                    if(existComment != null) {
+                        if(existComment.positive == 1 && att == "-") {
+                            targetRuleset.priority -= 2
+                            existComment.positive = 0
+                            targetRuleset.flushChanges()
+                            existComment.flushChanges()
+                            atReply("评价完成。")
+                        } else if(existComment.positive == 0 && att == "+") {
+                            targetRuleset.priority += 2
+                            existComment.positive = 1
+                            targetRuleset.flushChanges()
+                            existComment.flushChanges()
+                            atReply("评价完成。")
+                        } else {
+                            atReply("不可重复评价谱面规则。")
+                        }
+                    } else {
+                        targetRuleset.priority += if (att == "+") 1 else -1
+                        RulesetCommentTable.insert(RulesetComment {
+                            rulesetId = msgCache.rulesetId
+                            commenterQq = sender.id
+                            positive = if (att == "+") 1 else 0
+                        })
+                        targetRuleset.flushChanges()
+                        atReply("评价完成。")
+                    }
+                } else {
+                    atReply("谱面规则不存在，可能已经被删除。")
+                }
+                Unit
+            }
         }
     }
 }
