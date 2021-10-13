@@ -200,6 +200,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                     } ?: add("b/${r.second.bid}")
                     add("\nosu!direct: ")
                     add("${PluginConfig.osuAuth.authCallbackBaseUrl}/$IMPORT_BEATMAP_PATH/${r.second.bid}")
+                    add("\n如果你(不)赞赏这条谱面规则，可对这条谱面推荐回复 \"+\"(\"-\")，它将有更大(小)的概率推荐给其他人。")
                 }).also { receipt ->
                     SuggestedBeatmapCache.cache[receipt.sourceIds.sum()] = SUGBMPInfo(
                         groupId = group.id, rulesetId = r.first.id, bid = r.second.bid
