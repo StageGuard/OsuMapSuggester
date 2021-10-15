@@ -2,9 +2,12 @@ package me.stageguard.obms.osu.api
 
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
+import io.ktor.client.features.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.netty.handler.timeout.TimeoutException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
@@ -25,6 +28,7 @@ import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.onRight
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
+import java.net.http.HttpConnectTimeoutException
 
 @OptIn(ExperimentalSerializationApi::class)
 object OsuWebApi {
@@ -33,7 +37,10 @@ object OsuWebApi {
     const val BASE_URL_OLD = "https://old.ppy.sh"
 
     val json = Json { ignoreUnknownKeys = true }
-    val client = HttpClient(OkHttp) { expectSuccess = false }
+    val client = HttpClient(OkHttp) {
+        expectSuccess = false
+        install(HttpTimeout)
+    }
 
     private const val MAX_IN_ONE_REQ = 50
     /**
@@ -212,22 +219,30 @@ object OsuWebApi {
 
     suspend inline fun <reified RESP> get(
         path: String, user: Long, parameters: Map<String, Any> = mapOf()
-    ) = getImpl<String, ValueOrISE<RESP>>(
-        url = BASE_URL_V2 + path,
-        headers = mapOf("Authorization" to "Bearer ${OAuthManager.getBindingToken(user).getOrThrow()}"),
-        parameters = parameters
-    ) {
-        try {
-            if(startsWith("[")) {
-                InferredEitherOrISE(
-                    json.decodeFromString<ArrayResponseWrapper<RESP>>("""
+    ) = try {
+        getImpl<String, ValueOrISE<RESP>>(
+            url = BASE_URL_V2 + path,
+            headers = mapOf("Authorization" to "Bearer ${OAuthManager.getBindingToken(user).getOrThrow()}"),
+            parameters = parameters
+        ) {
+            try {
+                if(startsWith("[")) {
+                    InferredEitherOrISE(
+                        json.decodeFromString<ArrayResponseWrapper<RESP>>("""
                         { "array": $this }
                     """.trimIndent()).data)
-            } else {
-                InferredEitherOrISE(json.decodeFromString(this))
+                } else {
+                    InferredEitherOrISE(json.decodeFromString(this))
+                }
+            } catch(ex: Exception) {
+                Either(IllegalStateException("BAD_RESPONSE:$ex, response string: $this"))
             }
-        } catch(ex: Exception) {
-            Either(IllegalStateException("BAD_RESPONSE:$ex, response string: $this"))
+        }
+    } catch (ex: CancellationException) {
+        if (ex.toString().contains("timeout")) {
+            Either(IllegalStateException("TIMEOUT"))
+        } else {
+            Either(IllegalStateException(ex))
         }
     }
 
