@@ -256,6 +256,8 @@ class Beatmap private constructor(
 
         internal fun build() : Beatmap {
             require(version > 0) { "Beatmap version is invalid." }
+            if (version < 6) stackLeniency = 1.0
+
             require(approachRate >= 0 && overallDifficulty >= 0 && circleSize >= 0 && hpDrainRate >= 0 && sliderMultiplier >= 0 && sliderTickRate >= 0 ) {
                 "Beatmap attribute is invalid."
             }
