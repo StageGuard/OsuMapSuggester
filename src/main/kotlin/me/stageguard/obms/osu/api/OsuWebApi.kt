@@ -6,7 +6,6 @@ import io.ktor.client.features.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.netty.handler.timeout.TimeoutException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.*
@@ -28,7 +27,6 @@ import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.onRight
 import net.mamoe.mirai.utils.info
 import java.io.InputStream
-import java.net.http.HttpConnectTimeoutException
 
 @OptIn(ExperimentalSerializationApi::class)
 object OsuWebApi {
@@ -189,13 +187,16 @@ object OsuWebApi {
         get(path = "/beatmaps/$beatmapId/", user = user)
 
     suspend fun userBeatmapScore(
-        user: Long, beatmapId: Int, mode: String = "osu"
+        user: Long, beatmapId: Int,
+        mode: String = "osu", mods: List<String> = listOf()
     ) : ValueOrISE<BeatmapUserScoreDTO> {
         val userId = OsuUserInfo.getOsuId(user) ?: return Either(IllegalStateException("NOT_BIND"))
+        val queryParameters = mutableMapOf<String, Any>("mode" to mode)
+        if (mods.isNotEmpty()) queryParameters["mods"] = mods
 
         return get<BeatmapUserScoreDTO>(
             path = "/beatmaps/$beatmapId/scores/users/$userId",
-            parameters = mapOf("mode" to mode), user = user
+            parameters = queryParameters, user = user
         ).mapLeft {
             if(it.toString().contains("null")) {
                 IllegalStateException("SCORE_LIST_EMPTY")
@@ -261,18 +262,28 @@ object OsuWebApi {
         crossinline consumer: RESP.() -> R
     ) = withContext(networkProcessorDispatcher) {
         client.get<RESP> {
-            url(url.also {
-                OsuMapSuggester.logger.info {
-                    "GET: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
-                        if(isNotEmpty()) "?$this" else ""
-                    }}"
+            url(buildString {
+                append(url)
+                if (parameters.isNotEmpty()) {
+                    append("?")
+                    parameters.forEach { (k, v) ->
+                        if (v is List<*> || v is MutableList<*>) {
+                            val arrayParameter = (v as List<*>)
+                                arrayParameter.forEachIndexed { idx, lv ->
+                                    append("$k[]=$lv")
+                                    if(idx != arrayParameter.lastIndex) append("&")
+                                }
+                        } else {
+                            append("$k=$v")
+                        }
+                        append("&")
+                    }
                 }
-            })
+            }.run {
+                if (last() == '&') dropLast(1) else this
+            }.also { OsuMapSuggester.logger.info { "GET: $it" } })
             headers.forEach {
                 header(it.key, it.value)
-            }
-            parameters.forEach {
-                parameter(it.key, it.value)
             }
         }.run(consumer)
     }
@@ -280,19 +291,31 @@ object OsuWebApi {
     @Suppress("DuplicatedCode")
     suspend inline fun head(
         url: String,
-        parameters: Map<String, String>,
+        parameters: Map<String, Any>,
         headers: Map<String, String>
     ) = withContext(networkProcessorDispatcher) {
         client.head<HttpStatement> {
-            url(url.also {
-                OsuMapSuggester.logger.info {
-                    "HEAD: $url${parameters.map { "${it.key}=${it.value}" }.joinToString("&").run {
-                        if(isNotEmpty()) "?$this" else ""
-                    }}"
+            url(buildString {
+                append(url)
+                if (parameters.isNotEmpty()) {
+                    append("?")
+                    parameters.forEach { (k, v) ->
+                        if (v is List<*> || v is MutableList<*>) {
+                            val arrayParameter = (v as List<*>)
+                            arrayParameter.forEachIndexed { idx, lv ->
+                                append("$k[]=$lv")
+                                if(idx != arrayParameter.lastIndex) append("&")
+                            }
+                        } else {
+                            append("$k=$v")
+                        }
+                        append("&")
+                    }
                 }
-            })
+            }.run {
+                if (last() == '&') dropLast(1) else this
+            }.also { OsuMapSuggester.logger.info { "POST: $it" } })
             headers.forEach { header(it.key, it.value) }
-            parameters.forEach { parameter(it.key, it.value) }
         }.execute { it.headers }
     }
 

@@ -21,6 +21,7 @@ import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.algorithm.pp.calculateDifficultyAttributes
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.ScoreDTO
+import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
 import me.stageguard.obms.utils.InferredEitherOrISE
@@ -68,15 +69,25 @@ fun GroupMessageSubscribersBuilder.recentScore() {
     }
     routeLock(startWithIgnoreCase(".scr")) {
         OsuMapSuggester.launch(CoroutineName("Command \"scr\" of ${sender.id}")) {
+            val mods = mutableListOf<String>()
             val bid = message.contentToString().removePrefix(".scr").trim().run {
                 try {
-                    InferredEitherOrISE(toInt())
+                    if (contains("+")) {
+                        var rawMods = substringAfter("+").trim()
+                        while (rawMods.isNotEmpty()) {
+                            mods.add(rawMods.take(2))
+                            rawMods = rawMods.drop(2)
+                        }
+                        InferredEitherOrISE(substringBefore("+").trim().toInt())
+                    } else {
+                        InferredEitherOrISE(toInt())
+                    }
                 } catch (ex: NumberFormatException) {
                     Either(IllegalStateException("INVALID_INPUT_FORMAT"))
                 }
             }
-            bid.onRight {
-                val score = OsuWebApi.userBeatmapScore(sender.id, it)
+            bid.onRight { b ->
+                val score = OsuWebApi.userBeatmapScore(sender.id, b, mods = mods.map { it.uppercase() })
                 score.onRight { s ->
                     processRecentPlayData(s.score)
                 }.onLeft {
