@@ -314,7 +314,7 @@ object OsuWebApi {
                 }
             }.run {
                 if (last() == '&') dropLast(1) else this
-            }.also { OsuMapSuggester.logger.info { "POST: $it" } })
+            }.also { OsuMapSuggester.logger.info { "HEAD: $it" } })
             headers.forEach { header(it.key, it.value) }
         }.execute { it.headers }
     }

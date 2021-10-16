@@ -18,6 +18,8 @@ fun parseExceptions(ex: Exception) : String {
         message.contains("JS_COMPILE_ERROR") -> "JavaScript 编译错误：$ex"
         message.contains("JS_RUNTIME_ERROR") -> "JavaScript 运行错误：$ex"
         message.contains("TIMEOUT") -> "请求 osu!api 超时，请重试。"
+        message.contains("BEATMAP_PARSE_ERROR") ->
+            "谱面解析异常：${message.substringAfter("BEATMAP_PARSE_ERROR:")}"
         else -> "unhandled exception: $message"
     }
 }
