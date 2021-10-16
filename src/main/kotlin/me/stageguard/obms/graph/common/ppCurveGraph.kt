@@ -130,7 +130,7 @@ fun Canvas.drawPpCurveGraph(
             strokeWidth = 2f
         }, 2f)
         //if full combo pp text
-        if(abs(actualPp - ifFullComboPp) > 2.0) {
+        if(ifFullComboPp - actualPp > 2.0) {
             val yCoord = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
             drawPoint(-5f, -yCoord, paint.apply {
                 color = actualPpDotColor
@@ -164,7 +164,7 @@ fun Canvas.drawPpCurveGraph(
             strokeWidth = 2f
         }, 2f)
         //if full combo pp text
-        if(abs(actualPp - ifFullComboPp) > 2.0) {
+        if(ifFullComboPp - actualPp > 2.0) {
             val yCoordIfFullComboPp = ((ifFullComboPp - intervalValues.first()) / (intervalValues.last() - intervalValues.first()) * actualCharHeight).toFloat()
             drawPoint(xCoord, -yCoordIfFullComboPp, paint.apply {
                 color = ifFcPpDotColor
