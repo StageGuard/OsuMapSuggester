@@ -3,11 +3,15 @@ package me.stageguard.obms.cache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import me.stageguard.obms.BeatmapParseException
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Beatmap
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.utils.*
 import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.Either.Companion.ifRight
+import me.stageguard.obms.utils.Either.Companion.left
+import me.stageguard.obms.utils.Either.Companion.onRight
 import java.io.File
 
 object BeatmapCache {
@@ -17,35 +21,46 @@ object BeatmapCache {
 
     suspend fun getBeatmap(
         bid: Int, maxTryCount: Int = 4, tryCount: Int = 1
-    ) : ValueOrISE<Beatmap> {
+    ) : OptionalValue<Beatmap> {
         val file = beatmapFile(bid)
-        return if(file.run { exists() && isFile }) try {
-            InferredEitherOrISE(Beatmap.parse(file.bomReader()))
-        } catch (ex: Exception) {
-            if(tryCount < maxTryCount) {
-                file.delete()
-                getBeatmap(bid, maxTryCount, tryCount + 1)
-            } else {
-                Either(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
+
+        if(file.run { exists() && isFile }) {
+            return try {
+                InferredOptionalValue(Beatmap.parse(file.bomReader()))
+            } catch (ex: Exception) {
+                if(tryCount < maxTryCount) {
+                    file.delete()
+                    getBeatmap(bid, maxTryCount, tryCount + 1)
+                } else {
+                    Either(BeatmapParseException(bid).suppress(ex))
+                }
             }
         } else kotlin.run {
             file.parentFile.mkdirs()
-            val beatmap = OsuWebApi.getBeatmapFileStream(bid)
-            withContext(Dispatchers.IO) { runInterruptible {
-                file.createNewFile()
-                beatmap.use {
-                    file.writeBytes(it.readAllBytes())
-                }
-            } }
-            file.bomReader().use {
-                try {
-                    InferredEitherOrISE(Beatmap.parse(it))
-                } catch (ex: Exception) {
-                    if(tryCount < maxTryCount) {
-                        getBeatmap(bid, maxTryCount, tryCount + 1)
-                    } else {
-                        Either(IllegalStateException("BEATMAP_PARSE_ERROR:$ex"))
+            val beatmapStream = OsuWebApi.getBeatmapFileStream(bid)
+            beatmapStream.onRight { s ->
+                withContext(Dispatchers.IO) { runInterruptible {
+                    file.createNewFile()
+                    s.use {
+                        file.writeBytes(it.readAllBytes())
                     }
+                } }
+                return file.bomReader().use {
+                    try {
+                        InferredOptionalValue(Beatmap.parse(it))
+                    } catch (ex: Exception) {
+                        if(tryCount < maxTryCount) {
+                            getBeatmap(bid, maxTryCount, tryCount + 1)
+                        } else {
+                            Either(BeatmapParseException(bid).suppress(ex))
+                        }
+                    }
+                }
+            }.left.also {
+                return if(tryCount < maxTryCount) {
+                    getBeatmap(bid, maxTryCount, tryCount + 1)
+                } else {
+                    Either(it)
                 }
             }
         }

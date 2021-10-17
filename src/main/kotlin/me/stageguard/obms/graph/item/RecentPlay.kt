@@ -1,5 +1,6 @@
 package me.stageguard.obms.graph.item
 
+import me.stageguard.obms.ImageReadException
 import me.stageguard.obms.cache.ImageCache
 import me.stageguard.obms.graph.*
 import me.stageguard.obms.graph.common.drawDifficultyRatingCard
@@ -13,14 +14,14 @@ import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
 import me.stageguard.obms.utils.Either
-import me.stageguard.obms.utils.ValueOrISE
+import me.stageguard.obms.utils.OptionalValue
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.isRight
 import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.right
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
-import me.stageguard.obms.utils.InferredEitherOrISE
+import me.stageguard.obms.utils.InferredOptionalValue
 import org.jetbrains.skija.*
 import java.lang.Exception
 import java.util.*
@@ -56,11 +57,11 @@ object RecentPlay {
     private val replayItemTitleIconColor = Color.makeRGB(2, 247, 165)
     private fun accuracyHeatmapDotColor(a: Double) = Color.makeARGB((a * 255).toInt(), 114, 224, 193)
 
-    private val defaultAvatarImage: ValueOrISE<Image>
+    private val defaultAvatarImage: OptionalValue<Image>
         get() = try {
-            InferredEitherOrISE(image("image/avatar_guest.png"))
+            InferredOptionalValue(image("image/avatar_guest.png"))
         } catch (ex: Exception) {
-            Either(IllegalStateException(ex))
+            Either(ImageReadException("image/avatar_guest.png").suppress(ex))
         }
 
     private suspend fun getAvatarFromUrlOrDefault(url: String) =
@@ -70,11 +71,11 @@ object RecentPlay {
 
     suspend fun drawRecentPlayCard(
         scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
-        attribute: ValueOrISE<DifficultyAttributes>,
+        attribute: OptionalValue<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-        skillAttributes: ValueOrISE<SkillAttributes>,
-        userBestScore: ValueOrISE<BeatmapUserScoreDTO>,
-        replayAnalyzer: ValueOrISE<ReplayFrameAnalyzer>
+        skillAttributes: OptionalValue<SkillAttributes>,
+        userBestScore: OptionalValue<BeatmapUserScoreDTO>,
+        replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>
     ) : Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
         val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
@@ -88,12 +89,12 @@ object RecentPlay {
     @Suppress("DuplicatedCode")
     private fun drawRecentPlayCardImpl(
         scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
-        attribute: ValueOrISE<DifficultyAttributes>,
+        attribute: OptionalValue<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-        skillAttributes: ValueOrISE<SkillAttributes>,
-        userBestScore: ValueOrISE<BeatmapUserScoreDTO>,
-        replayAnalyzer: ValueOrISE<ReplayFrameAnalyzer>,
-        playerAvatar: Image, songCover: ValueOrISE<Image>
+        skillAttributes: OptionalValue<SkillAttributes>,
+        userBestScore: OptionalValue<BeatmapUserScoreDTO>,
+        replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>,
+        playerAvatar: Image, songCover: OptionalValue<Image>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(
             (replayAnalyzer.ifRight { (cardWidth + replayDetailWidth).toInt() } ?: cardWidth).toInt(),

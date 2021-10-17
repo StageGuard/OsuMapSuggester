@@ -1,14 +1,18 @@
 package me.stageguard.obms.osu.api.oauth
 
-import me.stageguard.obms.PluginConfig
+import me.stageguard.obms.*
+import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.database.model.User
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.frontend.route.AUTHORIZE_PATH
 import me.stageguard.obms.utils.Either
+import me.stageguard.obms.utils.Either.Companion.mapLeft
 import me.stageguard.obms.utils.SimpleEncryptionUtils
 import me.stageguard.obms.utils.Either.Companion.rightOrThrow
+import me.stageguard.obms.utils.InferredOptionalValue
+import me.stageguard.obms.utils.OptionalValue
 import org.ktorm.dsl.eq
 import org.ktorm.entity.filter
 import org.ktorm.entity.sequenceOf
@@ -71,21 +75,29 @@ object OAuthManager {
         }
     }
 
-    suspend fun getBindingToken(qq: Long): Result<String> = Database.query { db ->
+    suspend fun getBindingToken(qq: Long): OptionalValue<String> = Database.query { db ->
         db.sequenceOf(OsuUserInfo).filter { u -> u.qq eq qq }.toList().runCatching {
             if (isEmpty()) {
-                Result.failure(IllegalStateException("NOT_BIND"))
+                Either(NotBindException(qq))
             } else {
-                Result.success(single().updateToken().token)
+                InferredOptionalValue(single().updateToken().token)
             }
         }.getOrElse {
-            Result.failure(IllegalStateException("INTERNAL_ERROR:$it"))
+            if (it is RefactoredException) {
+                Either(it)
+            } else {
+                Either(UnhandledException(it))
+            }
         }
     }!!
 
     suspend fun User.updateToken() : User {
         if (tokenExpireUnixSecond < LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)) {
-            val response = OsuWebApi.refreshToken(refreshToken).rightOrThrow
+            val response = OsuWebApi.refreshToken(refreshToken).mapLeft {
+                if(it is BadResponseException && it.respondText.contains("401")) {
+                    InvalidTokenException(this.qq)
+                } else it
+            }.rightOrThrowLeft()
             tokenExpireUnixSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + response.expiresIn
             refreshToken = response.refreshToken
             token = response.accessToken

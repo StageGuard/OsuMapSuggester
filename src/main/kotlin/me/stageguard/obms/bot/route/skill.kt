@@ -10,26 +10,21 @@ import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
-import me.stageguard.obms.bot.parseExceptions
+import me.stageguard.obms.bot.refactoredExceptionCatcher
+import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
-import me.stageguard.obms.utils.Either.Companion.onLeft
-import me.stageguard.obms.utils.Either.Companion.right
 import kotlin.math.pow
 
 fun GroupMessageSubscribersBuilder.skill() {
     routeLock(startWithIgnoreCase(".skill")) {
-        OsuMapSuggester.launch(CoroutineName("Command \"skill\" of ${sender.id}")) {
-            val scores = OsuWebApi.userScore(user = sender.id, type = "best", limit = 100).onLeft {
-                atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
-                return@launch
-            }.right
+        OsuMapSuggester.launch(
+            CoroutineName("Command \"skill\" of ${sender.id}") + refactoredExceptionCatcher
+        ) {
+            val scores = OsuWebApi.userScore(user = sender.id, type = "best", limit = 100).rightOrThrowLeft()
             withContext(calculatorProcessorDispatcher) {
                 val result = scores.map { score ->
-                    val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id).onLeft {
-                        atReply("解析 Beatmap ${score.beatmap.id} 时发生了异常: ${parseExceptions(it)}")
-                        return@withContext
-                    }.right
+                    val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id).rightOrThrowLeft()
                     PPPlusCalculator.of(beatmap)
                         .accuracy(score.accuracy * 100.0)
                         .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)

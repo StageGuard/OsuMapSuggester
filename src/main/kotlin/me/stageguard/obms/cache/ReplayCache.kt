@@ -4,14 +4,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.OsuMapSuggester
+import me.stageguard.obms.ReplayNotAvailable
+import me.stageguard.obms.ReplayParseException
+import me.stageguard.obms.UnsupportedReplayFormatException
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.processor.replay.ReplayFrame
 import me.stageguard.obms.osu.processor.replay.ReplayProcessor
-import me.stageguard.obms.utils.InferredEitherOrISE
-import me.stageguard.obms.utils.ValueOrISE
+import me.stageguard.obms.utils.InferredOptionalValue
+import me.stageguard.obms.utils.OptionalValue
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.left
+import me.stageguard.obms.utils.Either.Companion.onRight
 import java.io.File
 import org.apache.commons.codec.binary.Base64
 
@@ -21,53 +25,51 @@ object ReplayCache {
         File(OsuMapSuggester.dataFolder.absolutePath + File.separator + "replay" + File.separator + sid + ".lzma")
 
     suspend fun getReplayData(
-        scoreId: Long,
-        maxTryCount: Int = 4, tryCount: Int = 1
-    ) : ValueOrISE<Array<ReplayFrame>> {
+        scoreId: Long, maxTryCount: Int = 4, tryCount: Int = 1
+    ) : OptionalValue<Array<ReplayFrame>> {
         val file = replayFile(scoreId)
-        return if(file.run { exists() && isFile }) try {
-            withContext(Dispatchers.IO) {
-                InferredEitherOrISE(ReplayProcessor.processReplayFrame(file))
+
+        if(file.run { exists() && isFile }) {
+            return try {
+                InferredOptionalValue(ReplayProcessor.processReplayFrame(file))
+            } catch (ex: Exception) {
+                if(tryCount < maxTryCount) {
+                    file.delete()
+                    getReplayData(scoreId, maxTryCount, tryCount + 1)
+                } else {
+                    Either(ReplayParseException(scoreId).suppress(ex))
+                }
             }
-        } catch (ex: Exception) {
-            if(tryCount < maxTryCount) {
-                file.delete()
-                getReplayData(scoreId, maxTryCount, tryCount + 1)
-            } else {
-                Either(IllegalStateException("REPLAY_PARSE_ERROR:$ex"))
-            }
-        } else withContext(Dispatchers.IO) {
+        } else {
             file.parentFile.mkdirs()
             val replay = OsuWebApi.getReplay(scoreId)
-            replay.ifRight {
-                if(it.encoding == "base64") {
+            replay.onRight {
+                return if(it.encoding == "base64") {
                     val decoded = Base64.decodeBase64(it.content.replace("\\", "").toByteArray())
-                    runInterruptible {
+                    withContext(Dispatchers.IO) { runInterruptible {
                         file.createNewFile()
                         file.writeBytes(decoded)
-                    }
+                    } }
                     try {
-                        InferredEitherOrISE(ReplayProcessor.processReplayFrame(decoded))
-                    } catch (exception: Exception) {
+                        InferredOptionalValue(ReplayProcessor.processReplayFrame(decoded))
+                    } catch (ex: Exception) {
                         file.delete()
                         if(tryCount < maxTryCount) {
                             getReplayData(scoreId, maxTryCount, tryCount + 1)
                         } else {
-                            Either(IllegalStateException("REPLAY_PARSE_ERROR:${exception}"))
+                            Either(ReplayParseException(scoreId).suppress(ex))
                         }
                     }
                 } else {
-                    return@withContext Either(IllegalStateException("UNKNOWN_REPLAY_ENCODING:${it.encoding}"))
+                    Either(UnsupportedReplayFormatException(scoreId, it.encoding))
                 }
-            } ?: replay.left.run {
-                if(toString().contains("REPLAY_NOT_AVAILABLE")) {
-                    Either(this)
+            }.left.also {
+                return if(it is ReplayNotAvailable) {
+                    Either(it)
+                } else if(tryCount < maxTryCount) {
+                    getReplayData(scoreId, maxTryCount, tryCount + 1)
                 } else {
-                    if(tryCount < maxTryCount) {
-                        getReplayData(scoreId, maxTryCount, tryCount + 1)
-                    } else {
-                        Either(IllegalStateException("REPLAY_PARSE_ERROR:${replay.left}"))
-                    }
+                    Either(it)
                 }
             }
         }

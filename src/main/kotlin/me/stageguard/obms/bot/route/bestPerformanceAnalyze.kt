@@ -12,12 +12,13 @@ import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
 import me.stageguard.obms.bot.graphicProcessorDispatcher
-import me.stageguard.obms.bot.parseExceptions
+import me.stageguard.obms.bot.refactoredExceptionCatcher
+import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.BestPerformanceDetail
-import me.stageguard.obms.utils.InferredEitherOrISE
-import me.stageguard.obms.utils.ValueOrISE
+import me.stageguard.obms.utils.InferredOptionalValue
+import me.stageguard.obms.utils.OptionalValue
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.message.data.At
@@ -72,10 +73,10 @@ suspend fun orderScores(
     analyzeDetail: Boolean = false,
     analyzeType: AnalyzeDetailType = AnalyzeDetailType.IfFullCombo,
     rangeToAnalyze: IntRange = 0..25
-) : ValueOrISE<OrderResult> = scores.second.let { secList ->
+) : OptionalValue<OrderResult> = scores.second.let { secList ->
     if(secList == null) {
         if(!analyzeDetail) {
-            InferredEitherOrISE(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
+            InferredOptionalValue(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
         } else withContext(calculatorProcessorDispatcher) {
             val atomicInt = atomic(0)
             val calculatedList = mutableListOf<OrderResult.Entry.DetailAnalyze>()
@@ -144,7 +145,7 @@ suspend fun orderScores(
                     isRecalculated = it.isRecalculated,
                 )
             }.toList().run {
-                InferredEitherOrISE(OrderResult(this))
+                InferredOptionalValue(OrderResult(this))
             }
         }
     } else withContext(calculatorProcessorDispatcher) {
@@ -181,7 +182,7 @@ suspend fun orderScores(
             currentId = it.userId
             currentBottomPP = it.pp
         }
-        InferredEitherOrISE(OrderResult(resultList))
+        InferredOptionalValue(OrderResult(resultList))
     }
 }
 
@@ -213,7 +214,9 @@ fun List<String>.parseMods() = map {
 @Suppress("SpellCheckingInspection")
 fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
     routeLock(startWithIgnoreCase(".bpvs")) {
-        OsuMapSuggester.launch(CoroutineName("Command \"bpvs\" of ${sender.id}")) {
+        OsuMapSuggester.launch(
+            CoroutineName("Command \"bpvs\" of ${sender.id}") + refactoredExceptionCatcher
+        ) {
             //parse message
             var (limit, offset) = 25 to 0
             val target: At = message.filterIsInstance<At>().run {
@@ -235,27 +238,17 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
                 offset = if(get(2).isEmpty()) 0 else if(get(1).toInt() - 1 < 0) 0 else get(1).toInt() - 1
             }
 
-            val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset)
-            val targetBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset)
+            val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset).rightOrThrowLeft()
+            val targetBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset).rightOrThrowLeft()
 
-            myBpScores.onRight { my ->
-                targetBpScores.onRight { target ->
-                    orderScores(my to target).onRight {
-                        processOrderResultAndSend(it)
-                    }.onLeft {
-                        atReply("处理数据时发生了异常: ${parseExceptions(it)}")
-                    }
-                }.onLeft {
-                    atReply("从服务器获取对方的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
-                }
-            }.onLeft {
-                atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
-            }
+            processOrderResultAndSend(orderScores(myBpScores to targetBpScores).rightOrThrowLeft())
         }
     }
 
     routeLock(startWithIgnoreCase(".bpa")) {
-        OsuMapSuggester.launch(CoroutineName("Command \"bpa\" of ${sender.id}")) {
+        OsuMapSuggester.launch(
+            CoroutineName("Command \"bpa\" of ${sender.id}") + refactoredExceptionCatcher
+        ) {
             //parse message
             var (limit, offset) = 25 to 0
 
@@ -286,21 +279,17 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
                 }
             }
 
-            OsuWebApi.userScore(
+            val list = OsuWebApi.userScore(
                 user = sender.id, type = "best",
                 limit = if(analyzeDetail) 100 else limit, offset = if(analyzeDetail) 0 else offset
-            ).onRight { list ->
-                orderScores(
-                    list to null, analyzeDetail,
-                    analyzeDetailType, offset..limit + offset
-                ).onRight {
-                    processOrderResultAndSend(it)
-                }.onLeft {
-                    atReply("处理数据时发生了异常: ${parseExceptions(it)}")
-                }
-            }.onLeft {
-                atReply("从服务器获取你的 Best Performance 信息时发生了异常: ${parseExceptions(it)}")
-            }
+            ).rightOrThrowLeft()
+
+            val ordered = orderScores(
+                list to null, analyzeDetail,
+                analyzeDetailType, offset..limit + offset
+            ).rightOrThrowLeft()
+
+            processOrderResultAndSend(ordered)
         }
     }
 }

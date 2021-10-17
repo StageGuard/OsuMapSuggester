@@ -9,6 +9,7 @@ import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.BeatmapSkillTable
 import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.osu.api.OsuWebApi
+import me.stageguard.obms.utils.Either.Companion.left
 import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.onRight
 import net.mamoe.mirai.console.command.CommandSender
@@ -39,15 +40,18 @@ object ConsoleCommands : CompositeCommand(
                         try {
                             beatmapFile.parentFile.mkdirs()
                             val stream = OsuWebApi.getBeatmapFileStream(it.beatmap.id)
-                            withContext(Dispatchers.IO) {
-                                runInterruptible {
-                                    beatmapFile.createNewFile()
-                                    stream.use { s ->
-                                        beatmapFile.writeBytes(s.readAllBytes())
+                            stream.onRight r1@ { s ->
+                                withContext(Dispatchers.IO) {
+                                    runInterruptible {
+                                        beatmapFile.createNewFile()
+                                        s.use { s ->
+                                            beatmapFile.writeBytes(s.readAllBytes())
+                                        }
                                     }
                                 }
-                            }
-                            succeeded ++
+                                succeeded ++
+                                return@r1
+                            }.left.also { re -> throw re }
                         } catch (ex: Exception) {
                             OsuMapSuggester.logger.warning { "Cannot save beatmap ${it.beatmap.id}: $ex" }
                         }

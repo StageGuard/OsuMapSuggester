@@ -3,6 +3,8 @@ package me.stageguard.obms.bot.route
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import me.stageguard.obms.InvalidInputException
+import me.stageguard.obms.NotBindException
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.*
@@ -139,12 +141,11 @@ fun GroupMessageSubscribersBuilder.ruleset() {
     }
 
     routeLock(startWithIgnoreCase(".ruleset add")) {
-        try {
-            OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
+        OsuUserInfo.getOsuId(sender.id) ?: throw NotBindException(sender.id)
 
-            RouteLock.withLockSuspend(sender) {
-                interactiveConversation(eachTimeLimit = 60000L) {
-                    send("""
+        RouteLock.withLockSuspend(sender) {
+            interactiveConversation(eachTimeLimit = 60000L) {
+                send("""
                     添加新的谱面类型规则。
                     请确保熟悉了谱面类型规则后再进行添加。
                     查看 https://github.com/StageGuard/OsuMapSuggester/wiki/Beatmap-Type-Ruleset 获取更多信息。
@@ -153,27 +154,89 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                       2. 在 Web 中编辑（推荐）。
                     发送序号以决定。
                 """.trimIndent())
+                select {
+                    "1" { processInteractive() }
+                    "2" { finish("EDIT_IN_WEB") }
+                    default {
+                        finish("UNKNOWN_OPERATION")
+                    }
+                }
+            }.finish {
+                RulesetCollection.insert(Ruleset {
+                    name = it["name"].cast()
+                    triggers = it["triggers"].cast<List<String>>().joinToString(";")
+                    author = sender.id
+                    expression = it["expression"].cast()
+                    priority = 50
+                    addDate = LocalDate.now()
+                    lastEdited = LocalDate.now()
+                    enabled = 1
+                    lastError = ""
+                })
+                OsuMapSuggester.logger.info { "New ruleset added from from interactive chat: ${it["name"]} by qq ${sender.id}." }
+                atReply("添加完成。")
+            }.exception {
+                when(it) {
+                    is QuitConversationExceptions.AdvancedQuitException -> {
+                        when {
+                            it.toString().contains("QUIT_OPERATION") -> atReply("结束操作。")
+                            it.toString().contains("UNKNOWN_OPERATION") -> atReply("未知的操作方式。")
+                            it.toString().contains("EDIT_IN_WEB") -> {
+                                atReply("请访问 ${PluginConfig.osuAuth.authCallbackBaseUrl}/$RULESET_PATH/edit/new 添加。")
+                            }
+                        }
+                    }
+                    is QuitConversationExceptions.TimeoutException -> {
+                        atReply("长时间未输入(30s)，请重新添加。")
+                    }
+                }
+            }
+        }
+    }
+
+    routeLock(startWithIgnoreCase(".ruleset edit")) {
+        OsuUserInfo.getOsuId(sender.id) ?: throw NotBindException(sender.id)
+
+        val rulesetId = try {
+            message.contentToString().removePrefix(".ruleset edit").trim().toInt()
+        } catch (ex: NumberFormatException) {
+            throw IllegalStateException("INVALID_INPUT_FORMAT")
+        }
+
+        Database.query { db ->
+            val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq rulesetId }
+            if(ruleset != null && ruleset.author == sender.id) {
+                interactiveConversation(eachTimeLimit = 60000L) {
+                    send("""
+                        正在编辑谱面类型规则。
+                        请选择操作方式：
+                          1. 在 QQ 聊天中交互。
+                          2. 在 Web 中编辑（推荐）。
+                        发送序号以决定。
+                    """.trimIndent())
                     select {
-                        "1" { processInteractive() }
+                        "1" {
+                            processInteractive(
+                                ruleset.name,
+                                ruleset.triggers.split(";").toMutableList(),
+                                ruleset.expression
+                            )
+                        }
                         "2" { finish("EDIT_IN_WEB") }
                         default {
                             finish("UNKNOWN_OPERATION")
                         }
                     }
                 }.finish {
-                    RulesetCollection.insert(Ruleset {
-                        name = it["name"].cast()
-                        triggers = it["triggers"].cast<List<String>>().joinToString(";")
-                        author = sender.id
-                        expression = it["expression"].cast()
-                        priority = 50
-                        addDate = LocalDate.now()
-                        lastEdited = LocalDate.now()
-                        enabled = 1
-                        lastError = ""
-                    })
-                    OsuMapSuggester.logger.info { "New ruleset added from from interactive chat: ${it["name"]} by qq ${sender.id}." }
-                    atReply("添加完成。")
+                    ruleset.name = it["name"].cast()
+                    ruleset.triggers = it["triggers"].cast<List<String>>().joinToString(";")
+                    ruleset.expression = it["expression"].cast()
+                    ruleset.lastEdited = LocalDate.now()
+                    ruleset.enabled = 1
+                    ruleset.lastError = ""
+                    ruleset.flushChanges()
+                    atReply("修改完成。")
+                    OsuMapSuggester.logger.info { "Ruleset changed from interactive chat: ${it["name"]}(id=${rulesetId}) by qq ${sender.id}." }
                 }.exception {
                     when(it) {
                         is QuitConversationExceptions.AdvancedQuitException -> {
@@ -181,7 +244,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                                 it.toString().contains("QUIT_OPERATION") -> atReply("结束操作。")
                                 it.toString().contains("UNKNOWN_OPERATION") -> atReply("未知的操作方式。")
                                 it.toString().contains("EDIT_IN_WEB") -> {
-                                    atReply("请访问 ${PluginConfig.osuAuth.authCallbackBaseUrl}/$RULESET_PATH/edit/new 添加。")
+                                    atReply("请访问 ${PluginConfig.osuAuth.authCallbackBaseUrl}/$RULESET_PATH/edit/${rulesetId} 编辑。")
                                 }
                             }
                         }
@@ -190,148 +253,73 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         }
                     }
                 }
+            } else {
+                atReply("没有找到 ID 为 $rulesetId 的谱面规则，或不是这个谱面规则的创建者。")
             }
-        } catch (ex: Exception) {
-            atReply("添加谱面类型规则时发生了错误：${parseExceptions(ex)}")
-        }
-    }
-
-    routeLock(startWithIgnoreCase(".ruleset edit")) {
-        try {
-            OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
-
-            val rulesetId = try {
-                message.contentToString().removePrefix(".ruleset edit").trim().toInt()
-            } catch (ex: NumberFormatException) {
-                throw IllegalStateException("INVALID_INPUT_FORMAT")
-            }
-
-            Database.query { db ->
-                val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq rulesetId }
-                if(ruleset != null && ruleset.author == sender.id) {
-                    interactiveConversation(eachTimeLimit = 60000L) {
-                        send("""
-                        正在编辑谱面类型规则。
-                        请选择操作方式：
-                          1. 在 QQ 聊天中交互。
-                          2. 在 Web 中编辑（推荐）。
-                        发送序号以决定。
-                    """.trimIndent())
-                        select {
-                            "1" {
-                                processInteractive(
-                                    ruleset.name,
-                                    ruleset.triggers.split(";").toMutableList(),
-                                    ruleset.expression
-                                )
-                            }
-                            "2" { finish("EDIT_IN_WEB") }
-                            default {
-                                finish("UNKNOWN_OPERATION")
-                            }
-                        }
-                    }.finish {
-                        ruleset.name = it["name"].cast()
-                        ruleset.triggers = it["triggers"].cast<List<String>>().joinToString(";")
-                        ruleset.expression = it["expression"].cast()
-                        ruleset.lastEdited = LocalDate.now()
-                        ruleset.enabled = 1
-                        ruleset.lastError = ""
-                        ruleset.flushChanges()
-                        atReply("修改完成。")
-                        OsuMapSuggester.logger.info { "Ruleset changed from interactive chat: ${it["name"]}(id=${rulesetId}) by qq ${sender.id}." }
-                    }.exception {
-                        when(it) {
-                            is QuitConversationExceptions.AdvancedQuitException -> {
-                                when {
-                                    it.toString().contains("QUIT_OPERATION") -> atReply("结束操作。")
-                                    it.toString().contains("UNKNOWN_OPERATION") -> atReply("未知的操作方式。")
-                                    it.toString().contains("EDIT_IN_WEB") -> {
-                                        atReply("请访问 ${PluginConfig.osuAuth.authCallbackBaseUrl}/$RULESET_PATH/edit/${rulesetId} 编辑。")
-                                    }
-                                }
-                            }
-                            is QuitConversationExceptions.TimeoutException -> {
-                                atReply("长时间未输入(30s)，请重新添加。")
-                            }
-                        }
-                    }
-                } else {
-                    atReply("没有找到 ID 为 $rulesetId 的谱面规则，或不是这个谱面规则的创建者。")
-                }
-            }
-        } catch (ex: Exception) {
-            atReply("编辑谱面类型规则时发生了错误：${parseExceptions(ex)}")
         }
     }
 
     routeLock(startWithIgnoreCase(".ruleset list") or startWithIgnoreCase(".ruleset all")) {
-        try {
-            OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
+        OsuUserInfo.getOsuId(sender.id) ?: throw NotBindException(sender.id)
 
-            Database.query { db ->
-                val ruleset = db.sequenceOf(RulesetCollection).toList()
+        Database.query { db ->
+            val ruleset = db.sequenceOf(RulesetCollection).toList()
 
-                val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map { it to OsuUserInfo.getOsuIdAndName(it) }
+            val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map { it to OsuUserInfo.getOsuIdAndName(it) }
 
-                val bytes = withContext(graphicProcessorDispatcher) {
-                    MapSuggester.drawRulesetList(ruleset, rulesetCreatorsInfo).bytes(EncodedImageFormat.PNG)
-                }
-                val externalResource = bytes.toExternalResource("png")
-                val image = group.uploadImage(externalResource)
-                runInterruptible { externalResource.close() }
-
-                atReply(image.toMessageChain())
+            val bytes = withContext(graphicProcessorDispatcher) {
+                MapSuggester.drawRulesetList(ruleset, rulesetCreatorsInfo).bytes(EncodedImageFormat.PNG)
             }
-        } catch (ex: Exception) {
-            atReply("列出所有谱面类型规则时发生了错误：${parseExceptions(ex)}")
+            val externalResource = bytes.toExternalResource("png")
+            val image = group.uploadImage(externalResource)
+            runInterruptible { externalResource.close() }
+
+            atReply(image.toMessageChain())
         }
     }
 
     routeLock(startWithIgnoreCase(".ruleset delete")) {
-        try {
-            OsuUserInfo.getOsuId(sender.id) ?: throw IllegalStateException("NOT_BIND")
+        OsuUserInfo.getOsuId(sender.id) ?: throw NotBindException(sender.id)
 
-            val rulesetId = try {
-                message.contentToString().removePrefix(".ruleset delete").trim().toInt()
+        val rulesetId = message.contentToString().removePrefix(".ruleset delete").trim().run {
+            try {
+                toInt()
             } catch (ex: NumberFormatException) {
-                throw IllegalStateException("INVALID_INPUT_FORMAT")
+                throw InvalidInputException(this)
             }
+        }
 
-            Database.query { db ->
-                val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq rulesetId }
-                if(ruleset != null && ruleset.author == sender.id) {
-                    interactiveConversation(eachTimeLimit = 10000L) {
-                        send("""
+        Database.query { db ->
+            val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq rulesetId }
+            if(ruleset != null && ruleset.author == sender.id) {
+                interactiveConversation(eachTimeLimit = 10000L) {
+                    send("""
                         确认要删除 ${ruleset.name} 类型谱面规则吗？
                         删除后将无法再触发这个谱面规则，且不可恢复。
                         输入 "确认" 或 "是" 来确认删除。
                     """.trimIndent())
-                        select {
-                            "是" { collect("delete", true) }
-                            "确认" { collect("delete", true) }
-                            default { collect("delete", false) }
-                        }
-                    }.finish {
-                        if(it["delete"].cast()) {
-                            db.sequenceOf(BeatmapCommentTable).removeIf { col -> col.rulesetId eq ruleset.id }
-                            OsuMapSuggester.logger.info { "Ruleset deleted from interactive chat: ${ruleset.name}(id=${ruleset.id}) by qq ${ruleset.author}." }
-                            ruleset.delete()
-                            atReply("删除成功。")
-                        }
-                    }.exception {
-                        when(it) {
-                            is QuitConversationExceptions.TimeoutException -> {
-                                atReply("长时间未输入(10s)，取消删除。")
-                            }
+                    select {
+                        "是" { collect("delete", true) }
+                        "确认" { collect("delete", true) }
+                        default { collect("delete", false) }
+                    }
+                }.finish {
+                    if(it["delete"].cast()) {
+                        db.sequenceOf(BeatmapCommentTable).removeIf { col -> col.rulesetId eq ruleset.id }
+                        OsuMapSuggester.logger.info { "Ruleset deleted from interactive chat: ${ruleset.name}(id=${ruleset.id}) by qq ${ruleset.author}." }
+                        ruleset.delete()
+                        atReply("删除成功。")
+                    }
+                }.exception {
+                    when(it) {
+                        is QuitConversationExceptions.TimeoutException -> {
+                            atReply("长时间未输入(10s)，取消删除。")
                         }
                     }
-                } else {
-                    atReply("没有找到 ID 为 $rulesetId 的谱面规则，或不是这个谱面规则的创建者。")
                 }
+            } else {
+                atReply("没有找到 ID 为 $rulesetId 的谱面规则，或不是这个谱面规则的创建者。")
             }
-        } catch (ex: Exception) {
-            atReply("删除谱面类型规则时发生了错误：${parseExceptions(ex)}")
         }
     }
 }

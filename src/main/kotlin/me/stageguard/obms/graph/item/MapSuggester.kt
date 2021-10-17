@@ -12,7 +12,7 @@ import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.mapRight
 import me.stageguard.obms.utils.Either.Companion.onRight
-import me.stageguard.obms.utils.ValueOrISE
+import me.stageguard.obms.utils.OptionalValue
 import org.jetbrains.skija.*
 
 object MapSuggester {
@@ -46,7 +46,7 @@ object MapSuggester {
     private val rulesetSecondlyTextColor = Color.makeRGB(145,163,143)
 
     suspend fun drawRecommendBeatmapCard(
-        beatmapInfo: ValueOrISE<BeatmapDTO>, beatmapType: Ruleset,
+        beatmapInfo: OptionalValue<BeatmapDTO>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String
     ) : Surface {
         val songCover = beatmapInfo.mapRight { ImageCache.getImageAsSkijaImage(it.beatmapset!!.covers.cover2x) }
@@ -187,9 +187,9 @@ object MapSuggester {
     }
 
     private fun drawRecommendBeatmapCardImpl(
-        beatmapInfo: ValueOrISE<BeatmapDTO>, beatmapType: Ruleset,
+        beatmapInfo: OptionalValue<BeatmapDTO>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String,
-        songCover: ValueOrISE<ValueOrISE<Image>>, suggester: Either<Long, Pair<Int, String>>
+        songCover: OptionalValue<OptionalValue<Image>>, suggester: Either<Long, Pair<Int, String>>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt())
 

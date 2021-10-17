@@ -14,6 +14,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.OsuMapSuggester
+import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
 import me.stageguard.obms.frontend.dto.*
@@ -309,7 +310,7 @@ fun Application.ruleset() {
                     url = OsuWebApi.BASE_URL_V2 + "/beatmaps/${parameter.bid}/",
                     parameters = mapOf(),
                     mapOf("Authorization" to "Bearer $decryptedOsuApiToken")
-                ) { json.decodeFromString(this) }
+                ) { json.decodeFromString(this) }.rightOrThrowLeft()
 
                 context.respond(json.encodeToString(CacheBeatmapInfoResponseDTO(0,
                     source = apiResponse.beatmapset!!.source,
