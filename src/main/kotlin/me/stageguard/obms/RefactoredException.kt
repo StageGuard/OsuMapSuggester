@@ -79,6 +79,15 @@ class ImageMissingETagException(val url: String) : RefactoredException("IMAGE_MI
     override val outgoingMessage: String
         get() = String()
 }
+/*
+ * invalid verify link
+ */
+class InvalidVerifyLinkException(val token: String) : RefactoredException("INVALID_VERIFY_LINK") {
+    override val message: String
+        get() = "Invalid verify token: $token"
+    override val outgoingMessage: String
+        get() = "无效的认证链接，可能该链接已被处理。"
+}
 
 // function related
 /*

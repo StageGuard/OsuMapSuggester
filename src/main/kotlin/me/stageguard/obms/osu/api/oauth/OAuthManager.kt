@@ -54,24 +54,28 @@ object OAuthManager {
 
     //Response from frontend oauth callback
     suspend fun verifyOAuthResponse(state: String?, code: String?): OAuthResult {
-        require(state != null) { return OAuthResult.Failed(IllegalArgumentException("Parameter \"state\" is missing.")) }
-        require(code != null) { return OAuthResult.Failed(IllegalArgumentException("Parameter \"code\" is missing.")) }
+        require(state != null) {
+            return OAuthResult.Failed(UnhandledException(IllegalArgumentException("Parameter \"state\" is missing.")))
+        }
+        require(code != null) {
+            return OAuthResult.Failed(UnhandledException(IllegalArgumentException("Parameter \"code\" is missing.")))
+        }
         return try {
             val decrypted = SimpleEncryptionUtils.aesDecrypt(
                 state.replace(" ", "+"), key
             ).split(":")
             if(cache.remove(decrypted[1])) {
-                val tokenResponse = OsuWebApi.getTokenWithCode(code).rightOrThrow
-                val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).rightOrThrow
+                val tokenResponse = OsuWebApi.getTokenWithCode(code).rightOrThrowLeft()
+                val userResponse = OsuWebApi.getSelfProfileAfterVerifyToken(tokenResponse.accessToken).rightOrThrowLeft()
                 val additionalList = decrypted.drop(2).joinToString(":").split("/").map {
                     URLDecoder.decode(it, Charset.forName("UTF-8"))
                 }
                 OAuthResult.Succeed(decrypted.first().toInt(), additionalList, tokenResponse, userResponse)
             } else {
-                OAuthResult.Failed(IllegalStateException("Invalid link."))
+                OAuthResult.Failed(InvalidVerifyLinkException(decrypted[1]))
             }
         } catch(ex: Exception) {
-            OAuthResult.Failed(IllegalStateException("Internal error:$ex"))
+           OAuthResult.Failed(if(ex is RefactoredException) ex else UnhandledException(ex))
         }
     }
 

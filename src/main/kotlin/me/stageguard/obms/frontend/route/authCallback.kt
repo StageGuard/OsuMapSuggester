@@ -151,13 +151,11 @@ fun Application.authCallback() {
                 "Exception in processing authorization request: $ex".also {
                     context.respond(HttpStatusCode.InternalServerError, it)
                     OsuMapSuggester.logger.error(it)
-                    ex.printStackTrace()
                 }
             } else {
-                "Authorization Failed: ${(verified as OAuthResult.Failed).exception}".also {
+                "Authorization Failed: ${(verified as OAuthResult.Failed).exception.outgoingMessage}".also {
                     context.respond(HttpStatusCode.InternalServerError, it)
-                    OsuMapSuggester.logger.error(it)
-                    verified.exception.printStackTrace()
+                    OsuMapSuggester.logger.error(verified.exception)
                 }
             }
             finish()
