@@ -23,7 +23,7 @@ fun GroupMessageSubscribersBuilder.skill() {
         ) {
             val scores = OsuWebApi.userScore(user = sender.id, type = "best", limit = 100).rightOrThrowLeft()
             withContext(calculatorProcessorDispatcher) {
-                val result = scores.map { score ->
+                val scoreSkills = scores.map { score ->
                     val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id).rightOrThrowLeft()
                     PPPlusCalculator.of(beatmap)
                         .accuracy(score.accuracy * 100.0)
@@ -35,33 +35,33 @@ fun GroupMessageSubscribersBuilder.skill() {
                         .n50(score.statistics.count50)
                         .misses(score.statistics.countMiss)
                         .calculate()
+                }.asSequence()
 
-                }.foldIndexed(
-                    PPPlusResult(
-                        total = 0.0, aim = 0.0, jumpAim = 0.0, flowAim = 0.0,
-                        speed = 0.0, accuracy = 0.0, stamina = 0.0, precision = 0.0
-                    )
-                ) { idx, last, cur ->
-                    PPPlusResult(
-                        total = last.total + cur.total * 0.95.pow(idx),
-                        aim = last.aim + cur.aim * 0.95.pow(idx),
-                        jumpAim = last.jumpAim + cur.jumpAim * 0.95.pow(idx),
-                        flowAim = last.flowAim + cur.flowAim * 0.95.pow(idx),
-                        speed = last.speed + cur.speed * 0.95.pow(idx),
-                        accuracy = last.accuracy + cur.accuracy * 0.95.pow(idx),
-                        stamina = last.stamina + cur.stamina * 0.95.pow(idx),
-                        precision = last.precision + cur.precision * 0.95.pow(idx)
-                    )
-                }
+                fun Sequence<PPPlusResult>.calculateWeightedSkill(skill: PPPlusResult.() -> Double) =
+                    map(skill).sortedDescending().foldIndexed(0.0) { idx, last, cur ->
+                        last + cur * 0.95.pow(idx)
+                    }
+
+                val result = PPPlusResult(
+                    total = scoreSkills.calculateWeightedSkill { total },
+                    aim = scoreSkills.calculateWeightedSkill { aim },
+                    jumpAim = scoreSkills.calculateWeightedSkill { jumpAim },
+                    flowAim = scoreSkills.calculateWeightedSkill { flowAim },
+                    speed = scoreSkills.calculateWeightedSkill { speed },
+                    stamina = scoreSkills.calculateWeightedSkill { stamina },
+                    accuracy = scoreSkills.calculateWeightedSkill { accuracy },
+                    precision = 0.0, //precision calculation have bugs.
+                )
+
+
                 atReply("""
-            
+            Total       ${result.total}
             Aim         ${result.aim}
             Aim(Jump)   ${result.jumpAim}
             Aim(Flow)   ${result.flowAim}
             Speed       ${result.speed}
             Accuracy    ${result.accuracy}
             Stamina     ${result.stamina}
-            Precision   ${result.precision}
         """.trimIndent())
             }
         }
