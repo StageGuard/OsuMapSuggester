@@ -63,7 +63,7 @@ object ImageCache {
                     }
                 }
             } else {
-                if(tryCount < maxTryCount) {
+                return if(tryCount < maxTryCount) {
                     getImageAsStream(url, maxTryCount, tryCount + 1)
                 } else {
                     Either(ImageMissingETagException(url))
