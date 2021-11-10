@@ -11,17 +11,15 @@ import kotlin.properties.Delegates
 open class DifficultyObject constructor(
     val base: OsuStdObject,
     prev: OsuStdObject,
-    prevVals: Optional<Pair<Double, Double>>, // (movement_dist, jump_dist)
     prevPrev: Optional<OsuStdObject>,
     clockRate: Double,
     scalingFactor: Double,
 ) {
-    val prev: Optional<Pair<Double, Double>> = prevVals
-    private var jumpDistance by Delegates.notNull<Double>()
+    var jumpDistance by Delegates.notNull<Double>()
     var travelDistance by Delegates.notNull<Double>()
     var angle : Optional<Double> = Optional.empty()
     var delta by Delegates.notNull<Double>()
-    private var strainTime by Delegates.notNull<Double>()
+    var strainTime by Delegates.notNull<Double>()
     var movementTime by Delegates.notNull<Double>()
     var movementDistance by Delegates.notNull<Double>()
     var travelTime by Delegates.notNull<Double>()

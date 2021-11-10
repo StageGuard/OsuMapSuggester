@@ -2,6 +2,7 @@
 
 package me.stageguard.obms.osu.algorithm.pp
 
+import kotlinx.atomicfu.atomicArrayOfNulls
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.utils.lerp
 import java.util.*
@@ -21,6 +22,16 @@ abstract class Skill<DO : DifficultyObject>(val mods: ModCombination) {
 
     abstract val strainDecayBase: Double
     abstract val skillMultiplier: Double
+
+    private val prevObjQueue = atomicArrayOfNulls<DO?>(2)
+    val prevPrevObj get() = prevObjQueue[0].value
+    val prevObj get() = prevObjQueue[1].value
+    val isPrevQueueFull = prevObjQueue[0].value != null && prevObjQueue[1].value != null
+
+    private fun putPrevObj(obj: DO) {
+        prevObjQueue[0].value = prevObjQueue[1].value
+        prevObjQueue[1].value = obj
+    }
 
     open fun difficultyValue(useOutdatedAlgorithm: Boolean = false) = run {
         var difficulty = 0.0
@@ -59,6 +70,8 @@ abstract class Skill<DO : DifficultyObject>(val mods: ModCombination) {
         currentStrain += strainValueOf(current) * skillMultiplier
         currentSectionPeak = max(currentSectionPeak, currentStrain)
         prevTime = Optional.of(current.base.time)
+
+        putPrevObj(current)
     }
 
     private fun strainDecay(ms: Double) = strainDecayBase.pow(ms / 1000.0)

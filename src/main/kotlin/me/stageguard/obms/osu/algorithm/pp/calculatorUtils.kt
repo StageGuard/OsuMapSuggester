@@ -49,7 +49,6 @@ fun Beatmap.calculateDifficultyAttributes(
         scalingFactor *= 1.0 + smallCircleBonus
     }
     val sliderState = SliderState(this)
-    val ticksBuf = mutableListOf<Double>()
 
     val stackThreshold = difficultyRange(mapAttributesWithMod.approachRate.let {
         if(mods.hr()) it * 1.4 else if(mods.ez()) it * 0.5 else it
@@ -62,7 +61,6 @@ fun Beatmap.calculateDifficultyAttributes(
             mods = mods,
             radius = radius,
             scalingFactor = scalingFactor,
-            ticks = ticksBuf,
             attributes = initialAttributes,
             sliderState = sliderState
         )
@@ -84,13 +82,11 @@ fun Beatmap.calculateDifficultyAttributes(
     var currentSectionEnd = ceil(hitObjects[0].startTime / sectionLength) * sectionLength
     var prevPrev: Optional<OsuStdObject> = Optional.empty()
     var prev = hitObjectMappedIterator.next()
-    var prevVals: Optional<Pair<Double, Double>> = Optional.empty()
 
     var curr = hitObjectMappedIterator.next()
     var hDifficultyPoint = DifficultyObject(
         base = curr,
         prev = prev,
-        prevVals = prevVals,
         prevPrev = prevPrev,
         clockRate = mapAttributesWithMod.clockRate,
         scalingFactor = scalingFactor
@@ -104,7 +100,6 @@ fun Beatmap.calculateDifficultyAttributes(
     speed.process(hDifficultyPoint)
 
     prevPrev = Optional.of(prev)
-    prevVals = Optional.of(hDifficultyPoint.run { movementDistance to movementTime })
     prev = curr
 
     while (hitObjectMappedIterator.hasNext()) {
@@ -112,7 +107,6 @@ fun Beatmap.calculateDifficultyAttributes(
         hDifficultyPoint = DifficultyObject(
             base = curr,
             prev = prev,
-            prevVals = prevVals,
             prevPrev = prevPrev,
             clockRate = mapAttributesWithMod.clockRate,
             scalingFactor = scalingFactor
@@ -128,7 +122,6 @@ fun Beatmap.calculateDifficultyAttributes(
         speed.process(hDifficultyPoint)
 
         prevPrev = Optional.of(prev)
-        prevVals = Optional.of(hDifficultyPoint.run { movementDistance to movementTime })
         prev = curr
     }
 
