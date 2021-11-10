@@ -77,7 +77,7 @@ fun Beatmap.calculateDifficultyAttributes(
     }.iterator()
 
     val aim = AimSkill(mods)
-    val speed = SpeedSkill(mods)
+    val speed = SpeedSkill(mods, hitWindow)
 
     var currentSectionEnd = ceil(hitObjects[0].startTime / sectionLength) * sectionLength
     var prevPrev: Optional<OsuStdObject> = Optional.empty()
@@ -131,10 +131,17 @@ fun Beatmap.calculateDifficultyAttributes(
     val aimStrain = sqrt(aim.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
     val speedStrain = sqrt(speed.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
 
+    val baseAimPerformance: Double = (5 * 1.0.coerceAtLeast(aimStrain / 0.0675) - 4).pow(3) / 100000
+    val baseSpeedPerformance: Double = (5 * 1.0.coerceAtLeast(speedStrain / 0.0675) - 4).pow(3) / 100000
+    val basePerformance: Double =
+        (baseAimPerformance.pow(1.1) + baseSpeedPerformance.pow(1.1)).pow(1 / 1.1)
+    val starRating: Double = if (basePerformance > 0.00001)
+        Math.cbrt(1.12) * 0.027 * (Math.cbrt(100000 / 2.0.pow(1 / 1.1) * basePerformance) + 4) else 0.0
+
     return initialAttributes.also {
         it.nCircles = this.nCircles
         it.nSpinners = this.nSpinners
-        it.stars = aimStrain + speedStrain + abs(aimStrain - speedStrain) / 2.0
+        it.stars = starRating
         it.speedStrain = speedStrain
         it.aimStrain = aimStrain
     }

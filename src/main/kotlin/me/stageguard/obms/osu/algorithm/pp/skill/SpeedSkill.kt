@@ -1,62 +1,134 @@
 package me.stageguard.obms.osu.algorithm.pp.skill
 
-import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.algorithm.pp.DifficultyObject
 import me.stageguard.obms.osu.algorithm.pp.Skill
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.pow
-import kotlin.math.sin
+import me.stageguard.obms.osu.processor.beatmap.ModCombination
+import me.stageguard.obms.utils.lerp
+import kotlin.math.*
 
 @Suppress("PrivatePropertyName")
-class SpeedSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
+class SpeedSkill(mods: ModCombination, val hitWindow: Double) : Skill<DifficultyObject>(mods) {
     private val SPEED_SKILL_MULTIPLIER: Double = 1400.0
     private val SPEED_STRAIN_DECAY_BASE: Double = 0.3
 
     private val SINGLE_SPACING_THRESHOLD: Double = 125.0
-    private val SPEED_ANGLE_BONUS_BEGIN: Double = 5.0 * Math.PI / 6.0
-    private val PI_OVER_4: Double = Math.PI / 4.0
-    private val PI_OVER_2: Double = Math.PI / 2.0
+    private val RHYTHM_MULTIPLIER: Double = 0.75
+    private val HISTORY_TIME_MAX: Int = 5000
     private val MIN_SPEED_BONUS: Double = 75.0
-    private val MAX_SPEED_BONUS: Double = 45.0
     private val SPEED_BALANCING_FACTOR: Double = 40.0
+
+    private var currentStrain = 1.0
+    private var currentRhythm = 1.0
+
+    override val reducedSectionCount = 5
+    override val difficultyMultiplier = 1.04
+    override val prevObjQueueCapacity = 32
 
     override val strainDecayBase: Double
         get() = SPEED_STRAIN_DECAY_BASE
     override val skillMultiplier: Double
         get() = SPEED_SKILL_MULTIPLIER
 
-    override fun strainValueOf(current: DifficultyObject): Double = if (current.base.isSpinner) { 0.0 } else {
-        val dist = min(SINGLE_SPACING_THRESHOLD, current.travelDistance + current.movementDistance)
-        val deltaTime = max(MAX_SPEED_BONUS, current.delta)
+    private fun calculateRhythmBonus(current: DifficultyObject) : Double {
+        if (current.base.isSpinner)
+            return 0.0
+
+        var previousIslandSize = 0
+
+        var rhythmComplexitySum = 0.0
+        var islandSize = 1
+        var startRatio = 0.0
+
+        var firstDeltaSwitch = false
+
+        var i = prevCount - 2
+        while (i > 0) {
+            val currObj = prevObjQueue[i - 1]!!
+            val prevObj = prevObjQueue[i]!!
+            val lastObj = prevObjQueue[i + 1]!!
+
+            var currHistoricalDecay = 0.0.coerceAtLeast((HISTORY_TIME_MAX - (current.base.time - currObj.base.time))) / HISTORY_TIME_MAX
+
+            if (currHistoricalDecay != 0.0) {
+                currHistoricalDecay = ((prevCount - i) / prevCount.toDouble()).coerceAtMost(currHistoricalDecay)
+
+                val currDelta = currObj.strainTime
+                val prevDelta = prevObj.strainTime
+                val lastDelta = lastObj.strainTime
+                val currRatio = 1.0 + 6.0 * 0.5.coerceAtMost(sin(Math.PI / (prevDelta.coerceAtMost(currDelta) / prevDelta.coerceAtLeast(currDelta))).pow(2))
+
+                var windowPenalty = 1.0.coerceAtMost(0.0.coerceAtLeast(abs(prevDelta - currDelta) - hitWindow * 0.6) / (hitWindow * 0.6))
+
+                windowPenalty = 1.0.coerceAtMost(windowPenalty)
+
+                var effectiveRatio = windowPenalty * currRatio
+
+                if (firstDeltaSwitch) {
+                    if (!(prevDelta > 1.25 * currDelta || prevDelta * 1.25 < currDelta)) {
+                        if (islandSize < 7)
+                            islandSize ++
+                    } else {
+                        if (prevObjQueue[i - 1]?.base?.isSlider == true) effectiveRatio *= 0.125
+                        if (prevObjQueue[i]?.base?.isSlider == true) effectiveRatio *= 0.25
+                        if (previousIslandSize == islandSize) effectiveRatio *= 0.25
+                        if (previousIslandSize % 2 == islandSize % 2) effectiveRatio *= 0.50
+                        if (lastDelta > prevDelta + 10 && prevDelta > currDelta + 10) effectiveRatio *= 0.125
+
+                        rhythmComplexitySum += sqrt(effectiveRatio * startRatio) * currHistoricalDecay * sqrt(4.0 + islandSize) / 2 * sqrt(4.0 + previousIslandSize) / 2
+
+                        startRatio = effectiveRatio
+
+                        previousIslandSize = islandSize
+
+                        if (prevDelta * 1.25 < currDelta) firstDeltaSwitch = false
+
+                        islandSize = 1
+                    }
+                } else if (prevDelta > 1.25 * currDelta) {
+                    firstDeltaSwitch = true
+                    startRatio = effectiveRatio
+                    islandSize = 1
+                }
+            }
+            i --
+        }
+
+        return sqrt(4 + rhythmComplexitySum * RHYTHM_MULTIPLIER) / 2
+    }
+
+    override fun strainValueOf(current: DifficultyObject): Double {
+        if (current.base.isSpinner)
+            return 0.0
+
+        var strainTime = current.strainTime
+        val greatWindowFull = hitWindow * 2
+        val speedWindowRatio = strainTime / greatWindowFull
+
+        if (prevObj != null && strainTime < greatWindowFull && prevObj!!.strainTime > strainTime)
+            strainTime = lerp(prevObj!!.strainTime, strainTime, speedWindowRatio)
+
+        strainTime /= ((strainTime / greatWindowFull) / 0.93).coerceIn(0.92, 1.0)
 
         var speedBonus = 1.0
 
-        if (deltaTime < MIN_SPEED_BONUS) {
-            speedBonus = 1.0 + ((MIN_SPEED_BONUS - deltaTime) / SPEED_BALANCING_FACTOR).pow(2)
-        }
+        if (strainTime < MIN_SPEED_BONUS)
+            speedBonus = 1 + 0.75 * ((MIN_SPEED_BONUS - strainTime) / SPEED_BALANCING_FACTOR).pow(2)
 
-        var angleBonus = 1.0
+        val distance = SINGLE_SPACING_THRESHOLD.coerceAtMost(current.travelDistance + current.jumpDistance)
 
-        current.angle.filter { it < SPEED_ANGLE_BONUS_BEGIN }.ifPresent { angle ->
-            val expBase = sin(1.5 * (SPEED_ANGLE_BONUS_BEGIN - angle))
-            angleBonus = 1.0 + expBase * expBase / 3.57
+        return (speedBonus + speedBonus * (distance / SINGLE_SPACING_THRESHOLD).pow(3.5)) / strainTime
+    }
 
-            if (angle < PI_OVER_2) {
-                angleBonus = 1.28
+    override fun calculateInitialStrain(time: Double): Double {
+        return (currentStrain * currentRhythm) * strainDecay(time - prevObj!!.base.time/* equal to prevTime.get() */)
+    }
 
-                if (dist < 90.0 && angle < PI_OVER_4) {
-                    angleBonus += (1.0 - angleBonus) * min((90.0 - dist) / 10.0, 1.0)
-                } else if (dist < 90.0) {
-                    angleBonus += (1.0 - angleBonus) *
-                            min((90.0 - dist) / 10.0, 1.0) *
-                            sin((PI_OVER_2 - angle) / PI_OVER_4)
-                }
-            }
-        }
-        (1.0 + (speedBonus - 1.0) * 0.75) *
-                angleBonus *
-                (0.95 + speedBonus * (dist / SINGLE_SPACING_THRESHOLD).pow(3.5)) /
-                current.movementTime
+    override fun strainValueAt(current: DifficultyObject): Double {
+        currentStrain *= strainDecay(current.delta)
+        currentStrain += strainValueOf(current) * skillMultiplier
+
+        currentRhythm = calculateRhythmBonus(current)
+
+        return currentStrain * currentRhythm
     }
 }

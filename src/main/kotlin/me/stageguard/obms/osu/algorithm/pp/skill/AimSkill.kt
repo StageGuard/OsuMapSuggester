@@ -20,7 +20,7 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
         get() = AIM_SKILL_MULTIPLIER
 
     override fun strainValueOf(current: DifficultyObject): Double {
-        if (current.base.isSpinner || !isPrevQueueFull || prevObj?.base?.isSpinner == true)
+        if (current.base.isSpinner || !isPrevQueueHasFirst2Objs || prevObj?.base?.isSpinner == true)
             return 0.0
 
         var currVelocity = current.jumpDistance / current.strainTime
