@@ -14,9 +14,12 @@ const val OSU_AR_AVG = 1200.0
 const val OSU_AR_MIN = 1800.0
 const val SECTION_LEN = 400.0
 const val OBJECT_RADIUS = 64.0
-const val NORMALIZED_RADIUS = 52.0
+const val NORMALIZED_RADIUS = 50.0
 const val DIFFICULTY_MULTIPLIER = 0.0675
 const val STACK_DISTANCE = 3.0
+const val MIN_DELTA_TIME = 25.0
+const val MAXIMUM_SLIDER_RADIUS = NORMALIZED_RADIUS * 2.4f
+const val ASSUMED_SLIDER_RADIUS = NORMALIZED_RADIUS * 1.65f
 
 fun Beatmap.calculateDifficultyAttributes(
     mods: ModCombination,
@@ -101,7 +104,7 @@ fun Beatmap.calculateDifficultyAttributes(
     speed.process(hDifficultyPoint)
 
     prevPrev = Optional.of(prev)
-    prevVals = Optional.of(hDifficultyPoint.run { jumpDist to strainTime })
+    prevVals = Optional.of(hDifficultyPoint.run { movementDistance to movementTime })
     prev = curr
 
     while (hitObjectMappedIterator.hasNext()) {
@@ -125,7 +128,7 @@ fun Beatmap.calculateDifficultyAttributes(
         speed.process(hDifficultyPoint)
 
         prevPrev = Optional.of(prev)
-        prevVals = Optional.of(hDifficultyPoint.run { jumpDist to strainTime })
+        prevVals = Optional.of(hDifficultyPoint.run { movementDistance to movementTime })
         prev = curr
     }
 

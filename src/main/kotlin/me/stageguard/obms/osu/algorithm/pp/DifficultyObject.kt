@@ -1,53 +1,61 @@
 package me.stageguard.obms.osu.algorithm.pp
 
 import me.stageguard.obms.osu.processor.beatmap.OsuStdObject
+import me.stageguard.obms.osu.processor.beatmap.OsuStdObjectType
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.atan2
-import kotlin.math.max
+import kotlin.math.min
 import kotlin.properties.Delegates
 
 open class DifficultyObject constructor(
     val base: OsuStdObject,
     prev: OsuStdObject,
-    prevVals: Optional<Pair<Double, Double>>, // (jump_dist, strain_time)
+    prevVals: Optional<Pair<Double, Double>>, // (movement_dist, jump_dist)
     prevPrev: Optional<OsuStdObject>,
     clockRate: Double,
     scalingFactor: Double,
 ) {
     val prev: Optional<Pair<Double, Double>> = prevVals
-    var jumpDist by Delegates.notNull<Double>()
-    var travelDist by Delegates.notNull<Double>()
+    private var jumpDistance by Delegates.notNull<Double>()
+    var travelDistance by Delegates.notNull<Double>()
     var angle : Optional<Double> = Optional.empty()
     var delta by Delegates.notNull<Double>()
-    var strainTime by Delegates.notNull<Double>()
+    private var strainTime by Delegates.notNull<Double>()
+    var movementTime by Delegates.notNull<Double>()
+    var movementDistance by Delegates.notNull<Double>()
+    var travelTime by Delegates.notNull<Double>()
 
     init {
-        val delta = (base.time - prev.time) / clockRate
-        val strainTime = max(delta, 50.0)
+        delta = (base.time - prev.time) / clockRate
+        strainTime = delta.coerceAtLeast(MIN_DELTA_TIME)
+        jumpDistance = ((base.position - prev.lazyEndPosition) * scalingFactor).length()
+        travelDistance = prev.travelDist
+        travelTime = (prev.travelTime / clockRate).coerceAtLeast(MIN_DELTA_TIME)
 
-        val pos = base.position // stacked position
-        val travelDist = prev.travelDist
-        val prevCursorPos = prev.lazyEndPosition
+        if (prev.kind is OsuStdObjectType.Slider) {
+            movementTime = (strainTime - travelTime).coerceAtLeast(MIN_DELTA_TIME)
 
-        val jumpDist = ((pos - prevCursorPos) * scalingFactor).length()
+            val tailJumpDistance = (base.position - prev.endPosition).length() * scalingFactor
+            movementDistance = min(
+                jumpDistance - (MAXIMUM_SLIDER_RADIUS - ASSUMED_SLIDER_RADIUS),
+                tailJumpDistance - MAXIMUM_SLIDER_RADIUS
+            ).coerceAtLeast(0.0)
+        } else {
+            movementTime = strainTime
+            movementDistance = jumpDistance
+        }
 
-        val angle = prevPrev.map {
+        angle = prevPrev.map {
             val prevPrevCursorPos = it.lazyEndPosition
 
             val v1 = prevPrevCursorPos - prev.position
-            val v2 = pos - prevCursorPos
+            val v2 = base.position - prev.lazyEndPosition
 
             val dot = v1.dotMultiply(v2)
             val det = v1.x * v2.y - v1.y * v2.x
 
             abs(atan2(det, dot))
         }
-
-        this.jumpDist = jumpDist
-        this.travelDist = travelDist
-        this.angle = angle
-        this.delta = delta
-        this.strainTime = strainTime
     }
 }

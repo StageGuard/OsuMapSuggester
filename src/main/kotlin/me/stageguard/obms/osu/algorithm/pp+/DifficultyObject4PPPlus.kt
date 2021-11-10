@@ -33,7 +33,7 @@ class DifficultyObject4PPPlus(
     var gapTime by Delegates.notNull<Double>()
 
     private val streamBpm: Double
-        get() = 15000.0 / strainTime
+        get() = 15000.0 / movementTime
 
     val startTime : Double
         get() = base.time
@@ -50,7 +50,7 @@ class DifficultyObject4PPPlus(
         }
 
         this.gapTime = when (prev.kind) {
-            is OsuStdObjectType.Circle -> strainTime
+            is OsuStdObjectType.Circle -> movementTime
             is OsuStdObjectType.Slider -> 50.0.coerceAtLeast((base.time - prev.endTime) / clockRate)
             is OsuStdObjectType.Spinner -> 50.0.coerceAtLeast((base.time - prev.endTime) / clockRate)
             else -> -1.0
@@ -61,10 +61,10 @@ class DifficultyObject4PPPlus(
     }
 
     private fun calculateBaseFlow(): Double {
-        if (prevDifficultyObject.isEmpty || isRatioEqualLess(0.667, strainTime, prevDifficultyObject.get().strainTime))
+        if (prevDifficultyObject.isEmpty || isRatioEqualLess(0.667, movementTime, prevDifficultyObject.get().movementTime))
             return calculateSpeedFlow() * calculateDistanceFlow() // No angle checks for the first actual note of the stream.
 
-        if (isRoughlyEqual(strainTime, prevDifficultyObject.get().strainTime))
+        if (isRoughlyEqual(movementTime, prevDifficultyObject.get().movementTime))
             return calculateSpeedFlow() * calculateDistanceFlow(calculateAngleScalingFactor(angle))
 
         return 0.0
@@ -74,7 +74,7 @@ class DifficultyObject4PPPlus(
 
     private fun calculateDistanceFlow(angleScalingFactor: Double = 1.0): Double {
         val distanceOffset = (tanh((streamBpm - 140) / 20) + 2) * NORMALIZED_RADIUS
-        return transitionToFalse(jumpDist, distanceOffset * angleScalingFactor, distanceOffset)
+        return transitionToFalse(movementDistance, distanceOffset * angleScalingFactor, distanceOffset)
     }
 
     private fun calculateAngleScalingFactor(angle: Optional<Double>) = if (angle.isPresent) {
@@ -95,13 +95,13 @@ class DifficultyObject4PPPlus(
     private fun calculateIrregularFlow(): Double {
         var irregularFlow = calculateExtendedDistanceFlow()
 
-        if (isRoughlyEqual(strainTime, prevDifficultyObject.get().strainTime))
+        if (isRoughlyEqual(movementTime, prevDifficultyObject.get().movementTime))
             irregularFlow *= prevDifficultyObject.get().baseFlow
         else
             irregularFlow = 0.0
 
         prevPrevDifficultyObject.ifPresent {
-            if (isRoughlyEqual(strainTime, it.strainTime))
+            if (isRoughlyEqual(movementTime, it.movementTime))
                 irregularFlow *= it.baseFlow
             else
                 irregularFlow = 0.0
@@ -112,6 +112,6 @@ class DifficultyObject4PPPlus(
 
     private fun calculateExtendedDistanceFlow(): Double {
         val distanceOffset = (tanh((streamBpm - 140) / 20) * 1.75 + 2.75) * NORMALIZED_RADIUS
-        return transitionToFalse(jumpDist, distanceOffset, distanceOffset)
+        return transitionToFalse(movementDistance, distanceOffset, distanceOffset)
     }
 }

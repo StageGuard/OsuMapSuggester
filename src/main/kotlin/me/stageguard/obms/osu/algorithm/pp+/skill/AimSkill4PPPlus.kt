@@ -43,9 +43,9 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         if (current.flow == 1.0)
             return 0.0
 
-        val distance = current.jumpDist / NORMALIZED_RADIUS
+        val distance = current.movementDistance / NORMALIZED_RADIUS
 
-        val jumpAimBase = distance / current.strainTime
+        val jumpAimBase = distance / current.movementTime
 
         var locationWeight = 1.0
         current.prevDifficultyObject.ifPresent { prevObj ->
@@ -53,9 +53,9 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         }
 
         val angleWeight = calculateJumpAngleWeight(
-            current.angle, current.strainTime,
-            current.prevDifficultyObject.run { if(this.isPresent) this.get().strainTime else 0.0 },
-            current.prevDifficultyObject.run { if(this.isPresent) this.get().jumpDist else 0.0 }
+            current.angle, current.movementTime,
+            current.prevDifficultyObject.run { if(this.isPresent) this.get().movementTime else 0.0 },
+            current.prevDifficultyObject.run { if(this.isPresent) this.get().movementDistance else 0.0 }
         )
         val patternWeight = calculateJumpPatternWeight(current,
             mutableListOf<DifficultyObject4PPPlus>().also { list ->
@@ -72,9 +72,9 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         if (current.flow == 0.0)
             return 0.0
 
-        val distance = current.jumpDist / NORMALIZED_RADIUS
+        val distance = current.movementDistance / NORMALIZED_RADIUS
 
-        val flowAimBase = (tanh(distance - 2.0) + 1.0) * 2.5 / current.strainTime + distance / 5.0 / current.strainTime
+        val flowAimBase = (tanh(distance - 2.0) + 1.0) * 2.5 / current.movementTime + distance / 5.0 / current.movementTime
 
         var locationWeight = 1.0
         current.prevDifficultyObject.ifPresent { prevObj ->
@@ -96,7 +96,7 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         var readingStrain = 0.0
 
         preemptHitObjects.forEach { previousObject ->
-            readingStrain += calculateReadingDensity(previousObject.baseFlow, previousObject.jumpDist)
+            readingStrain += calculateReadingDensity(previousObject.baseFlow, previousObject.movementDistance)
         }
 
         val densityBonus = readingStrain.pow(1.5) / 100.0
@@ -114,8 +114,8 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         var jumpPatternWeight = 1.0
         previousTwoObjects.asReversed().forEachIndexed { i, previousObject ->
             var velocityWeight = 1.05
-            if (previousObject.jumpDist > 0) {
-                val velocityRatio = current.jumpDist / current.strainTime / (previousObject.jumpDist / previousObject.strainTime) - 1.0
+            if (previousObject.movementDistance > 0) {
+                val velocityRatio = current.movementDistance / current.movementTime / (previousObject.movementDistance / previousObject.movementTime) - 1.0
                 if (velocityRatio <= 0)
                     velocityWeight = 1.0 + velocityRatio * velocityRatio / 2.0
                 else if (velocityRatio < 1)
@@ -123,7 +123,7 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
             }
 
             var angleWeight = 1.0
-            if (isRatioEqual(1.0, current.strainTime, previousObject.strainTime) && current.angle.isPresent && previousObject.angle.isPresent
+            if (isRatioEqual(1.0, current.movementTime, previousObject.movementTime) && current.angle.isPresent && previousObject.angle.isPresent
             ) {
                 val angleChange = abs(current.angle.get()) - abs(previousObject.angle.get())
                 angleWeight = if (abs(angleChange) >= Math.PI / 1.5)
@@ -137,9 +137,9 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         var distanceRequirement = 0.0
         if (previousTwoObjects.isNotEmpty()) {
             distanceRequirement = calculateDistanceRequirement(
-                current.strainTime,
-                previousTwoObjects.last().strainTime,
-                previousTwoObjects.last().jumpDist
+                current.movementTime,
+                previousTwoObjects.last().movementTime,
+                previousTwoObjects.last().movementDistance
             )
         }
 
@@ -152,7 +152,7 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
         if (previousObject.isEmpty) return 1.0
 
         var distanceRatio = 1.0
-        if (previousObject.get().jumpDist > 0) distanceRatio = current.jumpDist / previousObject.get().jumpDist - 1.0
+        if (previousObject.get().movementDistance > 0) distanceRatio = current.movementDistance / previousObject.get().movementDistance - 1.0
 
         var distanceBonus = 1.0
         if (distanceRatio <= 0)
@@ -178,7 +178,7 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
             }
         }
         val isStreamJump: Double = transitionToTrue(distanceRatio, 0.0, 1.0)
-        val distanceWeight = (1.0 + distanceBonus) * calculateStreamJumpWeight(current.jumpDist, isStreamJump, distance)
+        val distanceWeight = (1.0 + distanceBonus) * calculateStreamJumpWeight(current.movementDistance, isStreamJump, distance)
         val angleWeight = 1.0 + angleBonus * (1.0 - isStreamJump)
 
         return 1.0 + (distanceWeight * angleWeight - 1.0) * previousObject.get().flow

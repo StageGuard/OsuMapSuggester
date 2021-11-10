@@ -25,7 +25,11 @@ class OsuStdObject constructor(
 
     val travelDist get() = when(val kind = kind) {
         is OsuStdObjectType.Slider -> kind.travelDist
-        is OsuStdObjectType.Hold -> -1.0
+        else -> 0.0
+    }
+
+    val travelTime get() = when(val kind = kind) {
+        is OsuStdObjectType.Slider -> kind.travelTime
         else -> 0.0
     }
 
@@ -72,10 +76,11 @@ class OsuStdObject constructor(
             is HitObjectType.Slider -> {
                 var lazyEndPosition = h.pos
                 var travelDist = 0.0
+                var travelTime = 0.0
 
                 sliderState.update(h.startTime)
 
-                val approxFollowCircleRadius = radius * 3.0
+                val approxFollowCircleRadius = radius * 2.4
                 var tickDistance = 100.0 * beatmap.sliderMultiplier / beatmap.sliderTickRate
 
                 if(beatmap.version >= 8) {
@@ -92,7 +97,7 @@ class OsuStdObject constructor(
                 val computeVertex = { time: Double ->
                     attributes.maxCombo ++
 
-                    var progress = (time - h.startTime) / spanDuration
+                    var progress = (time - h.startTime).also { travelTime += it } / spanDuration
 
                     if (progress % 2.0 >= 1.0) {
                         progress = 1.0 - progress % 1.0
@@ -134,14 +139,9 @@ class OsuStdObject constructor(
                     for (rptIndex in 1 until h.kind.repeatTimes) {
                         val timeOffset = duration / h.kind.repeatTimes.toDouble() * rptIndex.toDouble()
                         computeVertex(h.startTime + timeOffset)
-                        if (rptIndex and 1 == 1) {
-                            ticks.asReversed().forEach {
-                                computeVertex(it)
-                            }
-                        } else {
-                            ticks.forEach{
-                                computeVertex(it)
-                            }
+                        when {
+                            rptIndex and 1 == 1 -> ticks.asReversed().forEach { computeVertex(it) }
+                            else -> ticks.forEach { computeVertex(it) }
                         }
                     }
                 }
@@ -164,7 +164,8 @@ class OsuStdObject constructor(
                     endTime = finalSpanEndTime,
                     endPosition = endPos,
                     lazyEndPosition = lazyEndPosition,
-                    travelDist = travelDist
+                    travelDist = travelDist,
+                    travelTime = travelTime
                 )
             }
             is HitObjectType.Spinner -> {
@@ -192,10 +193,10 @@ sealed class OsuStdObjectType {
     }
     class Slider(
         val endTime: Double, val endPosition: HitObjectPosition,
-        val lazyEndPosition: HitObjectPosition, val travelDist: Double
+        val lazyEndPosition: HitObjectPosition, val travelDist: Double, val travelTime: Double,
     ) : OsuStdObjectType() {
         override fun toString(): String {
-            return "Slider(endTime=$endTime, endPosition=$endPosition, lazyEndPosition=$lazyEndPosition, travelDist=$travelDist)"
+            return "Slider(endTime=$endTime, endPosition=$endPosition, lazyEndPosition=$lazyEndPosition, travelDist=$travelDist, travelTime=$travelTime)"
         }
     }
     class Spinner(val endTime: Double) : OsuStdObjectType() {

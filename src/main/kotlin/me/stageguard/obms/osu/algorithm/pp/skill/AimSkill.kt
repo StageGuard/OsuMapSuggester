@@ -30,18 +30,18 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
                 val angleBonus = sqrt(
                     sin(angle - AIM_ANGLE_BONUS_BEGIN).pow(2) *
                             max(prevJumpDist - scale, 0.0) *
-                            max(current.jumpDist - scale, 0.0)
+                            max(current.movementDistance - scale, 0.0)
                 )
 
                 result = 1.4 * applyDiminishingExp(max(angleBonus, 0.0)) / max(TIMING_THRESHOLD, prevStrainTime)
             }
         }
 
-        val jumpDistExp = applyDiminishingExp(current.jumpDist)
-        val travelDistExp = applyDiminishingExp(current.travelDist)
+        val jumpDistExp = applyDiminishingExp(current.movementDistance)
+        val travelDistExp = applyDiminishingExp(current.travelDistance)
 
         val distExp = jumpDistExp + travelDistExp + sqrt(travelDistExp * jumpDistExp)
 
-        max(result + distExp / max(current.strainTime, TIMING_THRESHOLD), distExp / current.strainTime)
+        max(result + distExp / max(current.movementTime, TIMING_THRESHOLD), distExp / current.movementTime)
     }
 }

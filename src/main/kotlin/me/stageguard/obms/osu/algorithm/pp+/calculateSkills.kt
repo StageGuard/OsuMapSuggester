@@ -112,7 +112,7 @@ fun Beatmap.calculateSkills(
     rhythmComplexity.process(hDifficultyPoint)
 
     prevPrev = Optional.of(prev)
-    prevVals = Optional.of(hDifficultyPoint.run { jumpDist to strainTime })
+    prevVals = Optional.of(hDifficultyPoint.run { movementDistance to movementTime })
     prevDifficultyObject = Optional.of(hDifficultyPoint)
     prev = curr
 
@@ -154,7 +154,7 @@ fun Beatmap.calculateSkills(
 
         prevPrev = Optional.of(prev)
         prevPrevDifficultyObject = prevDifficultyObject
-        prevVals = Optional.of(hDifficultyPoint.run { jumpDist to strainTime })
+        prevVals = Optional.of(hDifficultyPoint.run { movementDistance to movementTime })
         prev = curr
         prevDifficultyObject = Optional.of(hDifficultyPoint)
     }

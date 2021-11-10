@@ -94,7 +94,7 @@ class RhythmComplexity4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPP
 
     private fun calculateSliderToCircleRhythmBonus(current: DifficultyObject4PPPlus): Double {
         var rhythmBonus = 0.0
-        val sliderMS = current.strainTime - current.gapTime
+        val sliderMS = current.movementTime - current.gapTime
 
         if (isRatioEqual(0.5, current.gapTime, sliderMS) || isRatioEqual(0.25, current.gapTime, sliderMS)) {
             val endFlow = calculateSliderEndFlow(current)
@@ -113,7 +113,7 @@ class RhythmComplexity4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPP
         val isFlowSpeed = transitionToTrue(streamBpm, 120.0, 30.0)
 
         val distanceOffset = (tanh((streamBpm - 140) / 20) + 2) * NORMALIZED_RADIUS
-        val isFlowDistance = transitionToFalse(current.jumpDist, distanceOffset, NORMALIZED_RADIUS)
+        val isFlowDistance = transitionToFalse(current.movementDistance, distanceOffset, NORMALIZED_RADIUS)
 
         return isFlowSpeed * isFlowDistance
     }

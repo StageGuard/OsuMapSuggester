@@ -27,7 +27,7 @@ class SpeedSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
         get() = SPEED_SKILL_MULTIPLIER
 
     override fun strainValueOf(current: DifficultyObject): Double = if (current.base.isSpinner) { 0.0 } else {
-        val dist = min(SINGLE_SPACING_THRESHOLD, current.travelDist + current.jumpDist)
+        val dist = min(SINGLE_SPACING_THRESHOLD, current.travelDistance + current.movementDistance)
         val deltaTime = max(MAX_SPEED_BONUS, current.delta)
 
         var speedBonus = 1.0
@@ -57,6 +57,6 @@ class SpeedSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
         (1.0 + (speedBonus - 1.0) * 0.75) *
                 angleBonus *
                 (0.95 + speedBonus * (dist / SINGLE_SPACING_THRESHOLD).pow(3.5)) /
-                current.strainTime
+                current.movementTime
     }
 }
