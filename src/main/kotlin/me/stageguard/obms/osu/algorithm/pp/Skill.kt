@@ -26,7 +26,7 @@ abstract class Skill<DO : DifficultyObject>(val mods: ModCombination) {
     private val prevObjQueue = atomicArrayOfNulls<DO?>(2)
     val prevPrevObj get() = prevObjQueue[0].value
     val prevObj get() = prevObjQueue[1].value
-    val isPrevQueueFull = prevObjQueue[0].value != null && prevObjQueue[1].value != null
+    val isPrevQueueFull get() = prevObjQueue[0].value != null && prevObjQueue[1].value != null
 
     private fun putPrevObj(obj: DO) {
         prevObjQueue[0].value = prevObjQueue[1].value
