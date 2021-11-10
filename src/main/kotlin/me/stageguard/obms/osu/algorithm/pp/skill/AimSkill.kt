@@ -91,6 +91,29 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
             )).pow(2)
         }
 
+        if (max(prevVelocity, currVelocity) != 0.0) {
+            prevVelocity = (prevObj!!.jumpDistance + prevObj!!.travelDistance) / prevObj!!.strainTime
+            currVelocity = (current.jumpDistance + current.travelDistance) / current.strainTime
+
+            val distRatio: Double = sin(
+                Math.PI / 2 * abs(prevVelocity - currVelocity) / max(prevVelocity, currVelocity)
+            ).pow(2)
+
+            val overlapVelocityBuff: Double = min(
+                125 / min(current.strainTime, prevObj!!.strainTime), abs(prevVelocity - currVelocity)
+            )
+
+            val nonOverlapVelocityBuff: Double = (abs(prevVelocity - currVelocity)
+                    * sin(Math.PI / 2 * min(1.0, min(current.jumpDistance, prevObj!!.jumpDistance) / 100.0)
+            ).pow(2))
+
+            velocityChangeBonus = max(overlapVelocityBuff, nonOverlapVelocityBuff) * distRatio
+
+            velocityChangeBonus *= (min(current.strainTime, prevObj!!.strainTime) / max(
+                current.strainTime, prevObj!!.strainTime
+            )).pow(2)
+        }
+
         if (current.travelTime != 0.0) {
             sliderBonus = current.travelDistance / current.travelTime
         }
