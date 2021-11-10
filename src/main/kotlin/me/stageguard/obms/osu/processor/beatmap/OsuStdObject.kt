@@ -77,7 +77,7 @@ class OsuStdObject constructor(
                 var travelDist = 0.0
                 var travelTime = 0.0
                 val ticks = mutableListOf<HitObjectPosition>()
-                val totalFlattenTicks = mutableListOf<Pair<Double, HitObjectPosition>>()
+                val totalFlattenTicks = mutableListOf<HitObjectPosition>()
 
                 sliderState.update(h.startTime)
 
@@ -115,7 +115,7 @@ class OsuStdObject constructor(
                     for (index in 1..Int.MAX_VALUE) {
                         val time = h.startTime + timeAdd * index
                         ticks.add(computePosition(time))
-                        totalFlattenTicks.add(time to computePosition(time))
+                        totalFlattenTicks.add(computePosition(time))
                         currentDistance += tickDistance
 
                         if (currentDistance >= target) break
@@ -126,9 +126,8 @@ class OsuStdObject constructor(
                 if(h.kind.repeatTimes > 1) {
                     isRepeatSlider = true
                     for (rptIndex in 1 until h.kind.repeatTimes) {
-                        val timeOffset = duration / h.kind.repeatTimes.toDouble() * rptIndex.toDouble()
                         ticks.let { if (rptIndex and 1 == 1) it.reversed() else it }.forEach {
-                            totalFlattenTicks.add(h.startTime + timeOffset to it)
+                            totalFlattenTicks.add(it)
                         }
                     }
                 }
@@ -142,7 +141,7 @@ class OsuStdObject constructor(
                 computePosition(finalSpanEndTime)
                 ticks.clear()
 
-                val lazyTravelTime = totalFlattenTicks.last().first - h.startTime
+                val lazyTravelTime = finalSpanEndTime - h.startTime
 
                 var endTimeMin = lazyTravelTime / spanDuration
                 if (endTimeMin % 2.0 >= 1.0) {
@@ -155,7 +154,7 @@ class OsuStdObject constructor(
                 var currCursorPosition = h.pos
 
 
-                totalFlattenTicks.forEachIndexed { idx, (_, pos) ->
+                totalFlattenTicks.forEachIndexed { idx, pos ->
                     var currMovement = pos - currCursorPosition
                     var currMovementLength = scalingFactor * currMovement.length()
 
