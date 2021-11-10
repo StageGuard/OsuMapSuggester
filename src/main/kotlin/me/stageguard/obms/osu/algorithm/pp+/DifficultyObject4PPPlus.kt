@@ -18,12 +18,11 @@ import kotlin.properties.Delegates
 
 @Suppress("SelfReferenceConstructorParameter")
 class DifficultyObject4PPPlus(
-    base: OsuStdObject, prev: OsuStdObject,
-    prevVals: Optional<Pair<Double, Double>>, prevPrev: Optional<OsuStdObject>,
+    base: OsuStdObject, prev: OsuStdObject, prevPrev: Optional<OsuStdObject>,
     val prevDifficultyObject: Optional<DifficultyObject4PPPlus>,
     val prevPrevDifficultyObject: Optional<DifficultyObject4PPPlus>,
     clockRate: Double, scalingFactor: Double
-) : DifficultyObject(base, prev, prevVals, prevPrev, clockRate, scalingFactor) {
+) : DifficultyObject(base, prev, prevPrev, clockRate, scalingFactor) {
     var rawJumpDist by Delegates.notNull<Double>()
     var preempt by Delegates.notNull<Double>()
     var angleLeniency = 0.0

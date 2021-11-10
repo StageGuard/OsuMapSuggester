@@ -56,7 +56,6 @@ fun Beatmap.calculateSkills(
             mods = mods,
             radius = radius,
             scalingFactor = scalingFactor,
-            ticks = ticksBuf,
             attributes = skillAttributes,
             sliderState = sliderState
         )
@@ -91,7 +90,6 @@ fun Beatmap.calculateSkills(
     var hDifficultyPoint = DifficultyObject4PPPlus(
         base = curr,
         prev = prev,
-        prevVals = prevVals,
         prevPrev = prevPrev,
         clockRate = mapAttributesWithMod.clockRate,
         scalingFactor = scalingFactor,
@@ -121,7 +119,6 @@ fun Beatmap.calculateSkills(
         hDifficultyPoint = DifficultyObject4PPPlus(
             base = curr,
             prev = prev,
-            prevVals = prevVals,
             prevPrev = prevPrev,
             clockRate = mapAttributesWithMod.clockRate,
             scalingFactor = scalingFactor,
