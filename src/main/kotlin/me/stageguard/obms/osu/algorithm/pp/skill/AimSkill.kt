@@ -19,9 +19,10 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
     override val skillMultiplier: Double
         get() = AIM_SKILL_MULTIPLIER
 
-    override fun strainValueOf(current: DifficultyObject): Double = if (
-        current.base.isSpinner || !isPrevQueueFull || prevObj?.base?.isSpinner == true
-    ) { 0.0 } else {
+    override fun strainValueOf(current: DifficultyObject): Double {
+        if (current.base.isSpinner || !isPrevQueueFull || prevObj?.base?.isSpinner == true)
+            return 0.0
+
         var currVelocity = current.jumpDistance / current.strainTime
         if (prevObj?.base?.isSlider == true) {
             val movementVelocity = current.movementDistance / current.movementTime
@@ -100,7 +101,7 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
         )
         aimStrain += sliderBonus * SLIDER_MULTIPLIER
 
-        aimStrain
+        return aimStrain
     }
     
     private fun calcWideAngleBonus(angle: Double) =
