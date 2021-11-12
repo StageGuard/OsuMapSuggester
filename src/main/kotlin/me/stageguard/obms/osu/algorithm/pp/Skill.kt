@@ -15,7 +15,7 @@ abstract class Skill<DO : DifficultyObject>(val mods: ModCombination) {
     open val reducedSectionCount: Int = 10
     open val difficultyMultiplier: Double = 1.06
 
-    private var currentStrain: Double = 1.0
+    open var currentStrain: Double = 1.0
     private var currentSectionPeak: Double = 1.0
     private val strainPeaks: MutableList<Double> = mutableListOf()
     private var prevTime: Optional<Double> = Optional.empty()

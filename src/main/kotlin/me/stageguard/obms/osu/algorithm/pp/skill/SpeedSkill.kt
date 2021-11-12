@@ -17,7 +17,7 @@ class SpeedSkill(mods: ModCombination, val hitWindow: Double) : Skill<Difficulty
     private val MIN_SPEED_BONUS: Double = 75.0
     private val SPEED_BALANCING_FACTOR: Double = 40.0
 
-    private var currentStrain = 1.0
+    override var currentStrain = 1.0
     private var currentRhythm = 1.0
 
     override val reducedSectionCount = 5
