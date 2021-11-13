@@ -175,7 +175,7 @@ class OsuStdObject constructor(
                 this.stackHeight = stackHeight
                 this.kind = OsuStdObjectType.Slider(
                     endTime = h.startTime + duration,
-                    endPosition = curve.pointAtDistance(h.kind.pixelLength),
+                    endPosition = nestedObjects.last(),
                     lazyEndPosition = lazyEndPosition,
                     lazyTravelDistance = lazyTravelDistance,
                     lazyTravelTime = lazyTravelTime
