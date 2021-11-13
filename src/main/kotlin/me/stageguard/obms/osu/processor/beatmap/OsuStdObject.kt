@@ -1,10 +1,13 @@
 package me.stageguard.obms.osu.processor.beatmap
 
 import me.stageguard.obms.osu.algorithm.pp.*
+import me.stageguard.obms.utils.concatenate
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.properties.Delegates
+
+const val LEGACY_LAST_TICK_OFFSET = 36.0
 
 @Suppress("PrivatePropertyName")
 class OsuStdObject constructor(
@@ -16,7 +19,6 @@ class OsuStdObject constructor(
     attributes: DifficultyAttributes,
     sliderState: SliderState,
 ) {
-
     var time by Delegates.notNull<Double>()
     lateinit var position: HitObjectPosition
     var stackHeight by Delegates.notNull<Double>()
@@ -24,12 +26,12 @@ class OsuStdObject constructor(
     var timePreempt by Delegates.notNull<Double>()
 
     val travelDist get() = when(val kind = kind) {
-        is OsuStdObjectType.Slider -> kind.travelDist
+        is OsuStdObjectType.Slider -> kind.lazyTravelDistance
         else -> 0.0
     }
 
     val travelTime get() = when(val kind = kind) {
-        is OsuStdObjectType.Slider -> kind.travelTime
+        is OsuStdObjectType.Slider -> kind.lazyTravelTime
         else -> 0.0
     }
 
@@ -74,75 +76,60 @@ class OsuStdObject constructor(
                 this.stackHeight = stackHeight
             }
             is HitObjectType.Slider -> {
-                var travelDist = 0.0
-                var travelTime = 0.0
-                val ticks = mutableListOf<HitObjectPosition>()
-                val totalFlattenTicks = mutableListOf<HitObjectPosition>()
-
                 sliderState.update(h.startTime)
 
                 var tickDistance = 100.0 * beatmap.sliderMultiplier / beatmap.sliderTickRate
+                if (beatmap.version >= 8) tickDistance /= (100.0 / sliderState.speedMultiply).coerceIn(
+                    10.0,
+                    1000.0
+                ) / 100.0
 
-                if(beatmap.version >= 8) {
-                    tickDistance /= min(1000.0, max(10.0, 100.0 / sliderState.speedMultiply)) / 100.0
-                }
-
-                val duration = h.kind.repeatTimes.toDouble() * sliderState.beatLength * h.kind.pixelLength / (beatmap.sliderMultiplier * sliderState.speedMultiply) / 100
+                val duration =
+                    h.kind.repeatTimes * sliderState.beatLength * h.kind.pixelLength / (beatmap.sliderMultiplier * sliderState.speedMultiply) / 100.0
                 val spanDuration = duration / h.kind.repeatTimes.toDouble()
 
                 val curve = Curve.newCurve(h.kind.curvePoints, h.kind.pathType)
 
                 val computePosition = { time: Double ->
-                    attributes.maxCombo ++
-
-                    var progress = (time - h.startTime).also { travelTime += it } / spanDuration
-                    if (progress % 2.0 >= 1.0) {
-                        progress = 1.0 - progress % 1.0
-                    } else {
-                        progress %= 1.0
-                    }
-
+                    var progress = (time - h.startTime) / spanDuration
+                    if (progress % 2.0 >= 1.0) progress = 1.0 - progress % 1.0 else progress %= 1.0
                     curve.pointAtDistance(h.kind.pixelLength * progress)
                 }
 
+                val headTick = curve.pointAtDistance(0.0)
+                val tailTick = curve.pointAtDistance(h.kind.pixelLength)
+                val midTicks = mutableListOf<HitObjectPosition>()
+
                 var currentDistance = tickDistance
                 val timeAdd = duration * (tickDistance / (h.kind.pixelLength * h.kind.repeatTimes.toDouble()))
-
                 val target = h.kind.pixelLength - tickDistance / 8.0
-
-                // process slider ticks
                 if (currentDistance < target) {
                     for (index in 1..Int.MAX_VALUE) {
                         val time = h.startTime + timeAdd * index
-                        ticks.add(computePosition(time))
-                        totalFlattenTicks.add(computePosition(time))
+                        midTicks.add(computePosition(time))
                         currentDistance += tickDistance
 
                         if (currentDistance >= target) break
                     }
                 }
-                var isRepeatSlider = false
-                // process slider repeats
-                if(h.kind.repeatTimes > 1) {
-                    isRepeatSlider = true
-                    for (rptIndex in 1 until h.kind.repeatTimes) {
-                        ticks.let { if (rptIndex and 1 == 1) it.reversed() else it }.forEach {
-                            totalFlattenTicks.add(it)
-                        }
+
+                val nestedObjects = mutableListOf<HitObjectPosition>()
+
+                // the first object of slider, this combo is accumulated at the first line of `init { }`
+                nestedObjects.add(headTick)
+
+                val isRepeatSlider = h.kind.repeatTimes > 1
+                for (i in 1..h.kind.repeatTimes) {
+                    midTicks.run {
+                        if (i % 2 == 1) concatenate(tailTick) else reversed().concatenate(headTick)
+                    }.forEach { t ->
+                        nestedObjects.add(t)
+                        attributes.maxCombo++
                     }
                 }
 
-                val finalSpanIndex = min(0, h.kind.repeatTimes - 1)
-                val finalSpanStartTime = h.startTime + finalSpanIndex.toDouble() * spanDuration
-                val finalSpanEndTime = max(
-                    h.startTime + duration / 2.0,
-                    finalSpanStartTime + spanDuration/* - LEGACY_LAST_TICK_OFFSET*/
-                )
-                computePosition(finalSpanEndTime)
-                ticks.clear()
-
-                val lazyTravelTime = finalSpanEndTime - h.startTime
-
+                var lazyTravelDistance = 0.0
+                val lazyTravelTime = duration - LEGACY_LAST_TICK_OFFSET
                 var endTimeMin = lazyTravelTime / spanDuration
                 if (endTimeMin % 2.0 >= 1.0) {
                     endTimeMin = 1.0 - endTimeMin % 1.0
@@ -150,17 +137,17 @@ class OsuStdObject constructor(
                     endTimeMin %= 1.0
                 }
 
-                var lazyEndPosition = h.pos + curve.pointAtDistance(h.kind.pixelLength * endTimeMin)
+                var lazyEndPosition = curve.pointAtDistance(h.kind.pixelLength * endTimeMin)
                 var currCursorPosition = h.pos
 
-
-                totalFlattenTicks.forEachIndexed { idx, pos ->
+                nestedObjects.forEachIndexed { idx, pos ->
+                    if (idx == 0) return@forEachIndexed // skip the first object
                     var currMovement = pos - currCursorPosition
                     var currMovementLength = scalingFactor * currMovement.length()
 
                     var requiredMovement = ASSUMED_SLIDER_RADIUS
 
-                    if (idx == totalFlattenTicks.lastIndex) {
+                    if (idx == nestedObjects.lastIndex) {
                         val lazyMovement = lazyEndPosition - currCursorPosition
 
                         if (lazyMovement.length() < currMovement.length())
@@ -174,24 +161,24 @@ class OsuStdObject constructor(
                     if (currMovementLength > requiredMovement) {
                         currCursorPosition += currMovement * ((currMovementLength - requiredMovement) / currMovementLength)
                         currMovementLength *= (currMovementLength - requiredMovement) / currMovementLength
-                        travelDist += currMovementLength
+                        lazyTravelDistance += currMovementLength
                     }
 
-                    if (idx == totalFlattenTicks.lastIndex)
+                    if (idx == nestedObjects.lastIndex)
                         lazyEndPosition = currCursorPosition
                 }
 
-                travelDist *= (1 + h.kind.repeatTimes / 2.5).pow(1.0 / 2.5)
+                lazyTravelDistance *= (1 + (h.kind.repeatTimes - 1) / 2.5).pow(1.0 / 2.5)
 
                 this.time = h.startTime
                 this.position = h.pos
                 this.stackHeight = stackHeight
                 this.kind = OsuStdObjectType.Slider(
-                    endTime = finalSpanEndTime,
+                    endTime = h.startTime + duration,
                     endPosition = curve.pointAtDistance(h.kind.pixelLength),
                     lazyEndPosition = lazyEndPosition,
-                    travelDist = travelDist,
-                    travelTime = travelTime
+                    lazyTravelDistance = lazyTravelDistance,
+                    lazyTravelTime = lazyTravelTime
                 )
             }
             is HitObjectType.Spinner -> {
@@ -219,10 +206,10 @@ sealed class OsuStdObjectType {
     }
     class Slider(
         val endTime: Double, val endPosition: HitObjectPosition,
-        val lazyEndPosition: HitObjectPosition, val travelDist: Double, val travelTime: Double,
+        val lazyEndPosition: HitObjectPosition, val lazyTravelDistance: Double, val lazyTravelTime: Double,
     ) : OsuStdObjectType() {
         override fun toString(): String {
-            return "Slider(endTime=$endTime, endPosition=$endPosition, lazyEndPosition=$lazyEndPosition, travelDist=$travelDist, travelTime=$travelTime)"
+            return "Slider(endTime=$endTime, endPosition=$endPosition, lazyEndPosition=$lazyEndPosition, travelDist=$lazyTravelDistance, travelTime=$lazyTravelTime)"
         }
     }
     class Spinner(val endTime: Double) : OsuStdObjectType() {
