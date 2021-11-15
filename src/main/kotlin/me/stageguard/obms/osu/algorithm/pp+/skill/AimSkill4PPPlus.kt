@@ -161,7 +161,7 @@ open class AimSkill4PPPlus(mods: ModCombination) : Skill<DifficultyObject4PPPlus
             distanceBonus = (-cos(distanceRatio * Math.PI) + 1.0) / 2.0
 
         var angleBonus = 0.0
-        if (!current.angle.isPresent && !previousObject.get().angle.isPresent) {
+        if (current.angle.isPresent && previousObject.get().angle.isPresent) {
             if (current.angle.get() > 0 && previousObject.get().angle.get() < 0 || current.angle.get() < 0 && previousObject.get().angle.get() > 0) {
                 val angleChange: Double = if (abs(current.angle.get()) > (Math.PI - abs(previousObject.get().angle.get())) / 2.0)
                     Math.PI - abs(current.angle.get())
