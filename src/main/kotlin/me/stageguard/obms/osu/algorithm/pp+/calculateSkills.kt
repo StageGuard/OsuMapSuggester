@@ -22,7 +22,8 @@ fun Beatmap.calculateSkills(
         overallDifficulty = mapAttributesWithMod.overallDifficulty,
         hpDrain = mapAttributesWithMod.hpDrainRate,
         circleSize = mapAttributesWithMod.circleSize,
-        maxCombo = 0, nCircles = this.nCircles, nSpinners = this.nSpinners,
+        maxCombo = 0, nCircles = nCircles,
+        nSpinners = nSpinners, nSliders = nSliders,
         speedStrain = 0.0,
         aimStrain = 0.0,
         jumpAimStrain = 0.0,
@@ -43,7 +44,6 @@ fun Beatmap.calculateSkills(
         scalingFactor *= 1.0 + smallCircleBonus
     }
     val sliderState = SliderState(this)
-    val ticksBuf = mutableListOf<Double>()
 
     val stackThreshold = difficultyRange(mapAttributesWithMod.approachRate.let {
         if(mods.hr()) it * 1.4 else if(mods.ez()) it * 0.5 else it
@@ -84,7 +84,6 @@ fun Beatmap.calculateSkills(
     var prevPrevDifficultyObject: Optional<DifficultyObject4PPPlus> = Optional.empty()
     var prev = hitObjectMappedIterator.next()
     var prevDifficultyObject: Optional<DifficultyObject4PPPlus> = Optional.empty()
-    var prevVals: Optional<Pair<Double, Double>> = Optional.empty()
 
     var curr = hitObjectMappedIterator.next()
     var hDifficultyPoint = DifficultyObject4PPPlus(
@@ -110,7 +109,6 @@ fun Beatmap.calculateSkills(
     rhythmComplexity.process(hDifficultyPoint)
 
     prevPrev = Optional.of(prev)
-    prevVals = Optional.of(hDifficultyPoint.run { movementDistance to movementTime })
     prevDifficultyObject = Optional.of(hDifficultyPoint)
     prev = curr
 
@@ -151,7 +149,6 @@ fun Beatmap.calculateSkills(
 
         prevPrev = Optional.of(prev)
         prevPrevDifficultyObject = prevDifficultyObject
-        prevVals = Optional.of(hDifficultyPoint.run { movementDistance to movementTime })
         prev = curr
         prevDifficultyObject = Optional.of(hDifficultyPoint)
     }

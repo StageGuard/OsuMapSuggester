@@ -5,7 +5,7 @@ import me.stageguard.obms.osu.algorithm.pp.Skill
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import kotlin.math.*
 
-class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
+class AimSkill(mods: ModCombination, private val withSliders: Boolean = true) : Skill<DifficultyObject>(mods) {
     private val WIDE_ANGLE_MULTIPLIER = 1.5
     private val ACUTE_ANGLE_MULTIPLIER = 2.0
     private val SLIDER_MULTIPLIER = 1.5
@@ -19,14 +19,14 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
             return 0.0
 
         var currVelocity = current.jumpDistance / current.strainTime
-        if (prevObj?.base?.isSlider == true) {
+        if (prevObj?.base?.isSlider == true && withSliders) {
             val movementVelocity = current.movementDistance / current.movementTime
             val travelVelocity = current.travelDistance / current.travelTime
             currVelocity = max(currVelocity, movementVelocity + travelVelocity)
         }
 
         var prevVelocity = prevObj!!.jumpDistance / prevObj!!.strainTime
-        if (prevPrevObj?.base?.isSlider == true) {
+        if (prevPrevObj?.base?.isSlider == true && withSliders) {
             val movementVelocity = prevObj!!.movementDistance / prevObj!!.movementTime
             val travelVelocity = prevObj!!.travelDistance / prevObj!!.travelTime
             prevVelocity = max(prevVelocity, movementVelocity + travelVelocity)
@@ -88,7 +88,7 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
             acuteAngleBonus * ACUTE_ANGLE_MULTIPLIER,
             wideAngleBonus * WIDE_ANGLE_MULTIPLIER + velocityChangeBonus * VELOCITY_CHANGE_MULTIPLIER
         )
-        aimStrain += sliderBonus * SLIDER_MULTIPLIER
+        if (withSliders) aimStrain += sliderBonus * SLIDER_MULTIPLIER
 
         return aimStrain
     }

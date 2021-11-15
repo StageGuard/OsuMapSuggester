@@ -19,7 +19,7 @@ const val DIFFICULTY_MULTIPLIER = 0.0675
 const val STACK_DISTANCE = 3.0
 const val MIN_DELTA_TIME = 25.0
 const val MAXIMUM_SLIDER_RADIUS = NORMALIZED_RADIUS * 2.4f
-const val ASSUMED_SLIDER_RADIUS = NORMALIZED_RADIUS * 1.65f
+const val ASSUMED_SLIDER_RADIUS = NORMALIZED_RADIUS * 1.8f
 
 fun Beatmap.calculateDifficultyAttributes(
     mods: ModCombination,
@@ -34,8 +34,8 @@ fun Beatmap.calculateDifficultyAttributes(
     val initialAttributes = DifficultyAttributes(
         stars = 0.0, approachRate = mapAttributesWithMod.approachRate,
         circleSize = mapAttributesWithMod.circleSize, hpDrain = mapAttributesWithMod.hpDrainRate,
-        overallDifficulty = od, speedStrain = 0.0, aimStrain = 0.0,
-        maxCombo = 0, nCircles = 0, nSpinners = 0
+        overallDifficulty = od, aimStrain = 0.0, sliderFactor = 0.0, speedStrain = 0.0,
+        maxCombo = 0, nCircles = nCircles, nSliders = nSliders, nSpinners = nSpinners
     )
 
     if(take < 2) return initialAttributes
@@ -76,7 +76,7 @@ fun Beatmap.calculateDifficultyAttributes(
         it
     }.iterator()
 
-    val skills = listOf(AimSkill(mods), SpeedSkill(mods, hitWindow))
+    val skills = listOf(AimSkill(mods), AimSkill(mods, false), SpeedSkill(mods, hitWindow))
 
     var currentSectionEnd = ceil(hitObjects[0].startTime / sectionLength) * sectionLength
     var prevPrev: Optional<OsuStdObject> = Optional.empty()
@@ -124,11 +124,12 @@ fun Beatmap.calculateDifficultyAttributes(
 
     skills.forEach { it.saveCurrentPeak() }
 
-    val (aimStrain, speedStrain) = skills.map {
+    val (aimStrain, aimNoSlidersStrain, speedStrain) = skills.map {
         sqrt(it.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
     }
 
     val baseAimPerformance: Double = (5 * 1.0.coerceAtLeast(aimStrain / 0.0675) - 4).pow(3) / 100000
+    val sliderFactor = if (baseAimPerformance > 0) aimNoSlidersStrain / aimStrain else 1.0
     val baseSpeedPerformance: Double = (5 * 1.0.coerceAtLeast(speedStrain / 0.0675) - 4).pow(3) / 100000
     val basePerformance: Double =
         (baseAimPerformance.pow(1.1) + baseSpeedPerformance.pow(1.1)).pow(1 / 1.1)
@@ -136,11 +137,10 @@ fun Beatmap.calculateDifficultyAttributes(
         Math.cbrt(1.12) * 0.027 * (Math.cbrt(100000 / 2.0.pow(1 / 1.1) * basePerformance) + 4) else 0.0
 
     return initialAttributes.also {
-        it.nCircles = this.nCircles
-        it.nSpinners = this.nSpinners
         it.stars = starRating
-        it.speedStrain = speedStrain
         it.aimStrain = aimStrain
+        it.sliderFactor = sliderFactor
+        it.speedStrain = speedStrain
     }
 }
 

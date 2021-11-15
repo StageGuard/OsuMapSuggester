@@ -19,10 +19,11 @@ class SkillAttributes(
     var accuracyStrain: Double,
     maxCombo: Int,
     nCircles: Int,
+    nSliders: Int,
     nSpinners: Int
 ) : DifficultyAttributes(
     stars, approachRate, overallDifficulty, hpDrain, circleSize,
-    speedStrain, aimStrain, maxCombo, nCircles, nSpinners
+    aimStrain, 1.0, speedStrain, maxCombo, nCircles, nSliders, nSpinners
 ) {
     override fun toString(): String {
         return "SkillAttributes(\n" +

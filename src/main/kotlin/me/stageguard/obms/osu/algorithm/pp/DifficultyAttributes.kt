@@ -6,10 +6,12 @@ open class DifficultyAttributes(
     var overallDifficulty: Double,
     var hpDrain: Double,
     var circleSize: Double,
-    var speedStrain: Double,
     var aimStrain: Double,
+    var sliderFactor: Double,
+    var speedStrain: Double,
     var maxCombo: Int,
     var nCircles: Int,
+    var nSliders: Int,
     var nSpinners: Int
 ) {
     override fun toString(): String {
