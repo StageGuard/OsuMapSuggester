@@ -16,22 +16,22 @@ open class DifficultyObject constructor(
     scalingFactor: Double,
 ) {
     var jumpDistance by Delegates.notNull<Double>()
-    var travelDistance by Delegates.notNull<Double>()
     var angle : Optional<Double> = Optional.empty()
     var delta by Delegates.notNull<Double>()
     var strainTime by Delegates.notNull<Double>()
     var movementTime by Delegates.notNull<Double>()
     var movementDistance by Delegates.notNull<Double>()
-    var travelTime by Delegates.notNull<Double>()
+    var travelTime = 0.0
+    var travelDistance = 0.0
 
     init {
         delta = (base.time - prev.time) / clockRate
         strainTime = delta.coerceAtLeast(MIN_DELTA_TIME)
         jumpDistance = ((base.position - prev.lazyEndPosition) * scalingFactor).length()
-        travelDistance = prev.travelDist
-        travelTime = (prev.travelTime / clockRate).coerceAtLeast(MIN_DELTA_TIME)
 
-        if (prev.kind is OsuStdObjectType.Slider) {
+        if (prev.isSlider) {
+            travelDistance = prev.travelDist
+            travelTime = (prev.travelTime / clockRate).coerceAtLeast(MIN_DELTA_TIME)
             movementTime = (strainTime - travelTime).coerceAtLeast(MIN_DELTA_TIME)
 
             val tailJumpDistance = (base.position - prev.endPosition).length() * scalingFactor
@@ -44,8 +44,11 @@ open class DifficultyObject constructor(
             movementDistance = jumpDistance
         }
 
-        angle = prevPrev.map {
-            val prevPrevCursorPos = it.lazyEndPosition
+        angle = kotlin.run a@ {
+            val obj = prevPrev.orElseGet { null } ?: return@a Optional.empty()
+            if (obj.isSpinner) return@a Optional.empty()
+
+            val prevPrevCursorPos = obj.lazyEndPosition
 
             val v1 = prevPrevCursorPos - prev.position
             val v2 = base.position - prev.lazyEndPosition
@@ -53,7 +56,7 @@ open class DifficultyObject constructor(
             val dot = v1.dotMultiply(v2)
             val det = v1.x * v2.y - v1.y * v2.x
 
-            abs(atan2(det, dot))
+            return@a Optional.of(abs(atan2(det, dot)))
         }
     }
 }

@@ -6,18 +6,13 @@ import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import kotlin.math.*
 
 class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
-    private val AIM_SKILL_MULTIPLIER: Double = 23.25
-    private val AIM_STRAIN_DECAY_BASE: Double = 0.15
+    private val WIDE_ANGLE_MULTIPLIER = 1.5
+    private val ACUTE_ANGLE_MULTIPLIER = 2.0
+    private val SLIDER_MULTIPLIER = 1.5
+    private val VELOCITY_CHANGE_MULTIPLIER = 0.75
 
-    private val WIDE_ANGLE_MULTIPLIER: Double = 1.5
-    private val ACUTE_ANGLE_MULTIPLIER: Double = 2.0
-    private val SLIDER_MULTIPLIER: Double = 1.5
-    private val VELOCITY_CHANGE_MULTIPLIER: Double = 0.75
-
-    override val strainDecayBase: Double
-        get() = AIM_STRAIN_DECAY_BASE
-    override val skillMultiplier: Double
-        get() = AIM_SKILL_MULTIPLIER
+    override val strainDecayBase = 0.15
+    override val skillMultiplier = 23.25
 
     override fun strainValueOf(current: DifficultyObject): Double {
         if (current.base.isSpinner || !isPrevQueueHasFirst2Objs || prevObj?.base?.isSpinner == true)
@@ -27,22 +22,20 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
         if (prevObj?.base?.isSlider == true) {
             val movementVelocity = current.movementDistance / current.movementTime
             val travelVelocity = current.travelDistance / current.travelTime
-
-            currVelocity = max(currVelocity, movementVelocity * travelVelocity)
+            currVelocity = max(currVelocity, movementVelocity + travelVelocity)
         }
 
         var prevVelocity = prevObj!!.jumpDistance / prevObj!!.strainTime
         if (prevPrevObj?.base?.isSlider == true) {
             val movementVelocity = prevObj!!.movementDistance / prevObj!!.movementTime
             val travelVelocity = prevObj!!.travelDistance / prevObj!!.travelTime
-
-            prevVelocity = max(prevVelocity, movementVelocity * travelVelocity)
+            prevVelocity = max(prevVelocity, movementVelocity + travelVelocity)
         }
 
         var wideAngleBonus = 0.0
         var acuteAngleBonus = 0.0
-        var sliderBonus = 0.0
         var velocityChangeBonus = 0.0
+        val sliderBonus = if (current.travelTime != 0.0) current.travelDistance / current.travelTime else 0.0
 
         var aimStrain = currVelocity
 
@@ -91,33 +84,6 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
             )).pow(2)
         }
 
-        if (max(prevVelocity, currVelocity) != 0.0) {
-            prevVelocity = (prevObj!!.jumpDistance + prevObj!!.travelDistance) / prevObj!!.strainTime
-            currVelocity = (current.jumpDistance + current.travelDistance) / current.strainTime
-
-            val distRatio: Double = sin(
-                Math.PI / 2 * abs(prevVelocity - currVelocity) / max(prevVelocity, currVelocity)
-            ).pow(2)
-
-            val overlapVelocityBuff: Double = min(
-                125 / min(current.strainTime, prevObj!!.strainTime), abs(prevVelocity - currVelocity)
-            )
-
-            val nonOverlapVelocityBuff: Double = (abs(prevVelocity - currVelocity)
-                    * sin(Math.PI / 2 * min(1.0, min(current.jumpDistance, prevObj!!.jumpDistance) / 100.0)
-            ).pow(2))
-
-            velocityChangeBonus = max(overlapVelocityBuff, nonOverlapVelocityBuff) * distRatio
-
-            velocityChangeBonus *= (min(current.strainTime, prevObj!!.strainTime) / max(
-                current.strainTime, prevObj!!.strainTime
-            )).pow(2)
-        }
-
-        if (current.travelTime != 0.0) {
-            sliderBonus = current.travelDistance / current.travelTime
-        }
-
         aimStrain += max(
             acuteAngleBonus * ACUTE_ANGLE_MULTIPLIER,
             wideAngleBonus * WIDE_ANGLE_MULTIPLIER + velocityChangeBonus * VELOCITY_CHANGE_MULTIPLIER
@@ -128,7 +94,7 @@ class AimSkill(mods: ModCombination) : Skill<DifficultyObject>(mods) {
     }
     
     private fun calcWideAngleBonus(angle: Double) =
-        sin(3.0 / 4 * ((5.0 / 6 * Math.PI).coerceAtMost((Math.PI / 6).coerceAtLeast(angle)) - Math.PI / 6)).pow(2.0)
+        sin(3.0 / 4 * (angle.coerceIn(1.0 / 6 * Math.PI, 5.0 / 6 * Math.PI) - Math.PI / 6)).pow(2)
 
     private fun calcAcuteAngleBonus(angle: Double) = 1 - calcWideAngleBonus(angle)
 }
