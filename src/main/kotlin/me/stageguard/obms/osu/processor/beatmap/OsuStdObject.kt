@@ -3,7 +3,6 @@ package me.stageguard.obms.osu.processor.beatmap
 import me.stageguard.obms.osu.algorithm.pp.*
 import me.stageguard.obms.utils.concatenate
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.pow
 import kotlin.properties.Delegates
 
@@ -113,23 +112,36 @@ class OsuStdObject constructor(
                     }
                 }
 
-                val nestedObjects = mutableListOf<HitObjectPosition>()
-
+                // first: is slider repeat combo, second the combo position
                 // the first object of slider, this combo is accumulated at the first line of `init { }`
-                nestedObjects.add(headTick)
+                val nestedObjects = mutableListOf(false to headTick)
 
-                val isRepeatSlider = h.kind.repeatTimes > 1
                 for (i in 1..h.kind.repeatTimes) {
-                    midTicks.run {
-                        if (i % 2 == 1) concatenate(tailTick) else reversed().concatenate(headTick)
+                    val isTailCircle = i != h.kind.repeatTimes
+                    if (i % 2 == 1) {
+                        midTicks.map { false to it }.concatenate(isTailCircle to tailTick)
+                    } else {
+                        midTicks.reversed().map { false to it }.concatenate(isTailCircle to headTick)
                     }.forEach { t ->
                         nestedObjects.add(t)
-                        attributes.maxCombo++
+                        attributes.maxCombo ++
                     }
                 }
 
+                val finalSpanStartTime = h.startTime + (h.kind.repeatTimes - 1) * spanDuration
+                val finalSpanEndTime = (h.startTime + duration / 2.0)
+                        .coerceAtLeast((finalSpanStartTime + spanDuration) - LEGACY_LAST_TICK_OFFSET)
+
                 var lazyTravelDistance = 0.0
-                val lazyTravelTime = duration - LEGACY_LAST_TICK_OFFSET
+                val lazyTravelTime = if (finalSpanStartTime > finalSpanEndTime) {
+                    val last2Reversed = nestedObjects.takeLast(2).reversed()
+                    nestedObjects.apply { repeat(2) { removeLast() } }
+                    nestedObjects.addAll(last2Reversed)
+                    finalSpanStartTime
+                } else {
+                    finalSpanEndTime
+                } - h.startTime
+
                 var endTimeMin = lazyTravelTime / spanDuration
                 if (endTimeMin % 2.0 >= 1.0) {
                     endTimeMin = 1.0 - endTimeMin % 1.0
@@ -140,7 +152,7 @@ class OsuStdObject constructor(
                 var lazyEndPosition = curve.pointAtDistance(h.kind.pixelLength * endTimeMin)
                 var currCursorPosition = h.pos
 
-                nestedObjects.forEachIndexed { idx, pos ->
+                nestedObjects.forEachIndexed { idx, (isRepeatTick, pos) ->
                     if (idx == 0) return@forEachIndexed // skip the first object
                     var currMovement = pos - currCursorPosition
                     var currMovementLength = scalingFactor * currMovement.length()
@@ -154,7 +166,7 @@ class OsuStdObject constructor(
                             currMovement = lazyMovement
 
                         currMovementLength = scalingFactor * currMovement.length()
-                    } else if (isRepeatSlider) {
+                    } else if (isRepeatTick) {
                         requiredMovement = NORMALIZED_RADIUS
                     }
 
@@ -175,7 +187,7 @@ class OsuStdObject constructor(
                 this.stackHeight = stackHeight
                 this.kind = OsuStdObjectType.Slider(
                     endTime = h.startTime + duration,
-                    endPosition = nestedObjects.last(),
+                    endPosition = if (h.kind.repeatTimes % 2 == 0) headTick else tailTick,
                     lazyEndPosition = lazyEndPosition,
                     lazyTravelDistance = lazyTravelDistance,
                     lazyTravelTime = lazyTravelTime
