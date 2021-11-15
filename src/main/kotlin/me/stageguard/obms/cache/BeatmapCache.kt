@@ -26,7 +26,7 @@ object BeatmapCache {
 
         if(file.run { exists() && isFile }) {
             return try {
-                InferredOptionalValue(Beatmap.parse(file.bomReader()))
+                withContext(Dispatchers.IO) { InferredOptionalValue(Beatmap.parse(file.bomReader())) }
             } catch (ex: Exception) {
                 if(tryCount < maxTryCount) {
                     file.delete()
@@ -47,7 +47,7 @@ object BeatmapCache {
                 } }
                 return file.bomReader().use {
                     try {
-                        InferredOptionalValue(Beatmap.parse(it))
+                        withContext(Dispatchers.IO) { InferredOptionalValue(Beatmap.parse(it)) }
                     } catch (ex: Exception) {
                         if(tryCount < maxTryCount) {
                             getBeatmap(bid, maxTryCount, tryCount + 1)
