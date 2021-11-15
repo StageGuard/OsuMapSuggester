@@ -89,8 +89,18 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
                 OsuMapSuggester.logger.warning { "Error while add beatmap $bid: $it" }
                 return@forEach
             }.right
-            val skills = beatmap.calculateSkills(ModCombination.of(Mod.None))
-            val difficultyAttributes = beatmap.calculateDifficultyAttributes(ModCombination.of(Mod.None))
+            val skills = try {
+                beatmap.calculateSkills(ModCombination.of(Mod.None))
+            } catch (ex: Exception) {
+                OsuMapSuggester.logger.warning("Error while calculating skill of beatmap $bid.", ex)
+                return@forEach
+            }
+            val difficultyAttributes = try {
+                beatmap.calculateDifficultyAttributes(ModCombination.of(Mod.None))
+            } catch (ex: Exception) {
+                OsuMapSuggester.logger.warning("Error while calculating difficulty attribute of beatmap $bid.", ex)
+                return@forEach
+            }
 
             val dao = BeatmapSkill {
                 this.bid = bid
