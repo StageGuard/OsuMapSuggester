@@ -1,6 +1,7 @@
 package me.stageguard.obms.database.model
 
 import me.stageguard.obms.OsuMapSuggester
+import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.database.AddableTable
 import me.stageguard.obms.database.Database
@@ -80,27 +81,14 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
             return@query 0f
         }
 
-        items.forEach { bid ->
+        items.forEach { bid -> try {
             val find = db.sequenceOf(this@BeatmapSkillTable).find { it.bid eq bid }
-
             if(find != null && ifAbsent) return@forEach
 
-            val beatmap = BeatmapCache.getBeatmap(bid).onLeft {
-                OsuMapSuggester.logger.warning { "Error while add beatmap $bid: $it" }
-                return@forEach
-            }.right
-            val skills = try {
-                beatmap.calculateSkills(ModCombination.of(Mod.None))
-            } catch (ex: Exception) {
-                OsuMapSuggester.logger.warning("Error while calculating skill of beatmap $bid.", ex)
-                return@forEach
-            }
-            val difficultyAttributes = try {
-                beatmap.calculateDifficultyAttributes(ModCombination.of(Mod.None))
-            } catch (ex: Exception) {
-                OsuMapSuggester.logger.warning("Error while calculating difficulty attribute of beatmap $bid.", ex)
-                return@forEach
-            }
+            val beatmap = BeatmapCache.getBeatmap(bid).rightOrThrowLeft()
+
+            val skills = beatmap.calculateSkills(ModCombination.of(Mod.None))
+            val difficultyAttributes = beatmap.calculateDifficultyAttributes(ModCombination.of(Mod.None))
 
             val dao = BeatmapSkill {
                 this.bid = bid
@@ -123,17 +111,16 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
 
                 toUpdate.add(dao)
             } else {
-                val beatmapInfo = OsuWebApi.getBeatmap(randomUser, bid).onLeft {
-                    OsuMapSuggester.logger.warning { "Error while add beatmap $bid: $it" }
-                    return@forEach
-                }.right
+                val beatmapInfo = OsuWebApi.getBeatmap(randomUser, bid).rightOrThrowLeft()
 
                 dao.bpm = beatmapInfo.bpm
                 dao.length = beatmapInfo.totalLength
 
                 toInsert.add(dao)
             }
-        }
+        } catch (ex: Exception) {
+            OsuMapSuggester.logger.warning("Error while add beatmap $bid.", ex)
+        } }
 
         (batchInsert(toInsert)?.size ?: 0) + (batchUpdate1(toUpdate, bid, { this.bid }) { it }?.size ?: 0)
     }
