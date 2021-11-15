@@ -76,8 +76,7 @@ fun Beatmap.calculateDifficultyAttributes(
         it
     }.iterator()
 
-    val aim = AimSkill(mods)
-    val speed = SpeedSkill(mods, hitWindow)
+    val skills = listOf(AimSkill(mods), SpeedSkill(mods, hitWindow))
 
     var currentSectionEnd = ceil(hitObjects[0].startTime / sectionLength) * sectionLength
     var prevPrev: Optional<OsuStdObject> = Optional.empty()
@@ -96,8 +95,7 @@ fun Beatmap.calculateDifficultyAttributes(
         currentSectionEnd += sectionLength
     }
 
-    aim.process(hDifficultyPoint)
-    speed.process(hDifficultyPoint)
+    skills.forEach { it.process(hDifficultyPoint) }
 
     prevPrev = Optional.of(prev)
     prev = curr
@@ -112,24 +110,23 @@ fun Beatmap.calculateDifficultyAttributes(
             scalingFactor = scalingFactor
         )
         while (hDifficultyPoint.base.time > currentSectionEnd) {
-            aim.saveCurrentPeak()
-            aim.startNewSectionFrom(currentSectionEnd)
-            speed.saveCurrentPeak()
-            speed.startNewSectionFrom(currentSectionEnd)
+            skills.forEach {
+                it.saveCurrentPeak()
+                it.startNewSectionFrom(currentSectionEnd)
+            }
             currentSectionEnd += sectionLength
         }
-        aim.process(hDifficultyPoint)
-        speed.process(hDifficultyPoint)
+        skills.forEach { it.process(hDifficultyPoint) }
 
         prevPrev = Optional.of(prev)
         prev = curr
     }
 
-    aim.saveCurrentPeak()
-    speed.saveCurrentPeak()
+    skills.forEach { it.saveCurrentPeak() }
 
-    val aimStrain = sqrt(aim.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
-    val speedStrain = sqrt(speed.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
+    val (aimStrain, speedStrain) = skills.map {
+        sqrt(it.difficultyValue(useOutdatedAlgorithm)) * DIFFICULTY_MULTIPLIER
+    }
 
     val baseAimPerformance: Double = (5 * 1.0.coerceAtLeast(aimStrain / 0.0675) - 4).pow(3) / 100000
     val baseSpeedPerformance: Double = (5 * 1.0.coerceAtLeast(speedStrain / 0.0675) - 4).pow(3) / 100000

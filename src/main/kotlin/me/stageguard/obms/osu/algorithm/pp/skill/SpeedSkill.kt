@@ -7,10 +7,7 @@ import me.stageguard.obms.utils.lerp
 import kotlin.math.*
 
 @Suppress("PrivatePropertyName")
-class SpeedSkill(mods: ModCombination, val hitWindow: Double) : Skill<DifficultyObject>(mods) {
-    private val SPEED_SKILL_MULTIPLIER: Double = 1400.0
-    private val SPEED_STRAIN_DECAY_BASE: Double = 0.3
-
+class SpeedSkill(mods: ModCombination, private val hitWindow: Double) : Skill<DifficultyObject>(mods) {
     private val SINGLE_SPACING_THRESHOLD: Double = 125.0
     private val RHYTHM_MULTIPLIER: Double = 0.75
     private val HISTORY_TIME_MAX: Int = 5000
@@ -24,10 +21,8 @@ class SpeedSkill(mods: ModCombination, val hitWindow: Double) : Skill<Difficulty
     override val difficultyMultiplier = 1.04
     override val prevObjQueueCapacity = 32
 
-    override val strainDecayBase: Double
-        get() = SPEED_STRAIN_DECAY_BASE
-    override val skillMultiplier: Double
-        get() = SPEED_SKILL_MULTIPLIER
+    override val strainDecayBase: Double = 0.3
+    override val skillMultiplier = 1375.0
 
     private fun calculateRhythmBonus(current: DifficultyObject) : Double {
         if (current.base.isSpinner)
@@ -47,26 +42,24 @@ class SpeedSkill(mods: ModCombination, val hitWindow: Double) : Skill<Difficulty
             val prevObj = prevObjQueue[i]!!
             val lastObj = prevObjQueue[i + 1]!!
 
-            var currHistoricalDecay = 0.0.coerceAtLeast((HISTORY_TIME_MAX - (current.base.time - currObj.base.time))) / HISTORY_TIME_MAX
-
+            var currHistoricalDecay = (HISTORY_TIME_MAX - (current.base.time - currObj.base.time)).coerceAtLeast(0.0) / HISTORY_TIME_MAX
             if (currHistoricalDecay != 0.0) {
                 currHistoricalDecay = ((prevCount - i) / prevCount.toDouble()).coerceAtMost(currHistoricalDecay)
 
                 val currDelta = currObj.strainTime
                 val prevDelta = prevObj.strainTime
                 val lastDelta = lastObj.strainTime
-                val currRatio = 1.0 + 6.0 * 0.5.coerceAtMost(sin(Math.PI / (prevDelta.coerceAtMost(currDelta) / prevDelta.coerceAtLeast(currDelta))).pow(2))
+                val currRatio = 1.0 + 6.0 * sin(Math.PI / (prevDelta.coerceAtMost(currDelta) / prevDelta.coerceAtLeast(currDelta))).pow(2).coerceAtMost(0.5)
 
-                var windowPenalty = 1.0.coerceAtMost(0.0.coerceAtLeast(abs(prevDelta - currDelta) - hitWindow * 0.6) / (hitWindow * 0.6))
+                var windowPenalty = (abs(prevDelta - currDelta) - hitWindow * 0.6).coerceAtLeast(0.0) / (hitWindow * 0.6).coerceAtMost(1.0)
 
-                windowPenalty = 1.0.coerceAtMost(windowPenalty)
+                windowPenalty = windowPenalty.coerceAtMost(1.0)
 
                 var effectiveRatio = windowPenalty * currRatio
 
                 if (firstDeltaSwitch) {
                     if (!(prevDelta > 1.25 * currDelta || prevDelta * 1.25 < currDelta)) {
-                        if (islandSize < 7)
-                            islandSize ++
+                        if (islandSize < 7) islandSize ++
                     } else {
                         if (prevObjQueue[i - 1]?.base?.isSlider == true) effectiveRatio *= 0.125
                         if (prevObjQueue[i]?.base?.isSlider == true) effectiveRatio *= 0.25
@@ -92,7 +85,6 @@ class SpeedSkill(mods: ModCombination, val hitWindow: Double) : Skill<Difficulty
             }
             i --
         }
-
         return sqrt(4 + rhythmComplexitySum * RHYTHM_MULTIPLIER) / 2
     }
 
@@ -102,10 +94,9 @@ class SpeedSkill(mods: ModCombination, val hitWindow: Double) : Skill<Difficulty
 
         var strainTime = current.strainTime
         val greatWindowFull = hitWindow * 2
-        val speedWindowRatio = strainTime / greatWindowFull
 
         if (prevObj != null && strainTime < greatWindowFull && prevObj!!.strainTime > strainTime)
-            strainTime = lerp(prevObj!!.strainTime, strainTime, speedWindowRatio)
+            strainTime = lerp(prevObj!!.strainTime, strainTime, strainTime / greatWindowFull)
 
         strainTime /= ((strainTime / greatWindowFull) / 0.93).coerceIn(0.92, 1.0)
 
@@ -114,13 +105,13 @@ class SpeedSkill(mods: ModCombination, val hitWindow: Double) : Skill<Difficulty
         if (strainTime < MIN_SPEED_BONUS)
             speedBonus = 1 + 0.75 * ((MIN_SPEED_BONUS - strainTime) / SPEED_BALANCING_FACTOR).pow(2)
 
-        val distance = SINGLE_SPACING_THRESHOLD.coerceAtMost(current.travelDistance + current.jumpDistance)
+        val distance = (current.travelDistance + current.jumpDistance).coerceAtMost(SINGLE_SPACING_THRESHOLD)
 
         return (speedBonus + speedBonus * (distance / SINGLE_SPACING_THRESHOLD).pow(3.5)) / strainTime
     }
 
     override fun calculateInitialStrain(time: Double): Double {
-        return (currentStrain * currentRhythm) * strainDecay(time - prevObj!!.base.time/* equal to prevTime.get() */)
+        return (currentStrain * currentRhythm) * strainDecay(time - prevObj!!.base.time)
     }
 
     override fun strainValueAt(current: DifficultyObject): Double {
