@@ -24,6 +24,7 @@ import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import me.stageguard.obms.utils.InferredOptionalValue
 import org.jetbrains.skija.*
 import java.lang.Exception
+import java.text.NumberFormat
 import java.util.*
 import kotlin.math.*
 
@@ -468,7 +469,7 @@ object RecentPlay {
             val intervalBetweenHitIconAndText = 10f
 
             val hitGreatIcon = image("/image/hit_great.png")
-            val hitGreatText = TextLine.make(scoreDTO.statistics.count300.toString(), Font(boldFont, 28f))
+            val hitGreatText = TextLine.make(usNumber.format(scoreDTO.statistics.count300), Font(boldFont, 28f))
             val hitGreatHeight = hitGreatIcon.height + hitGreatText.capHeight + intervalBetweenHitIconAndText
             val hitGreatWidth = max(hitGreatIcon.width, hitGreatText.width.toInt())
 
@@ -483,7 +484,7 @@ object RecentPlay {
             )
 
             val hitGoodIcon = image("/image/hit_good.png")
-            val hitGoodText = TextLine.make(scoreDTO.statistics.count100.toString(), Font(boldFont, 28f))
+            val hitGoodText = TextLine.make(usNumber.format(scoreDTO.statistics.count100), Font(boldFont, 28f))
             val hitGoodHeight = hitGoodIcon.height + hitGoodText.capHeight + intervalBetweenHitIconAndText
             val hitGoodWidth = max(hitGoodIcon.width, hitGoodText.width.toInt())
 
@@ -498,7 +499,7 @@ object RecentPlay {
             )
 
             val hitMehIcon = image("/image/hit_meh.png")
-            val hitMehText = TextLine.make(scoreDTO.statistics.count50.toString(), Font(boldFont, 28f))
+            val hitMehText = TextLine.make(usNumber.format(scoreDTO.statistics.count50), Font(boldFont, 28f))
             val hitMehHeight = hitMehIcon.height + hitMehText.capHeight + intervalBetweenHitIconAndText
             val hitMehWidth = max(hitMehIcon.width, hitMehText.width.toInt())
 
@@ -513,7 +514,7 @@ object RecentPlay {
             )
 
             val hitMissIcon = image("/image/hit_miss.png")
-            val hitMissText = TextLine.make(scoreDTO.statistics.countMiss.toString(), Font(boldFont, 28f))
+            val hitMissText = TextLine.make(usNumber.format(scoreDTO.statistics.countMiss), Font(boldFont, 28f))
             val hitMissHeight = hitMissIcon.height + hitMissText.capHeight + intervalBetweenHitIconAndText
             val hitMissWidth = max(hitMissIcon.width, hitMissText.width.toInt())
 
@@ -536,9 +537,9 @@ object RecentPlay {
             val accuracyText = TextLine.make("Accuracy", Font(semiBoldFont, 28f))
             val maxComboText = TextLine.make("Max Combo", Font(semiBoldFont, 28f))
 
-            val score = TextLine.make(scoreDTO.score.toString(), Font(boldFont, 28f))
+            val score = TextLine.make(usNumber.format(scoreDTO.score), Font(boldFont, 28f))
             val accuracy = TextLine.make(format2DFix.format(scoreDTO.accuracy * 100.0) + "%", Font(boldFont, 28f))
-            val maxCombo = TextLine.make(scoreDTO.maxCombo.toString(), Font(boldFont, 28f))
+            val maxCombo = TextLine.make(usNumber.format(scoreDTO.maxCombo), Font(boldFont, 28f))
             val perfectCombo = TextLine.make(attribute.ifRight { " / ${it.maxCombo}" } ?: " / -", Font(boldFont, 28f))
 
 
@@ -578,11 +579,11 @@ object RecentPlay {
                 val unwrapped = userBestScore.right.score
 
                 val scoreDiff = scoreDTO.score - unwrapped.score
-                val bestScore = TextLine.make(" (${scoreDiff.run { if(this > 0) "+$this" else this.toString() }})", Font(semiBoldFont, 18f))
+                val bestScore = TextLine.make(" (${scoreDiff.run { if(this > 0) "+${usNumber.format(this)}" else usNumber.format(this) }})", Font(semiBoldFont, 18f))
                 val accuracyDiff = (scoreDTO.accuracy - unwrapped.accuracy) * 100.0
                 val bestAccuracy = TextLine.make(" (${if(accuracyDiff > 0) "+" else ""}${format2DFix.format(accuracyDiff)}%)", Font(semiBoldFont, 18f))
                 val maxComboDiff = scoreDTO.maxCombo - unwrapped.maxCombo
-                val bestMaxCombo = TextLine.make(" (${maxComboDiff.run { if(this > 0) "+$this" else this.toString() }})", Font(semiBoldFont, 18f))
+                val bestMaxCombo = TextLine.make(" (${maxComboDiff.run { if(this > 0) "+${usNumber.format(this)}" else usNumber.format(this) }})", Font(semiBoldFont, 18f))
 
                 val scoreWidth = score.width + bestScore.width
                 val accuracyWidth = accuracy.width + bestAccuracy.width
