@@ -9,20 +9,26 @@ import kotlin.math.pow
 import me.stageguard.obms.utils.pointAtDistance as staticPointAtDistance
 
 sealed class Curve {
-    class Bezier(val point: Points) : Curve() {
+    class Bezier(private val point: Points) : Curve() {
         override fun toString(): String {
             return "Bezier(point=$point)"
         }
+
+        override fun pointAtDistance(dist: Double) = point.pointAtDistance(dist)
     }
-    class Catmull(val point: Points) : Curve() {
+    class Catmull(private val point: Points) : Curve() {
         override fun toString(): String {
             return "Catmull(point=$point)"
         }
+
+        override fun pointAtDistance(dist: Double) = point.pointAtDistance(dist)
     }
-    class Linear(val points: List<HitObjectPosition>) : Curve() {
+    class Linear(private val points: List<HitObjectPosition>) : Curve() {
         override fun toString(): String {
             return "Linear(points=$points)"
         }
+
+        override fun pointAtDistance(dist: Double) = staticPointAtDistance(points, dist)
     }
     class Perfect(
         val origin: HitObjectPosition,
@@ -32,6 +38,8 @@ sealed class Curve {
         override fun toString(): String {
             return "Perfect(origin=$origin, center=$center, radius=$radius)"
         }
+
+        override fun pointAtDistance(dist: Double) = rotate(center, origin, dist / radius)
     }
 
     @Suppress("FunctionName")
@@ -160,28 +168,24 @@ sealed class Curve {
 
     }
 
-    fun pointAtDistance(dist: Double) : HitObjectPosition = when(this) {
-        is Bezier -> point.pointAtDistance(dist)
-        is Catmull -> point.pointAtDistance(dist)
-        is Linear -> staticPointAtDistance(points, dist)
-        is Perfect -> rotate(center, origin, dist / radius)
-    }
+    abstract fun pointAtDistance(dist: Double): HitObjectPosition
 }
 
 sealed class Points {
-    class Single(val position: HitObjectPosition) : Points() {
+    class Single(private val position: HitObjectPosition) : Points() {
         override fun toString(): String {
             return "Single(position=$position)"
         }
+
+        override fun pointAtDistance(dist: Double) = position
     }
-    class Multi(val positions: List<HitObjectPosition>) : Points() {
+    class Multi(private val positions: List<HitObjectPosition>) : Points() {
         override fun toString(): String {
             return "Multi(positions=$positions)"
         }
+
+        override fun pointAtDistance(dist: Double) = staticPointAtDistance(positions, dist)
     }
 
-    fun pointAtDistance(dist: Double) = when(this) {
-        is Multi -> staticPointAtDistance(positions, dist)
-        is Single -> position
-    }
+    abstract fun pointAtDistance(dist: Double): HitObjectPosition
 }

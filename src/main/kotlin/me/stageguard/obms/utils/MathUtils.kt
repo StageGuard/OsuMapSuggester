@@ -95,7 +95,9 @@ inline fun pointAtDistance(points: List<HitObjectPosition>, dist: Double) : HitO
     val preLast = points[points.lastIndex - 1]
     val last = points.last()
 
-    return preLast + (last - preLast) * (remainingDist / newDist)
+    return if (preLast == last) { last } else {
+        preLast + (last - preLast) * (remainingDist / newDist)
+    }
 }
 
 inline fun transitionToTrue(value: Double, transitionStart: Double, transitionInterval: Double): Double {
