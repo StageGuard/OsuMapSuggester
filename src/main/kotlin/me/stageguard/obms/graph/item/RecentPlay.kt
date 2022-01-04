@@ -540,7 +540,8 @@ object RecentPlay {
             val score = TextLine.make(usNumber.format(scoreDTO.score), Font(boldFont, 28f))
             val accuracy = TextLine.make(format2DFix.format(scoreDTO.accuracy * 100.0) + "%", Font(boldFont, 28f))
             val maxCombo = TextLine.make(usNumber.format(scoreDTO.maxCombo), Font(boldFont, 28f))
-            val perfectCombo = TextLine.make(attribute.ifRight { " / ${it.maxCombo}" } ?: " / -", Font(boldFont, 28f))
+            val perfectCombo = TextLine.make(" / " + (attribute.ifRight { usNumber.format(it.maxCombo) } ?: "-"), Font(boldFont, 28f))
+
 
 
 

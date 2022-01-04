@@ -12,4 +12,4 @@ val boldFont = typeface("Bold")
 val format2DFix = DecimalFormat("#######0.00")
 val format1DFix = DecimalFormat("#######0.0")
 
-val usNumber = NumberFormat.getNumberInstance(Locale.US)
+val usNumber: NumberFormat = NumberFormat.getNumberInstance(Locale.US)
