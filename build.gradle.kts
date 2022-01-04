@@ -1,12 +1,12 @@
 plugins {
-    id("net.mamoe.mirai-console") version "2.7.1-dev-1"
+    id("net.mamoe.mirai-console") version "2.9.0"
     val kotlinVersion = "1.5.31"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 }
 
 group = "me.stageguard"
-version = "2.0"
+version = "2.1"
 
 repositories {
     maven("https://maven.aliyun.com/repository/public")
@@ -23,10 +23,12 @@ val miraiSlf4jBridgeVersion = "1.2.0"
 val skijaVersion = "0.92.15"
 val ktorServerVersion = "1.5.4"
 val ktormVersion = "3.4.1"
+val atomicFUVersion = "0.17.0"
 
 dependencies {
-    //kotlin serialization
+    //kotlinx utilities
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
+    implementation("org.jetbrains.kotlinx:atomicfu-jvm:$atomicFUVersion")
     //skija
     implementation("org.jetbrains.skija:skija-windows:$skijaVersion")
     implementation("org.jetbrains.skija:skija-linux:$skijaVersion")
