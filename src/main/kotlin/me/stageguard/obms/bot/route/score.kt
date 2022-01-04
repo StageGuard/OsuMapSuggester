@@ -203,9 +203,11 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
         InferredOptionalValue(score.beatmapset)
     }.rightOrThrowLeft()
 
+    val mapperInfo = OsuWebApi.usersViaUID(sender.id, beatmapSet.userId).rightOrThrowLeft()
+
     val bytes = withContext(graphicProcessorDispatcher) {
         RecentPlay.drawRecentPlayCard(
-            score, beatmapSet, modCombination, difficultyAttribute,
+            score, beatmapSet, mapperInfo, modCombination, difficultyAttribute,
             ppCurvePoints, skillAttributes, userBestScore, replayAnalyzer
         ).bytes(EncodedImageFormat.PNG)
     }

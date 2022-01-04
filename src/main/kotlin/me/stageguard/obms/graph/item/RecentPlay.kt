@@ -8,8 +8,10 @@ import me.stageguard.obms.graph.common.drawPPPlusGraph
 import me.stageguard.obms.graph.common.drawPpCurveGraph
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
 import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
+import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
 import me.stageguard.obms.osu.api.dto.BeatmapsetDTO
+import me.stageguard.obms.osu.api.dto.GetUserDTO
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
@@ -71,7 +73,8 @@ object RecentPlay {
 
 
     suspend fun drawRecentPlayCard(
-        scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
+        scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO,
+        mapperInfo: GetUserDTO, mods: ModCombination,
         attribute: OptionalValue<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
         skillAttributes: OptionalValue<SkillAttributes>,
@@ -80,10 +83,11 @@ object RecentPlay {
     ) : Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
         val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
+        val mapperAvatar = getAvatarFromUrlOrDefault(mapperInfo.avatarUrl)
 
         return drawRecentPlayCardImpl(
             scoreDTO, beatmapSet, mods, attribute, ppCurvePoints, skillAttributes,
-            userBestScore, replayAnalyzer, playerAvatar, songCover
+            userBestScore, replayAnalyzer, playerAvatar, mapperAvatar, songCover
         )
     }
 
@@ -95,7 +99,7 @@ object RecentPlay {
         skillAttributes: OptionalValue<SkillAttributes>,
         userBestScore: OptionalValue<BeatmapUserScoreDTO>,
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>,
-        playerAvatar: Image, songCover: OptionalValue<Image>
+        playerAvatar: Image, mapperAvatar: Image, songCover: OptionalValue<Image>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(
             (replayAnalyzer.ifRight { (cardWidth + replayDetailWidth).toInt() } ?: cardWidth).toInt(),
@@ -186,11 +190,8 @@ object RecentPlay {
             translate(0f, songTitle.capHeight + songArtist.capHeight + 27f)
 
             //mapper info
-            val mapperAvatar = defaultAvatarImage
-            mapperAvatar.onRight {
-                val scaledMapperAvatar = it.scale(mapperAvatarEdgeLength / it.width, mapperAvatarEdgeLength / it.height)
-                drawRoundCorneredImage(scaledMapperAvatar, 0f, 0f, 12f)
-            }
+            val scaledMapperAvatar = mapperAvatar.scale(mapperAvatarEdgeLength / mapperAvatar.width, mapperAvatarEdgeLength / mapperAvatar.height)
+            drawRoundCorneredImage(scaledMapperAvatar, 0f, 0f, 12f)
 
             val mapperName = TextLine.make("mapped by ${beatmapSet.creator}", Font(regularFont, 20f))
             drawTextLineWithShadow(mapperName, mapperAvatarEdgeLength + 15f, mapperName.capHeight + 10f, paint.apply {

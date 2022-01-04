@@ -41,9 +41,11 @@ object OsuWebApi {
     }
 
     private const val MAX_IN_ONE_REQ = 50
+
     /**
      * Auth related
      */
+
     suspend fun getTokenWithCode(
         code: String
     ): OptionalValue<GetAccessTokenResponseDTO> = postImpl(
@@ -119,9 +121,10 @@ object OsuWebApi {
     }
 
     suspend fun users(user: Long): OptionalValue<GetUserDTO> =
-        get("/users/${kotlin.run {
-            OsuUserInfo.getOsuId(user) ?: return Either(NotBindException(user))
-        }}", user)
+        usersViaUID(user, kotlin.run { OsuUserInfo.getOsuId(user) ?: return Either(NotBindException(user)) })
+
+    suspend fun usersViaUID(user: Long, uid: Int, mode: String = "osu"): OptionalValue<GetUserDTO> =
+        get("/users/$uid", user, parameters = mapOf("mode" to mode))
 
     suspend fun userScore(
         user: Long, mode: String = "osu",
@@ -220,7 +223,7 @@ object OsuWebApi {
             if(contains("authentication") && contains("basic")) {
                 throw InvalidTokenException(user)
             } else {
-                throw BadResponseException(BASE_URL_V2 + path, this)
+                throw BadResponseException(BASE_URL_V2 + path, this).suppress(ex)
             }
         }
     }
