@@ -20,16 +20,8 @@ data class GetUserDTO(
         val isDeleted: Boolean,
     @SerialName("is_online")
         val isOnline: Boolean,
-    @SerialName("is_restricted")
-        val isRestricted: Boolean,
     @SerialName("monthly_playcounts")
         val monthlyPlaycounts: List<MonthlyPlaycountDTO>,
-    @SerialName("pm_friends_only")
-        val pmFriendsOnly: Boolean,
-    @SerialName("rank_history")
-        val rankHistory: RankHistoryDTO,
-    @SerialName("scores_first_count")
-        val scoresFirstCount: Int,
     @SerialName("statistics")
         val statistics: UserStatisticsDTO,
     @SerialName("username")
