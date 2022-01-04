@@ -125,3 +125,4 @@ config/
 bots/
 data/
 plugins/
+cache/
