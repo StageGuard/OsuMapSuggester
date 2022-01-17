@@ -1,12 +1,12 @@
 plugins {
-    id("net.mamoe.mirai-console") version "2.9.0"
-    val kotlinVersion = "1.5.31"
+    id("net.mamoe.mirai-console") version "2.9.2"
+    val kotlinVersion = "1.6.10"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 }
 
 group = "me.stageguard"
-version = "2.1"
+version = "2.2"
 
 repositories {
     maven("https://maven.aliyun.com/repository/public")
@@ -17,7 +17,7 @@ repositories {
 }
 
 val exposedVersion = "0.32.1"
-val hikariVersion = "5.0.0"
+val hikariVersion = "5.0.1"
 val mysqlVersion = "8.0.25"
 val miraiSlf4jBridgeVersion = "1.2.0"
 val skijaVersion = "0.92.15"
@@ -27,7 +27,7 @@ val atomicFUVersion = "0.17.0"
 
 dependencies {
     //kotlinx utilities
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
     implementation("org.jetbrains.kotlinx:atomicfu-jvm:$atomicFUVersion")
     //skija
     implementation("org.jetbrains.skija:skija-windows:$skijaVersion")
@@ -47,7 +47,7 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.21")
     implementation("org.tukaani:xz:1.9")
     //javascript engine
-    implementation("org.mozilla:rhino:1.7.13")
+    implementation("org.mozilla:rhino:1.7.14")
     //test suite
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.5.21")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
