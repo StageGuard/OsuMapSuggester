@@ -23,7 +23,7 @@ import me.stageguard.obms.osu.api.dto.BeatmapDTO
 import me.stageguard.obms.osu.api.oauth.AuthType
 import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.osu.api.oauth.OAuthManager.updateToken
-import me.stageguard.obms.script.ScriptContext
+import me.stageguard.obms.script.ScriptEnvironHost
 import me.stageguard.obms.utils.SimpleEncryptionUtils
 import net.mamoe.mirai.utils.info
 import org.ktorm.dsl.and
@@ -158,7 +158,7 @@ fun Application.ruleset() {
         post("/$RULESET_PATH/checkSyntax") {
             try {
                 val parameter = json.decodeFromString<CheckSyntaxRequestDTO>(context.receiveText())
-                val result = ScriptContext.checkSyntax(parameter.code)
+                val result = ScriptEnvironHost.checkSyntax(parameter.code)
                 context.respond(json.encodeToString(
                     CheckSyntaxResponseDTO(0, result.first, result.second)
                 ))
@@ -186,7 +186,7 @@ fun Application.ruleset() {
                             if(parameter.ruleset.run {
                                 name.isEmpty() || triggers.isEmpty() ||
                                     triggers.any { it.contains(";") } ||
-                                    ScriptContext.checkSyntax(expression).first
+                                    ScriptEnvironHost.checkSyntax(expression).first
                             }) return@query SubmitResponseDTO(3)
 
                             var newId = 0

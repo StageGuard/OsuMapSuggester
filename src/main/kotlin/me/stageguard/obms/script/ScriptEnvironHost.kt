@@ -1,5 +1,6 @@
 package me.stageguard.obms.script
 
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -11,7 +12,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
 
-object ScriptContext : CoroutineScope {
+object ScriptEnvironHost : CoroutineScope {
     private lateinit var initJob: Job
     private lateinit var ctx: Context
     private lateinit var topLevelScope: ImporterTopLevel
@@ -21,11 +22,7 @@ object ScriptContext : CoroutineScope {
     private val exceptionHandler = CoroutineExceptionHandler { _: CoroutineContext, throwable: Throwable ->
         OsuMapSuggester.logger.error { throwable.printStackTrace(); throwable.localizedMessage }
     }
-    private val optLv by lazy {
-        try {
-            Class.forName("android.os.Build"); 0
-        } catch (e: Throwable) { -1 }
-    }
+
     private val compileStringPrivMethod = Context::class.java.getDeclaredMethod("compileString",
         String::class.java, Evaluator::class.java, ErrorReporter::class.java,
         String::class.java, Int::class.java, Object::class.java
@@ -36,11 +33,10 @@ object ScriptContext : CoroutineScope {
 
     fun init() {
         initJob = OsuMapSuggester.launch(dispatcher + exceptionHandler) {
-            ctx = Context.enter()
-            ctx.optimizationLevel = optLv
-            ctx.languageVersion = Context.VERSION_ES6
+            ctx = TEDetectContextFactory.enterContext()
             topLevelScope = ImporterTopLevel()
-            ScriptRuntime.initSafeStandardObjects(ctx, topLevelScope, true)
+            //ScriptRuntime.initSafeStandardObjects(ctx, topLevelScope, true)
+            ScriptRuntime.initStandardObjects(ctx, topLevelScope, true)
             OsuMapSuggester.logger.info { "JavaScript context initialized." }
         }
     }
@@ -64,10 +60,10 @@ object ScriptContext : CoroutineScope {
         var isError = false
 
         kotlin.runCatching {
-            Parser(CompilerEnvirons().also {
-                it.optimizationLevel = optLv
-                it.isGeneratingSource = true
-                it.isGenerateDebugInfo = true
+            Parser(CompilerEnvirons().apply {
+                optimizationLevel = optLv
+                isGeneratingSource = true
+                isGenerateDebugInfo = true
             }, object : ErrorReporter {
                 override fun warning(
                     message: String?, sourceName: String?,
@@ -96,22 +92,19 @@ object ScriptContext : CoroutineScope {
         return isError to messages
     }
 
-    suspend fun compile(src: String, errorReporter: ErrorReporter? = null): Script = withContext(dispatcher) {
+    fun compile(src: String, errorReporter: ErrorReporter? = null): Script =
         compileStringPrivMethod.invoke(ctx, """
             this["__${'$'}internalRunAndGetResult${'$'}"] = eval("${src.replace("\"", "\\\"")}")
         """.trimIndent(), null, errorReporter, "RunJavaScript", 1, null) as Script
-    }
 
     suspend fun <T : Any> evaluateAndGetResult(
         source: String, properties: Map<String, Any?> = mapOf()
-    ) = withContext(coroutineContext) {
+    ) = withContext(coroutineContext) scriptContext@ {
         initJob.join()
-        withTimeout(2000) {
-            withProperties(properties) {
-                putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
-                compile(source).exec(ctx, topLevelScope)
-                topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as T
-            }
+        withProperties(properties) {
+            putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
+            runInterruptible(this@scriptContext.coroutineContext) { compile(source).exec(ctx, topLevelScope) }
+            topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as T
         }
     }
 

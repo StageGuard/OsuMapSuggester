@@ -18,7 +18,7 @@ import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.frontend.route.RULESET_PATH
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.MapSuggester
-import me.stageguard.obms.script.ScriptContext
+import me.stageguard.obms.script.ScriptEnvironHost
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.data.toMessageChain
@@ -87,9 +87,9 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                     val content = it.contentToString()
                     if (content.contains("退出")) true else {
                         try {
-                            val checkedMessage = ScriptContext.checkSyntax(content)
+                            val checkedMessage = ScriptEnvironHost.checkSyntax(content)
                             if(checkedMessage.second.isNotEmpty()) {
-                                ScriptContext.launch { send(buildString {
+                                ScriptEnvironHost.launch { send(buildString {
                                     if(checkedMessage.first) {
                                         append("编译出现了错误，请重新输入！\n")
                                     }
@@ -100,7 +100,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                             }
                             !checkedMessage.first
                         } catch (ex: Exception) {
-                            ScriptContext.launch { send("未知错误，请反馈至开发者：$ex") }
+                            ScriptEnvironHost.launch { send("未知错误，请反馈至开发者：$ex") }
                             finish()
                             false
                         }

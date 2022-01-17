@@ -14,7 +14,8 @@ import me.stageguard.obms.frontend.route.IMPORT_BEATMAP_PATH
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.MapSuggester
 import me.stageguard.obms.osu.api.OsuWebApi
-import me.stageguard.obms.script.ScriptContext
+import me.stageguard.obms.script.ScriptEnvironHost
+import me.stageguard.obms.script.ScriptTimeoutException
 import me.stageguard.obms.script.synthetic.wrapped.ConvenientToolsForBeatmapSkill
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringBooleanWrapped
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringComparableNumberWrapped
@@ -96,10 +97,10 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
 
                 val searchedBeatmap = db.sequenceOf(BeatmapSkillTable).filter { btColumn ->
                     try {
-                        ScriptContext.evaluateAndGetResult<ColumnDeclaringBooleanWrapped>(
+                        ScriptEnvironHost.evaluateAndGetResult<ColumnDeclaringBooleanWrapped>(
                             currentRuleset.expression, properties = mapOf(
                                 //tool function
-                                "contains" to ScriptContext.createJSFunctionFromKJvmStatic("contains",
+                                "contains" to ScriptEnvironHost.createJSFunctionFromKJvmStatic("contains",
                                     ConvenientToolsForBeatmapSkill::contains
                                 ),
                                 //variable
@@ -148,9 +149,9 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                         currentRuleset.flushChanges()
                         priorityList[rulesetIndex] = 0 //发生错误，不再匹配这个规则
                         return@returnPoint
-                    } catch (ex: TimeoutCancellationException) {
+                    } catch (ex: ScriptTimeoutException) {
                         atReply(" " + """
-                                    Evaluation timeout waiting for 2000ms.
+                                    Script execution timeout waiting for ${ex.limit} ms.
                                     Please contact this ruleset creator for more information.
                                     Ruleset info: id=${currentRuleset.id}, creator qq: ${currentRuleset.author}
                                 """.trimIndent().deserializeMiraiCode())

@@ -7,7 +7,7 @@ import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.bot.MessageRoute
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.frontend.NettyHttpServer
-import me.stageguard.obms.script.ScriptContext
+import me.stageguard.obms.script.ScriptEnvironHost
 import me.stageguard.obms.utils.exportStaticResourcesToDataFolder
 import me.stageguard.obms.utils.retry
 import net.mamoe.mirai.Bot
@@ -74,7 +74,7 @@ object OsuMapSuggester : KotlinPlugin(
         launch {
             logger.info { "Exporting static resources..." }
             exportStaticResourcesToDataFolder()
-            ScriptContext.init()
+            ScriptEnvironHost.init()
             logger.info { "Waiting target Bot ${PluginConfig.qq} goes online..." }
             GlobalEventChannel.filter {
                 it is BotOnlineEvent && it.bot.id == PluginConfig.qq
