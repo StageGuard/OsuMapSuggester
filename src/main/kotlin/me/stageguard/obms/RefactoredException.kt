@@ -104,7 +104,7 @@ class InvalidTokenException(val qq: Long): RefactoredException("INVALID_TOKEN") 
     override val message: String
         get() = "OAuth token of user $qq is invalid."
     override val outgoingMessage: String
-        get() = "绑定失效，请输入 .bind 重新绑定以更新令牌。"
+        get() = "用户 $qq 的绑定已失效，请输入 .bind 或通知对方重新绑定以更新令牌。"
 }
 /*
  * can't read image file.
