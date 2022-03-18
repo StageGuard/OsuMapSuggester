@@ -74,7 +74,7 @@ object RecentPlay {
 
     suspend fun drawRecentPlayCard(
         scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO,
-        mapperInfo: GetUserDTO, mods: ModCombination,
+        mapperInfo: GetUserDTO?, mods: ModCombination,
         attribute: OptionalValue<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
         skillAttributes: OptionalValue<SkillAttributes>,
@@ -83,7 +83,7 @@ object RecentPlay {
     ) : Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
         val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
-        val mapperAvatar = getAvatarFromUrlOrDefault(mapperInfo.avatarUrl)
+        val mapperAvatar = mapperInfo?.avatarUrl?.let { getAvatarFromUrlOrDefault(it) }
 
         return drawRecentPlayCardImpl(
             scoreDTO, beatmapSet, mods, attribute, ppCurvePoints, skillAttributes,
@@ -99,7 +99,7 @@ object RecentPlay {
         skillAttributes: OptionalValue<SkillAttributes>,
         userBestScore: OptionalValue<BeatmapUserScoreDTO>,
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>,
-        playerAvatar: Image, mapperAvatar: Image, songCover: OptionalValue<Image>
+        playerAvatar: Image, mapperAvatar: Image?, songCover: OptionalValue<Image>
     ) : Surface {
         val surface = Surface.makeRasterN32Premul(
             (replayAnalyzer.ifRight { (cardWidth + replayDetailWidth).toInt() } ?: cardWidth).toInt(),
@@ -190,8 +190,10 @@ object RecentPlay {
             translate(0f, songTitle.capHeight + songArtist.capHeight + 27f)
 
             //mapper info
-            val scaledMapperAvatar = mapperAvatar.scale(mapperAvatarEdgeLength / mapperAvatar.width, mapperAvatarEdgeLength / mapperAvatar.height)
-            drawRoundCorneredImage(scaledMapperAvatar, 0f, 0f, 12f)
+            mapperAvatar ?.run a@ {
+                val scaledMapperAvatar = this@a.scale(mapperAvatarEdgeLength / this@a.width, mapperAvatarEdgeLength / this@a.height)
+                drawRoundCorneredImage(scaledMapperAvatar, 0f, 0f, 12f)
+            }
 
             val mapperName = TextLine.make("mapped by ${beatmapSet.creator}", Font(regularFont, 20f))
             drawTextLineWithShadow(mapperName, mapperAvatarEdgeLength + 15f, mapperName.capHeight + 10f, paint.apply {

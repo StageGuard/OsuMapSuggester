@@ -36,6 +36,7 @@ import me.stageguard.obms.utils.Either.Companion.mapRight
 import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.right
+import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.warning
 import org.jetbrains.skija.EncodedImageFormat
@@ -203,7 +204,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
         InferredOptionalValue(score.beatmapset)
     }.rightOrThrowLeft()
 
-    val mapperInfo = OsuWebApi.usersViaUID(sender.id, beatmapSet.userId).rightOrThrowLeft()
+    val mapperInfo = OsuWebApi.usersViaUID(sender.id, beatmapSet.userId).rightOrNull
 
     val bytes = withContext(graphicProcessorDispatcher) {
         RecentPlay.drawRecentPlayCard(
