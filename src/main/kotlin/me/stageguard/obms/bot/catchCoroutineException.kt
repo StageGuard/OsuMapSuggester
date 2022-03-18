@@ -15,6 +15,10 @@ val GroupMessageEvent.refactoredExceptionCatcher
         OsuMapSuggester.logger.error(throwable)
         if (throwable is RefactoredException) {
             runBlocking { atReply(throwable.outgoingMessage) }
+        } else {
+            runBlocking {
+                atReply("发生了未知错误，请访问 github.com/StageGuard/OsuMapSuggester/issues 并提交以下错误：\n${throwable}")
+            }
         }
     }
 

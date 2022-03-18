@@ -95,7 +95,7 @@ class InvalidVerifyLinkException(val token: String) : RefactoredException("INVAL
  */
 class NotBindException(val qq: Long) : RefactoredException("NOT_BIND") {
     override val outgoingMessage: String
-        get() = "未绑定账号，请输入 .bind 进行绑定（无需输入你的 osu!Id）。"
+        get() = "用户 $qq 未绑定账号，请输入 .bind 进行绑定（无需输入你的 osu!Id）。"
 }
 /*
  * authorization failed or invalid authorization info
