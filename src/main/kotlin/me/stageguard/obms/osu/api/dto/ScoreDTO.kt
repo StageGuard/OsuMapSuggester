@@ -47,7 +47,7 @@ data class ScoreDTO(
     @SerialName("rank_country")
     val rankCountry: Int? = null,
     @SerialName("replay")
-    val replay: Boolean,
+    val replay: Boolean? = null,
     @SerialName("score")
     val score: Long,
     @SerialName("statistics")

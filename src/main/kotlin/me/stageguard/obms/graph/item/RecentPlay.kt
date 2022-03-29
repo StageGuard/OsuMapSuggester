@@ -8,7 +8,6 @@ import me.stageguard.obms.graph.common.drawPPPlusGraph
 import me.stageguard.obms.graph.common.drawPpCurveGraph
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
 import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
-import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
 import me.stageguard.obms.osu.api.dto.BeatmapsetDTO
 import me.stageguard.obms.osu.api.dto.GetUserDTO
@@ -26,7 +25,6 @@ import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import me.stageguard.obms.utils.InferredOptionalValue
 import org.jetbrains.skija.*
 import java.lang.Exception
-import java.text.NumberFormat
 import java.util.*
 import kotlin.math.*
 
@@ -416,7 +414,7 @@ object RecentPlay {
                 color = colorWhite
             }, 2f)
 
-            val replayAvailable = if(scoreDTO.replay) "Replay is available." else "Replay is unavailable."
+            val replayAvailable = if(scoreDTO.replay == true) "Replay is available." else "Replay is unavailable."
             val replay = TextLine.make(replayAvailable, Font(semiBoldFont, 22f))
 
             drawRRect(RRect.makeXYWH(

@@ -150,14 +150,14 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
 
     val modCombination = ModCombination.of(mods)
     val difficultyAttribute = beatmap.mapRight { it.calculateDifficultyAttributes(modCombination) }
-    val userBestScore = if(score.bestId != score.id && !score.replay) {
+    val userBestScore = if(score.bestId != score.id && (score.replay == null || score.replay == false)) {
         OsuWebApi.userBeatmapScore(sender.id, score.beatmap.id, mods = score.mods)
     } else { Either.invoke(UnhandledException()) }
 
     //我草，血压上来了
     val replayAnalyzer = beatmap.run b@ { this@b.ifRight { b ->
         score.run s@ {
-            if(this@s.replay) {
+            if(this@s.replay == true) {
                 //if replay available, the replay must be the best score play of this beatmap
                 ReplayCache.getReplayData(this@s.bestId!!).run r@ { this@r.ifRight { r ->
                     try {
