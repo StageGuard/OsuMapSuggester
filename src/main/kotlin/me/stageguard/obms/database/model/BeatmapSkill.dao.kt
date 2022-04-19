@@ -7,12 +7,9 @@ import me.stageguard.obms.database.AddableTable
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.osu.algorithm.`pp+`.calculateSkills
 import me.stageguard.obms.osu.algorithm.pp.calculateDifficultyAttributes
-import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
-import me.stageguard.obms.utils.Either.Companion.onLeft
-import me.stageguard.obms.utils.Either.Companion.right
-import net.mamoe.mirai.utils.warning
+import net.mamoe.mirai.utils.info
 import org.ktorm.dsl.AssignmentsBuilder
 import org.ktorm.dsl.eq
 import org.ktorm.entity.*
@@ -74,21 +71,27 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
         val toUpdate = mutableListOf<BeatmapSkill>()
         val toInsert = mutableListOf<BeatmapSkill>()
 
-        val randomUser = db.sequenceOf(OsuUserInfo).toList().firstOrNull()?.qq
-
-        if(randomUser == null) {
-            OsuMapSuggester.logger.warning { "Error while add beatmap: no user exist in database" }
-            return@query 0f
-        }
-
-        items.forEach { bid -> try {
+        items.forEachIndexed { index, bid -> try {
+            OsuMapSuggester.logger.info { "Processing beatmap $bid, current count: ${index + 1}." }
             val find = db.sequenceOf(this@BeatmapSkillTable).find { it.bid eq bid }
-            if(find != null && ifAbsent) return@forEach
+            if(find != null && ifAbsent) return@forEachIndexed
 
             val beatmap = BeatmapCache.getBeatmap(bid).rightOrThrowLeft()
 
             val skills = beatmap.calculateSkills(ModCombination.of(Mod.None))
             val difficultyAttributes = beatmap.calculateDifficultyAttributes(ModCombination.of(Mod.None))
+
+            require(difficultyAttributes.stars in 0.0..100.0) { "Invalid stars: ${difficultyAttributes.stars}" }
+            require(beatmap.circleSize in 0.0..12.0) { "Invalid circleSize: ${beatmap.circleSize}" }
+            require(beatmap.hpDrainRate in 0.0..12.0) { "Invalid hpDrainRate: ${beatmap.hpDrainRate}" }
+            require(beatmap.approachRate in 0.0..12.0) { "Invalid approachRate: ${beatmap.approachRate}" }
+            require(beatmap.overallDifficulty in 0.0..12.0) { "Invalid overallDifficulty: ${beatmap.overallDifficulty}" }
+            require(skills.jumpAimStrain in 0.0..10.0) { "Invalid jumpAimStrain: ${skills.jumpAimStrain}" }
+            require(skills.flowAimStrain in 0.0..10.0) { "Invalid flowAimStrain: ${skills.flowAimStrain}" }
+            require(skills.speedStrain in 0.0..10.0) { "Invalid speedStrain: ${skills.speedStrain}" }
+            require(skills.staminaStrain in 0.0..10.0) { "Invalid staminaStrain: ${skills.staminaStrain}" }
+            require(skills.precisionStrain in 0.0..10.0) { "Invalid precisionStrain: ${skills.precisionStrain}" }
+            require(skills.accuracyStrain in 0.0..10.0) { "Invalid rhythmComplexity: ${skills.accuracyStrain}" }
 
             val dao = BeatmapSkill {
                 this.bid = bid
@@ -103,25 +106,27 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
                 this.staminaStrain = skills.staminaStrain
                 this.precisionStrain = skills.precisionStrain
                 this.rhythmComplexity = skills.accuracyStrain
+                this.bpm = beatmap.timingPoints.run {
+                    var maxPoints = 0
+                    var bpm = 60000 / this[0].beatLength
+                    groupBy { it.beatLength }.forEach { (beatLength, timings) ->
+                        if (timings.size > maxPoints) {
+                            maxPoints = timings.size
+                            bpm = 60000 / beatLength
+                        }
+                    }
+                    bpm
+                }
+                this.length = (beatmap.hitObjects.last().endTime / 1000).toInt()
             }
 
-            if(find != null) {
-                dao.bpm = find.bpm
-                dao.length = find.length
+            if(find != null) toUpdate.add(dao) else toInsert.add(dao)
 
-                toUpdate.add(dao)
-            } else {
-                val beatmapInfo = OsuWebApi.getBeatmap(randomUser, bid).rightOrThrowLeft()
-
-                dao.bpm = beatmapInfo.bpm
-                dao.length = beatmapInfo.totalLength
-
-                toInsert.add(dao)
-            }
         } catch (ex: Exception) {
             OsuMapSuggester.logger.warning("Error while add beatmap $bid.", ex)
         } }
 
+        OsuMapSuggester.logger.info { "Process finished, updating database..." }
         (batchInsert(toInsert)?.size ?: 0) + (batchUpdate1(toUpdate, bid, { this.bid }) { it }?.size ?: 0)
     }
 }
