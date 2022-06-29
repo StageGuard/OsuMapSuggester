@@ -1,12 +1,14 @@
 package me.stageguard.obms.osu.api
 
 import io.ktor.client.*
+import io.ktor.client.engine.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.features.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.network.sockets.*
+import io.ktor.util.*
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
@@ -35,9 +37,14 @@ object OsuWebApi {
     const val BASE_URL_OLD = "https://old.ppy.sh"
 
     val json = Json { ignoreUnknownKeys = true }
+    @OptIn(KtorExperimentalAPI::class)
     val client = HttpClient(OkHttp) {
         expectSuccess = false
         install(HttpTimeout)
+
+        if (PluginConfig.clientProxy.isNotBlank()) {
+            engine { proxy = ProxyBuilder.http(PluginConfig.clientProxy) }
+        }
     }
 
     private const val MAX_IN_ONE_REQ = 50

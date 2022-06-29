@@ -9,7 +9,7 @@ object PluginConfig : AutoSavePluginConfig("OsuMapSuggester.Config") {
     val database by value<DatabaseConfig>()
     val osuAuth by value<OsuAuthConfig>()
     val frontend by value<FrontendConfig>()
-    val functionSettings by value<FunctionSettings>()
+    val clientProxy by value<String>("")
     val helpLink by value("https://github.com/StageGuard/OsuMapSuggester/wiki")
 }
 
@@ -35,14 +35,4 @@ data class OsuAuthConfig(
 data class FrontendConfig(
     val host: String = "localhost",
     val port: Int = 8081
-)
-
-@Serializable
-data class FunctionSettings(
-    val bpvs: FuncBestPerformanceVS = FuncBestPerformanceVS()
-)
-
-@Serializable
-data class FuncBestPerformanceVS(
-    val enabled: Boolean = true
 )
