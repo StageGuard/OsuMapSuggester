@@ -121,8 +121,5 @@ run/
 src/test/kotlin/RunTerminal.kt
 
 # Mirai console data
-config/
-bots/
-data/
-plugins/
-cache/
+debug-sandbox/
+debug-sandbox/*
