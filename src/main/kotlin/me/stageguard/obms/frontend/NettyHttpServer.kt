@@ -1,6 +1,5 @@
 package me.stageguard.obms.frontend
 
-import io.ktor.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import kotlinx.coroutines.*
@@ -10,7 +9,6 @@ import net.mamoe.mirai.utils.info
 import kotlin.coroutines.CoroutineContext
 
 object NettyHttpServer : CoroutineScope {
-    @OptIn(ExperimentalCoroutinesApi::class)
     override val coroutineContext: CoroutineContext
         get() = OsuMapSuggester.coroutineContext + CoroutineExceptionHandler {
             _, throwable -> OsuMapSuggester.logger.error("Http server occurred an error", throwable)

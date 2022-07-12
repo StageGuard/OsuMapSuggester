@@ -189,6 +189,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                     is QuitConversationExceptions.TimeoutException -> {
                         atReply("长时间未输入(30s)，请重新添加。")
                     }
+                    else -> { }
                 }
             }
         }
@@ -251,6 +252,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         is QuitConversationExceptions.TimeoutException -> {
                             atReply("长时间未输入(30s)，请重新添加。")
                         }
+                        else -> { }
                     }
                 }
             } else {
@@ -315,6 +317,7 @@ fun GroupMessageSubscribersBuilder.ruleset() {
                         is QuitConversationExceptions.TimeoutException -> {
                             atReply("长时间未输入(10s)，取消删除。")
                         }
+                        else -> { }
                     }
                 }
             } else {

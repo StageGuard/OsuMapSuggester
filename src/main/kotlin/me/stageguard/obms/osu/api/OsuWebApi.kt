@@ -1,14 +1,14 @@
 package me.stageguard.obms.osu.api
 
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.engine.*
 import io.ktor.client.engine.okhttp.*
-import io.ktor.client.features.*
+import io.ktor.client.network.sockets.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.network.sockets.*
-import io.ktor.util.*
+import io.ktor.network.sockets.SocketTimeoutException
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
@@ -30,14 +30,12 @@ import net.mamoe.mirai.utils.info
 import java.io.InputStream
 import kotlin.properties.Delegates
 
-@OptIn(ExperimentalSerializationApi::class)
 object OsuWebApi {
     const val BASE_URL_V2 = "https://osu.ppy.sh/api/v2"
     const val BASE_URL_V1 = "https://osu.ppy.sh/api"
     const val BASE_URL_OLD = "https://old.ppy.sh"
 
     val json = Json { ignoreUnknownKeys = true }
-    @OptIn(KtorExperimentalAPI::class)
     val client = HttpClient(OkHttp) {
         expectSuccess = false
         install(HttpTimeout)
@@ -250,7 +248,7 @@ object OsuWebApi {
         crossinline consumer: RESP.() -> R
     ): OptionalValue<R> = withContext(networkProcessorDispatcher) {
         try {
-            client.get<RESP> {
+            client.get {
                 url(buildString {
                     append(url)
                     if (parameters.isNotEmpty()) {
@@ -271,10 +269,8 @@ object OsuWebApi {
                 }.run {
                     if (last() == '&') dropLast(1) else this
                 }.also { OsuMapSuggester.logger.info { "GET: $it" } })
-                headers.forEach {
-                    header(it.key, it.value)
-                }
-            }.run { InferredOptionalValue(consumer(this)) }
+                headers.forEach { (s, s2) -> header(s, s2) }
+            }.run { InferredOptionalValue(consumer(this.body())) }
         } catch (ex: Exception) {
             when(ex) {
                 is RefactoredException -> Either(ex)
@@ -297,7 +293,7 @@ object OsuWebApi {
         headers: Map<String, String>
     ): OptionalValue<Headers> = withContext(networkProcessorDispatcher) {
         try {
-            client.head<HttpStatement> {
+            client.head {
                 url(buildString {
                     append(url)
                     if (parameters.isNotEmpty()) {
@@ -319,7 +315,7 @@ object OsuWebApi {
                     if (last() == '&') dropLast(1) else this
                 }.also { OsuMapSuggester.logger.info { "HEAD: $it" } })
                 headers.forEach { header(it.key, it.value) }
-            }.execute { InferredOptionalValue(it.headers) }
+            }.let { InferredOptionalValue(it.headers) }
         } catch (ex: Exception) {
             when(ex) {
                 is SocketTimeoutException,
@@ -345,9 +341,9 @@ object OsuWebApi {
                     OsuMapSuggester.logger.info { "POST: $url" }
                 })
                 if(token != null) header("Authorization", "Bearer $token")
-                this.body = json.encodeToString(body)
+                setBody(json.encodeToString(body))
                 contentType(ContentType.Application.Json)
-            }
+            }.body()
 
             InferredOptionalValue(json.decodeFromString(responseText))
         } catch (ex: Exception) {
