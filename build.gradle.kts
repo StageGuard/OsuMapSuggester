@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.stageguard"
-version = "2.3.0"
+version = "2.4.0"
 
 repositories {
     maven("https://maven.aliyun.com/repository/public")
