@@ -1,0 +1,3 @@
+[submodule "rosu-pp-jni"]
+	path = rosu-pp-jni
+	url = https://github.com/StageGuard/rosu-pp-jni
