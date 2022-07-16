@@ -1,6 +1,6 @@
 package me.stageguard.obms.osu.algorithm.pp
 
-import me.stageguard.obms.osu.algorithm.AbstractPerformanceCalculator
+import me.stageguard.obms.osu.algorithm.AbstractJvmPerformanceCalculator
 import me.stageguard.obms.osu.processor.beatmap.Beatmap
 import java.util.*
 import kotlin.math.*
@@ -8,7 +8,7 @@ import kotlin.properties.Delegates
 
 open class PPCalculator protected constructor(
     beatmap: Beatmap
-) : AbstractPerformanceCalculator<DifficultyAttributes, PPResult<DifficultyAttributes>>(beatmap) {
+) : AbstractJvmPerformanceCalculator<DifficultyAttributes, PPResult<DifficultyAttributes>>(beatmap) {
     var effectiveMissCount by Delegates.notNull<Int>()
 
     private fun calculateAim(totalHits: Int) : Double {

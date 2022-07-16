@@ -10,7 +10,8 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.round
 
-abstract class AbstractPerformanceCalculator<DO : DifficultyAttributes, R : PPResult<DO>>(val beatmap: Beatmap) {
+abstract class AbstractJvmPerformanceCalculator
+<DO : DifficultyAttributes, R : PPResult<DO>>(val beatmap: Beatmap) : PerformanceCalculator<R> {
     protected var attributes: Optional<DO> = Optional.empty()
     protected var mods: ModCombination = ModCombination.of(Mod.None)
     protected var combo: Optional<Int> = Optional.empty()
@@ -28,19 +29,17 @@ abstract class AbstractPerformanceCalculator<DO : DifficultyAttributes, R : PPRe
         min(this.n300.orElse(0) + this.n100.orElse(0) + this.n50.orElse(0) + this.nMisses, nObjects)
     }
 
-    @Suppress("unused") fun attributes(attr: Optional<DO>) = this.also {
-        attr.ifPresent { this.attributes = Optional.of(it) }
-    }
-    @Suppress("unused") fun mods(vararg mods: Mod) = this.also { this.mods = ModCombination.of(*mods) }
-    @Suppress("unused") fun mods(mods: List<Mod>) = this.also { this.mods = ModCombination.of(mods) }
-    @Suppress("unused") fun combo(cb: Int) = this.also { this.combo = Optional.of(cb) }
-    @Suppress("unused") fun n300(n : Int) = this.also { this.n300 = Optional.of(n) }
-    @Suppress("unused") fun n100(n: Int) = this.also { this.n100 = Optional.of(n) }
-    @Suppress("unused") fun n50(n: Int) = this.also { this.n50 = Optional.of(n) }
-    @Suppress("unused") fun misses(n: Int) = this.also { this.nMisses = n }
-    @Suppress("unused") fun passedObjects(n: Int) = this.also { this.passedObjects = Optional.of(n) }
+
+    @Suppress("unused") override fun mods(vararg mods: Mod) = this.also { this.mods = ModCombination.of(*mods) }
+    @Suppress("unused") override fun mods(mods: List<Mod>) = this.also { this.mods = ModCombination.of(mods) }
+    @Suppress("unused") override fun combo(cb: Int) = this.also { this.combo = Optional.of(cb) }
+    @Suppress("unused") override fun n300(n : Int) = this.also { this.n300 = Optional.of(n) }
+    @Suppress("unused") override fun n100(n: Int) = this.also { this.n100 = Optional.of(n) }
+    @Suppress("unused") override fun n50(n: Int) = this.also { this.n50 = Optional.of(n) }
+    @Suppress("unused") override fun misses(n: Int) = this.also { this.nMisses = n }
+    @Suppress("unused") override fun passedObjects(n: Int) = this.also { this.passedObjects = Optional.of(n) }
     @Suppress("unused") fun outdatedAlgorithm() = this.also { this.useOutdatedAlgorithm = true }
-    @Suppress("unused") fun accuracy(acc: Double) = this.also {
+    @Suppress("unused") override fun accuracy(acc: Double) = this.also {
         val nObjects = this.passedObjects.orElse(beatmap.hitObjects.size)
 
         val accuracy = acc / 100.0
@@ -126,21 +125,21 @@ abstract class AbstractPerformanceCalculator<DO : DifficultyAttributes, R : PPRe
             }
 
             val n300 = 0.run {
-                if(this@AbstractPerformanceCalculator.n300.isEmpty)
-                    this@AbstractPerformanceCalculator.n300 = Optional.of(this)
-                this@AbstractPerformanceCalculator.n300.get()
+                if(this@AbstractJvmPerformanceCalculator.n300.isEmpty)
+                    this@AbstractJvmPerformanceCalculator.n300 = Optional.of(this)
+                this@AbstractJvmPerformanceCalculator.n300.get()
             }
 
             val n100 = 0.run {
-                if(this@AbstractPerformanceCalculator.n100.isEmpty)
-                    this@AbstractPerformanceCalculator.n100 = Optional.of(this)
-                this@AbstractPerformanceCalculator.n100.get()
+                if(this@AbstractJvmPerformanceCalculator.n100.isEmpty)
+                    this@AbstractJvmPerformanceCalculator.n100 = Optional.of(this)
+                this@AbstractJvmPerformanceCalculator.n100.get()
             }
 
             val n50 = 0.run {
-                if(this@AbstractPerformanceCalculator.n50.isEmpty)
-                    this@AbstractPerformanceCalculator.n50 = Optional.of(this)
-                this@AbstractPerformanceCalculator.n50.get()
+                if(this@AbstractJvmPerformanceCalculator.n50.isEmpty)
+                    this@AbstractJvmPerformanceCalculator.n50 = Optional.of(this)
+                this@AbstractJvmPerformanceCalculator.n50.get()
             }
 
             val numerator = n300 * 6 + n100 * 2 + n50
@@ -148,5 +147,5 @@ abstract class AbstractPerformanceCalculator<DO : DifficultyAttributes, R : PPRe
         }
     }
 
-    abstract fun calculate() : R
+    abstract override fun calculate() : R
 }

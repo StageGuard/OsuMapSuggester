@@ -172,17 +172,13 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
     } ?: Either.invoke(this@b.left) }
 
     launch(CoroutineName("Add skillAttribute of beatmap ${score.beatmap.id} to database")) {
-        val da = difficultyAttribute.onLeft {
-            OsuMapSuggester.logger.warning { "Error while add beatmap ${score.beatmap.id}: $it" }
-            return@launch
-        }.right
         val sk = skillAttributes.onLeft {
             OsuMapSuggester.logger.warning { "Error while add beatmap ${score.beatmap.id}: $it" }
             return@launch
         }.right
         BeatmapSkillTable.addSingle(BeatmapSkill {
             this.bid = bid
-            this.stars = da.stars
+            this.stars = score.beatmap.difficultyRating
             this.bpm = score.beatmap.bpm
             this.length = score.beatmap.totalLength
             this.circleSize = score.beatmap.cs

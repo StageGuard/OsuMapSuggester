@@ -1,6 +1,6 @@
 package me.stageguard.obms.osu.algorithm.`pp+`
 
-import me.stageguard.obms.osu.algorithm.AbstractPerformanceCalculator
+import me.stageguard.obms.osu.algorithm.AbstractJvmPerformanceCalculator
 import me.stageguard.obms.osu.processor.beatmap.Beatmap
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.algorithm.pp.PPResult
@@ -11,7 +11,7 @@ import kotlin.math.*
 
 class PPPlusCalculator private constructor(
     beatmap: Beatmap
-) : AbstractPerformanceCalculator<SkillAttributes, PPPlusResult>(beatmap) {
+) : AbstractJvmPerformanceCalculator<SkillAttributes, PPPlusResult>(beatmap) {
 
     private fun calculateSkillValue(skillDiff: Double) = skillDiff.pow(3) * 3.9
 
