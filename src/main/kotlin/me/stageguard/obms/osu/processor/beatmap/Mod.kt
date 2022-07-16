@@ -48,6 +48,8 @@ class ModCombination private constructor(private val value: Int) {
         if(it.isEmpty()) it.add(Mod.None)
     }.toList()
 
+    val rawValue get() = value
+
     companion object {
         fun of(vararg mods: Mod) = ModCombination(
             if(mods.size == 1) mods.single().value else mods.drop(1).fold(mods.first().value) { r, v -> r or v.value }
