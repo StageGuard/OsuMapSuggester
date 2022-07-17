@@ -40,7 +40,7 @@ configure<KotlinProjectExtension> {
             host.startsWith("Windows") ->
                 implementation("org.jetbrains.skija:skija-windows:$skijaVersion")
             host == "Mac OS X" ->
-                implementation("org.jetbrains.skija:skija-macos:$skijaVersion")
+                implementation("org.jetbrains.skija:skija-macos:0.89.0")
             host == "Linux" ->
                 implementation("org.jetbrains.skija:skija-linux:$skijaVersion")
             else -> throw Error("Unsupported platform: $host")
@@ -108,15 +108,15 @@ val buildJniNative: Task by tasks.creating {
         commandLine("cargo", "build", "--color=always", "--release")
     }.assertNormalExitValue()
 
-    val libExt = when {
-        host.startsWith("Windows") -> "dll"
-        host == "Mac OS X" -> "dylib"
-        host == "Linux" -> "so"
+    val libFile = when {
+        host.startsWith("Windows") -> "rosu_pp.dll"
+        host == "Mac OS X" -> "librosu_pp.dylib"
+        host == "Linux" -> "librosu_pp.so"
         else -> throw Error("Unsupported platform: $host")
     }
 
-    val buildOutputLib = file("$projectDir/rosu-pp-jni/target/release/rosu_pp.$libExt")
-    buildOutputLib.copyTo(file("$projectDir/src/main/resources/rosu_pp.$libExt"), overwrite = true)
+    val buildOutputLib = file("$projectDir/rosu-pp-jni/target/release/$libFile")
+    buildOutputLib.copyTo(file("$projectDir/src/main/resources/$libFile"), overwrite = true)
 }
 
 val generateJniHeaders: Task by tasks.creating {

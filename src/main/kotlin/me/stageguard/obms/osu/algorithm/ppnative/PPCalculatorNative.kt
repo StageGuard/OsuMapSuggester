@@ -144,17 +144,14 @@ open class PPCalculatorNative private constructor(
 }
 private val LAZY_LOAD_LIB by lazy {
     val host: String = System.getProperty("os.name")
-    val libExt = when {
-        host.startsWith("Windows") -> "dll"
-        host == "Mac OS X" -> "dylib"
-        host == "Linux" -> "so"
-        else -> {
-            println("Unknown host: $host, fallback to linux")
-            "so"
-        }
+    val libName = when {
+        host.startsWith("Windows") -> "rosu_pp.dll"
+        host == "Mac OS X" -> "librosu_pp.dylib"
+        host == "Linux" -> "librosu_pp.so"
+        else -> throw Error("Unsupported platform: $host")
     }
-    val tempLibDir = File.createTempFile("rosu_pp", libExt).also { it.createNewFile() }
-    val libInputStream = PPCalculatorNative::class.java.getResourceAsStream("/rosu_pp.$libExt")
+    val tempLibDir = File.createTempFile("rosu_pp", "lib").also { it.createNewFile() }
+    val libInputStream = PPCalculatorNative::class.java.getResourceAsStream("/$libName")
 
     if (libInputStream != null) {
         libInputStream.use { lis -> tempLibDir.outputStream().use { tos ->
