@@ -3,7 +3,8 @@ package me.stageguard.obms.graph.item
 import me.stageguard.obms.bot.route.AnalyzeDetailType
 import me.stageguard.obms.bot.route.OrderResult
 import me.stageguard.obms.graph.*
-import org.jetbrains.skija.*
+import io.github.humbleui.skija.*
+import io.github.humbleui.types.RRect
 import kotlin.math.*
 
 @Suppress("DuplicatedCode")
@@ -91,7 +92,6 @@ object BestPerformanceDetail {
 
         val paint = Paint().apply {
             isAntiAlias = true
-            filterQuality = FilterQuality.HIGH
         }
 
         surface.canvas.apply {
@@ -215,7 +215,6 @@ object BestPerformanceDetail {
 
         val paint = Paint().apply {
             isAntiAlias = true
-            filterQuality = FilterQuality.HIGH
         }
 
         surface.canvas.apply {

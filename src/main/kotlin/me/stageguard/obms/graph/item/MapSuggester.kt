@@ -13,7 +13,9 @@ import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.mapRight
 import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.OptionalValue
-import org.jetbrains.skija.*
+import io.github.humbleui.skija.*
+import io.github.humbleui.types.RRect
+import io.github.humbleui.types.Rect
 
 object MapSuggester {
     //suggester
@@ -88,7 +90,6 @@ object MapSuggester {
 
         val paint = Paint().apply {
             isAntiAlias = true
-            filterQuality = FilterQuality.HIGH
         }
 
         surface.canvas.apply {
@@ -147,7 +148,6 @@ object MapSuggester {
 
         val paint = Paint().apply {
             isAntiAlias = true
-            filterQuality = FilterQuality.HIGH
         }
 
         surface.canvas.apply {
@@ -195,7 +195,6 @@ object MapSuggester {
 
         val paint = Paint().apply {
             isAntiAlias = true
-            filterQuality = FilterQuality.HIGH
         }
 
         surface.canvas.apply {

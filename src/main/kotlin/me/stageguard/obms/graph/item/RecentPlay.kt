@@ -23,7 +23,9 @@ import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.right
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import me.stageguard.obms.utils.InferredOptionalValue
-import org.jetbrains.skija.*
+import io.github.humbleui.skija.*
+import io.github.humbleui.types.RRect
+import io.github.humbleui.types.Rect
 import java.lang.Exception
 import java.util.*
 import kotlin.math.*
@@ -106,7 +108,6 @@ object RecentPlay {
 
         val paint = Paint().apply {
             isAntiAlias = true
-            filterQuality = FilterQuality.HIGH
         }
 
         surface.canvas.apply {
@@ -224,7 +225,8 @@ object RecentPlay {
 
             //rank status
             val rankStatus = TextLine.make(beatmapSet.status.uppercase(Locale.getDefault()), Font(boldFont, 28f))
-            drawRRect(RRect.makeXYWH(
+            drawRRect(
+                RRect.makeXYWH(
                 cardWidth - songInfoPadding - rankStatus.width - 40f * 2, songInfoPadding,
                 rankStatus.width + 40f * 2, rankStatusHeight, 90f
             ), paint.apply {

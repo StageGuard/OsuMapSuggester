@@ -25,7 +25,7 @@ import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
 import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.sourceIds
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
-import org.jetbrains.skija.EncodedImageFormat
+import io.github.humbleui.skija.EncodedImageFormat
 import org.ktorm.dsl.and
 import org.ktorm.dsl.eq
 import org.ktorm.entity.*

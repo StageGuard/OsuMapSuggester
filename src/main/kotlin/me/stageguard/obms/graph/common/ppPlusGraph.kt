@@ -4,7 +4,8 @@ import me.stageguard.obms.graph.drawTextLineWithShadow
 import me.stageguard.obms.graph.format1DFix
 import me.stageguard.obms.graph.lerpColor
 import me.stageguard.obms.graph.semiBoldFont
-import org.jetbrains.skija.*
+import io.github.humbleui.skija.*
+import io.github.humbleui.types.RRect
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max

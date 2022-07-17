@@ -3,7 +3,8 @@ package me.stageguard.obms.graph.common
 import me.stageguard.obms.graph.drawTextLineWithShadow
 import me.stageguard.obms.graph.lerpColor
 import me.stageguard.obms.graph.semiBoldFont
-import org.jetbrains.skija.*
+import io.github.humbleui.skija.*
+import io.github.humbleui.types.RRect
 import kotlin.math.max
 
 fun Canvas.drawDifficultyRatingCard(

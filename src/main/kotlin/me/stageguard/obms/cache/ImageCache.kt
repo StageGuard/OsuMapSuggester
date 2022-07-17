@@ -14,7 +14,7 @@ import me.stageguard.obms.utils.Either.Companion.mapRight
 import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.InferredOptionalValue
 import me.stageguard.obms.utils.OptionalValue
-import org.jetbrains.skija.Image
+import io.github.humbleui.skija.Image
 import java.io.File
 import java.io.InputStream
 import java.lang.Exception

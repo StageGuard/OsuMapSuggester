@@ -23,7 +23,7 @@ val exposedVersion = "0.32.1"
 val hikariVersion = "5.0.1"
 val mysqlVersion = "8.0.29"
 val miraiSlf4jBridgeVersion = "1.2.0"
-val skijaVersion = "0.92.15"
+val skijaVersion = "0.102.0"
 val ktorServerVersion = "2.0.2"
 val ktormVersion = "3.5.0"
 val atomicFUVersion = "0.17.3"
@@ -38,12 +38,16 @@ configure<KotlinProjectExtension> {
         //skija
         when {
             host.startsWith("Windows") ->
-                implementation("org.jetbrains.skija:skija-windows:$skijaVersion")
+                api("io.github.humbleui:skija-windows:$skijaVersion")
             host == "Mac OS X" ->
-                implementation("org.jetbrains.skija:skija-macos:0.89.0")
+                when (System.getProperty("os.arch")) {
+                    "x86_64", "amd64" -> api("io.github.humbleui:skija-macos-x64:$skijaVersion")
+                    "aarch64" -> api("io.github.humbleui:skija-macos-arm64:$skijaVersion")
+                    else -> error("Unsupported arch, neither x86_64 nor arm64.")
+                }
             host == "Linux" ->
-                implementation("org.jetbrains.skija:skija-linux:$skijaVersion")
-            else -> throw Error("Unsupported platform: $host")
+                api("io.github.humbleui:skija-linux:$skijaVersion")
+            else -> error("Unsupported platform: $host")
         }
         //database related lib
         implementation("org.ktorm:ktorm-core:${ktormVersion}")

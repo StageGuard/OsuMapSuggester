@@ -24,7 +24,7 @@ import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.info
-import org.jetbrains.skija.EncodedImageFormat
+import io.github.humbleui.skija.EncodedImageFormat
 import org.ktorm.dsl.eq
 import org.ktorm.entity.*
 import java.lang.NumberFormatException

@@ -39,7 +39,7 @@ import me.stageguard.obms.utils.Either.Companion.right
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.warning
-import org.jetbrains.skija.EncodedImageFormat
+import io.github.humbleui.skija.EncodedImageFormat
 
 fun GroupMessageSubscribersBuilder.recentScore() {
     routeLock(startWithIgnoreCase(".bps")) {

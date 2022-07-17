@@ -28,7 +28,7 @@ import me.stageguard.obms.utils.Either.Companion.leftOrNull
 import me.stageguard.obms.utils.Either.Companion.right
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
-import org.jetbrains.skija.EncodedImageFormat
+import io.github.humbleui.skija.EncodedImageFormat
 import kotlin.math.pow
 
 val regex = Regex("(\\d+)[\\-_→](\\d+)")

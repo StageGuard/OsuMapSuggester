@@ -2,8 +2,10 @@ package me.stageguard.obms.graph
 
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.utils.lerp
-import org.jetbrains.skija.*
-import org.jetbrains.skija.svg.SVGDOM
+import io.github.humbleui.skija.*
+import io.github.humbleui.skija.svg.SVGDOM
+import io.github.humbleui.types.RRect
+import io.github.humbleui.types.Rect
 import java.io.File
 import java.io.InputStream
 import kotlin.math.ceil
@@ -73,7 +75,6 @@ fun Canvas.drawRoundCorneredImage(src: Image, left: Float, top: Float, radius: F
         val paint = Paint().apply {
             isAntiAlias = true
             mode = PaintMode.FILL
-            filterQuality = FilterQuality.HIGH
         }
         canvas.drawRect(Rect.makeXYWH(0f, 0f, width.toFloat(), height.toFloat()), paint.apply {
             color = Color.makeARGB(0, 0, 0, 0)
@@ -83,7 +84,7 @@ fun Canvas.drawRoundCorneredImage(src: Image, left: Float, top: Float, radius: F
         })
 
         canvas.drawImage(src, 0f, 0f, paint.apply {
-            paint.blendMode = BlendMode.SRC_IN
+            setBlendMode(BlendMode.SRC_IN)
         })
         makeImageSnapshot()
     }.also {
