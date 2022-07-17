@@ -19,6 +19,12 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup JDK
+        uses: actions/setup-java@v3.4.1
+        with:
+          distribution: microsoft
+          java-version: 11
+
       - name: Build jni native library
         run: |
           chmod +x gradlew
@@ -39,6 +45,12 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup JDK
+        uses: actions/setup-java@v3.4.1
+        with:
+          distribution: microsoft
+          java-version: 11
+
       - name: Build jni native library
         run: |
           chmod +x gradlew
@@ -58,6 +70,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
+
+      - name: Setup JDK
+        uses: actions/setup-java@v3.4.1
+        with:
+          distribution: microsoft
+          java-version: 11
 
       - name: Build jni native library
         run: |
