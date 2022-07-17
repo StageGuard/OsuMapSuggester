@@ -18,8 +18,8 @@ import me.stageguard.obms.database.model.BeatmapSkillTable
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.RecentPlay
 import me.stageguard.obms.osu.algorithm.`pp+`.calculateSkills
-import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.algorithm.pp.calculateDifficultyAttributes
+import me.stageguard.obms.osu.algorithm.ppnative.PPCalculatorNative
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
@@ -122,22 +122,23 @@ tailrec suspend fun GroupMessageEvent.getLastScore(
 
 
 suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withContext(calculatorProcessorDispatcher) {
-    val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
+    val beatmapFile = BeatmapCache.getBeatmapFile(score.beatmap!!.id)
+    val beatmap = BeatmapCache.getBeatmap(score.beatmap.id)
     //calculate pp, first: current miss, second: full combo
     val mods = score.mods.parseMods()
     val ppCurvePoints = (mutableListOf<Pair<Double, Double>>() to mutableListOf<Pair<Double, Double>>()).also { p ->
-        beatmap.onRight {
-            p.first.add(score.accuracy * 100 to PPCalculator.of(it).mods(mods)
+        beatmapFile.onRight {
+            p.first.add(score.accuracy * 100 to PPCalculatorNative.of(it.absolutePath).mods(mods)
                 .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
                 .misses(score.statistics.countMiss)
                 .combo(score.maxCombo)
                 .accuracy(score.accuracy * 100).calculate().total)
-            p.second.add(score.accuracy * 100 to PPCalculator.of(it).mods(mods).accuracy(score.accuracy * 100).calculate().total)
+            p.second.add(score.accuracy * 100 to PPCalculatorNative.of(it.absolutePath).mods(mods).accuracy(score.accuracy * 100).calculate().total)
             generateSequence(900) { s -> if(s == 1000) null else s + 5 }.forEach { step ->
                 val acc = step / 10.0
-                p.second.add(acc to PPCalculator.of(it).mods(mods).accuracy(acc).calculate().total)
+                p.second.add(acc to PPCalculatorNative.of(it.absolutePath).mods(mods).accuracy(acc).calculate().total)
                 p.first.add(acc to
-                        PPCalculator.of(it).mods(mods)
+                        PPCalculatorNative.of(it.absolutePath).mods(mods)
                             .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
                             .misses(score.statistics.countMiss)
                             .combo(score.maxCombo)

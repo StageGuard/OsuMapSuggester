@@ -5,7 +5,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Mod
-import me.stageguard.obms.osu.algorithm.pp.PPCalculator
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.bot.MessageRoute.atReply
@@ -17,6 +16,7 @@ import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.graph.bytes
 import me.stageguard.obms.graph.item.BestPerformanceDetail
+import me.stageguard.obms.osu.algorithm.ppnative.PPCalculatorNative
 import me.stageguard.obms.utils.InferredOptionalValue
 import me.stageguard.obms.utils.OptionalValue
 import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
@@ -25,8 +25,6 @@ import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.message.data.toMessageChain
 import me.stageguard.obms.utils.Either.Companion.leftOrNull
-import me.stageguard.obms.utils.Either.Companion.onLeft
-import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.right
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
@@ -83,17 +81,16 @@ suspend fun orderScores(
             scores.first.asFlow().map { score ->
                 val idx = atomicInt.getAndIncrement()
                 if(idx in rangeToAnalyze) {
-                    val beatmap = BeatmapCache.getBeatmap(score.beatmap!!.id)
+                    val beatmap = BeatmapCache.getBeatmapFile(score.beatmap!!.id)
                     beatmap.rightOrNull?.run {
-                        val recalculatedPp = PPCalculator.of(beatmap.right)
+                        val recalculatedPp = PPCalculatorNative.of(beatmap.right.absolutePath)
                             .accuracy(score.accuracy * 100.0)
                             .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
                             .mods(score.mods.parseMods()).run {
                                 when(analyzeType) {
                                     AnalyzeDetailType.IfFullCombo -> this
                                     AnalyzeDetailType.OutdatedAlgorithm -> {
-                                        outdatedAlgorithm()
-                                            .misses(score.statistics.countMiss)
+                                            this.misses(score.statistics.countMiss)
                                             .combo(score.maxCombo)
                                             .n100(score.statistics.count100)
                                             .n50(score.statistics.count50)

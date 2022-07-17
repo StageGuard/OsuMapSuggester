@@ -6,6 +6,7 @@ import me.stageguard.obms.osu.algorithm.pp.PPResult
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import java.io.DataInputStream
+import java.io.File
 
 open class PPCalculatorNative private constructor(
     private var _nPtr: Long) : PerformanceCalculator<PPResult<DifficultyAttributes>> {
@@ -142,7 +143,28 @@ open class PPCalculatorNative private constructor(
     }
 }
 private val LAZY_LOAD_LIB by lazy {
-    System.load("rosu-pp-jni/target/debug/rosu_pp.dll")
+    val host: String = System.getProperty("os.name")
+    val libExt = when {
+        host.startsWith("Windows") -> "dll"
+        host == "Mac OS X" -> "dylib"
+        host == "Linux" -> "so"
+        else -> {
+            println("Unknown host: $host, fallback to linux")
+            "so"
+        }
+    }
+    val tempLibDir = File.createTempFile("rosu_pp", libExt).also { it.createNewFile() }
+    val libInputStream = PPCalculatorNative::class.java.getResourceAsStream("/rosu_pp.$libExt")
+
+    if (libInputStream != null) {
+        libInputStream.use { lis -> tempLibDir.outputStream().use { tos ->
+            lis.copyTo(tos)
+        } }
+
+        System.load(tempLibDir.absolutePath)
+    } else {
+        println("Native pp calculator module is not found, falling to back jvm pp calculator.")
+    }
 }
 
 @JvmName("nCreate") private external fun createFromNative(beatmapPath: String): Long

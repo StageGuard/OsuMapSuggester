@@ -9,8 +9,8 @@ import me.stageguard.obms.osu.processor.beatmap.Beatmap
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.utils.*
 import me.stageguard.obms.utils.Either
-import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.left
+import me.stageguard.obms.utils.Either.Companion.mapRight
 import me.stageguard.obms.utils.Either.Companion.onRight
 import java.io.File
 
@@ -19,18 +19,16 @@ object BeatmapCache {
     @Suppress("NOTHING_TO_INLINE")
     private inline fun beatmapFile(bid: Int) = File("$CACHE_FOLDER$bid.osu")
 
-    suspend fun getBeatmap(
-        bid: Int, maxTryCount: Int = 4, tryCount: Int = 1
-    ) : OptionalValue<Beatmap> {
+    suspend fun getBeatmapFile(bid: Int, maxTryCount: Int = 4, tryCount: Int = 1) : OptionalValue<File> {
         val file = beatmapFile(bid)
 
         if(file.run { exists() && isFile }) {
             return try {
-                withContext(Dispatchers.IO) { InferredOptionalValue(Beatmap.parse(file.bomReader())) }
+                withContext(Dispatchers.IO) { InferredOptionalValue(file) }
             } catch (ex: Exception) {
                 if(tryCount < maxTryCount) {
                     file.delete()
-                    getBeatmap(bid, maxTryCount, tryCount + 1)
+                    getBeatmapFile(bid, maxTryCount, tryCount + 1)
                 } else {
                     Either(BeatmapParseException(bid).suppress(ex))
                 }
@@ -45,24 +43,25 @@ object BeatmapCache {
                         file.writeBytes(it.readAllBytes())
                     }
                 } }
-                return file.bomReader().use {
-                    try {
-                        withContext(Dispatchers.IO) { InferredOptionalValue(Beatmap.parse(it)) }
-                    } catch (ex: Exception) {
-                        if(tryCount < maxTryCount) {
-                            getBeatmap(bid, maxTryCount, tryCount + 1)
-                        } else {
-                            Either(BeatmapParseException(bid).suppress(ex))
-                        }
+                return try {
+                    withContext(Dispatchers.IO) { InferredOptionalValue(file) }
+                } catch (ex: Exception) {
+                    if(tryCount < maxTryCount) {
+                        getBeatmapFile(bid, maxTryCount, tryCount + 1)
+                    } else {
+                        Either(BeatmapParseException(bid).suppress(ex))
                     }
                 }
             }.left.also {
                 return if(tryCount < maxTryCount) {
-                    getBeatmap(bid, maxTryCount, tryCount + 1)
+                    getBeatmapFile(bid, maxTryCount, tryCount + 1)
                 } else {
                     Either(it)
                 }
             }
         }
     }
+
+    suspend fun getBeatmap(bid: Int, maxTryCount: Int = 4) : OptionalValue<Beatmap> =
+        getBeatmapFile(bid, maxTryCount, 1).mapRight { Beatmap.parse(it.bomReader()) }
 }
