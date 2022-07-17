@@ -28,14 +28,23 @@ val ktorServerVersion = "2.0.2"
 val ktormVersion = "3.5.0"
 val atomicFUVersion = "0.17.3"
 
+val host: String = System.getProperty("os.name")
+
 configure<KotlinProjectExtension> {
     project.dependencies {
         //kotlinx utilities
         implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
         implementation("org.jetbrains.kotlinx:atomicfu-jvm:$atomicFUVersion")
         //skija
-        implementation("org.jetbrains.skija:skija-windows:$skijaVersion")
-        implementation("org.jetbrains.skija:skija-linux:$skijaVersion")
+        when {
+            host.startsWith("Windows") ->
+                implementation("org.jetbrains.skija:skija-windows:$skijaVersion")
+            host == "Mac OS X" ->
+                implementation("org.jetbrains.skija:skija-macos:$skijaVersion")
+            host == "Linux" ->
+                implementation("org.jetbrains.skija:skija-linux:$skijaVersion")
+            else -> throw Error("Unsupported platform: $host")
+        }
         //database related lib
         implementation("org.ktorm:ktorm-core:${ktormVersion}")
         implementation("mysql:mysql-connector-java:$mysqlVersion")
@@ -81,6 +90,33 @@ compileKotlin.kotlinOptions {
 val compileTestKotlin: KotlinCompile by tasks
 compileTestKotlin.kotlinOptions {
     jvmTarget = "11"
+}
+
+val checkCargo: Task by tasks.creating {
+    group = "build"
+    project.exec {
+        commandLine("cargo", "--version")
+    }.assertNormalExitValue()
+}
+
+val buildJniNative: Task by tasks.creating {
+    group = "build"
+    dependsOn(checkCargo)
+
+    project.exec {
+        workingDir("$projectDir/rosu-pp-jni/")
+        commandLine("cargo", "build", "--color=always", "--release")
+    }.assertNormalExitValue()
+
+    val libExt = when {
+        host.startsWith("Windows") -> "dll"
+        host == "Mac OS X" -> "dylib"
+        host == "Linux" -> "so"
+        else -> throw Error("Unsupported platform: $host")
+    }
+
+    val buildOutputLib = file("$projectDir/rosu-pp-jni/target/release/rosu_pp.$libExt")
+    buildOutputLib.copyTo(file("$projectDir/src/main/resources/rosu_pp.$libExt"), overwrite = true)
 }
 
 val generateJniHeaders: Task by tasks.creating {

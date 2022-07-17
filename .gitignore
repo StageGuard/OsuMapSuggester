@@ -119,6 +119,7 @@ run/
 
 # Local Test Launch point
 src/test/kotlin/RunTerminal.kt
+src/main/resources/rosu_pp.*
 
 # Mirai console data
 debug-sandbox/
