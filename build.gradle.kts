@@ -1,3 +1,4 @@
+import org.gradle.jvm.tasks.Jar
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -29,6 +30,7 @@ val ktormVersion = "3.5.0"
 val atomicFUVersion = "0.17.3"
 
 val host: String = System.getProperty("os.name")
+val arch: String = System.getProperty("os.arch")
 
 configure<KotlinProjectExtension> {
     project.dependencies {
@@ -40,10 +42,10 @@ configure<KotlinProjectExtension> {
             host.startsWith("Windows") ->
                 api("io.github.humbleui:skija-windows:$skijaVersion")
             host == "Mac OS X" ->
-                when (System.getProperty("os.arch")) {
+                when (arch) {
                     "x86_64", "amd64" -> api("io.github.humbleui:skija-macos-x64:$skijaVersion")
                     "aarch64" -> api("io.github.humbleui:skija-macos-arm64:$skijaVersion")
-                    else -> error("Unsupported arch, neither x86_64 nor arm64.")
+                    else -> error("Unsupported arch: $arch")
                 }
             host == "Linux" ->
                 api("io.github.humbleui:skija-linux:$skijaVersion")
@@ -191,5 +193,26 @@ val generateJniHeaders: Task by tasks.creating {
                     commandLine(javac, "-h", path, outputFile.absolutePath)
                 }.assertNormalExitValue()
             }
+    }
+}
+
+
+afterEvaluate {
+    val targetOs = when {
+        host == "Mac OS X" -> "macos"
+        host.startsWith("Win") -> "windows"
+        host.startsWith("Linux") -> "linux"
+        else -> error("Unsupported OS: $host")
+    }
+    val targetArch = when (arch) {
+        "x86_64", "amd64" -> "x64"
+        "aarch64" -> "arm64"
+        else -> error("Unsupported arch: $arch")
+    }
+
+    arrayOf("buildPlugin", "buildPluginLegacy").forEach { taskName ->
+        tasks.named<Jar>(taskName).configure {
+            archiveBaseName.set("OsuMapSuggester-${targetOs}-${targetArch}")
+        }
     }
 }

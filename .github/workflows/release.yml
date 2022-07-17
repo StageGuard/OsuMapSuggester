@@ -1,9 +1,7 @@
 name: Build
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
+  release:
     branches: [ main ]
 
   workflow_dispatch:
@@ -33,7 +31,13 @@ jobs:
       - name: Build mirai plugin
         run: |
           chmod +x gradlew
-          ./gradlew build
+          ./gradlew buildPlugin
+          ./gradlew buildPluginLegacy
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          path: ${{ github.workspace }}/build/mirai/*
 
   build-windows:
     name: Build on Windows
@@ -59,7 +63,13 @@ jobs:
       - name: Build mirai plugin
         run: |
           chmod +x gradlew
-          ./gradlew build
+          ./gradlew buildPlugin
+          ./gradlew buildPluginLegacy
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          path: ${{ github.workspace }}/build/mirai/*
 
   build-macos:
     name: Build on MacOS
@@ -85,4 +95,10 @@ jobs:
       - name: Build mirai plugin
         run: |
           chmod +x gradlew
-          ./gradlew build
+          ./gradlew buildPlugin
+          ./gradlew buildPluginLegacy
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          path: ${{ github.workspace }}/build/mirai/*
