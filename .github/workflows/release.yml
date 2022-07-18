@@ -7,13 +7,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
-    name: Build on Linux(Ubuntu)
-    runs-on: ubuntu-latest
-
+  build:
     strategy:
       matrix:
         plugin_version: [ .mirai.jar, .mirai2.jar ]
+        platform: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    name: Build on ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout
@@ -40,84 +41,6 @@ jobs:
           ./gradlew buildPluginLegacy
           ./gradlew version
           echo "::set-output name=artifect_name::$(cat version)"
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.build_plugin.outputs.artifect_name }}${{ matrix.plugin_version }}
-          path: ${{ github.workspace }}/build/mirai/${{ steps.build_plugin.outputs.artifect_name }}${{ matrix.plugin_version }}
-
-  build-windows:
-    name: Build on Windows
-    runs-on: windows-latest
-
-    strategy:
-      matrix:
-        version: [ .mirai.jar, .mirai2.jar ]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Setup JDK
-        uses: actions/setup-java@v3.4.1
-        with:
-          distribution: microsoft
-          java-version: 11
-
-      - name: Build JNI Native Library
-        run: |
-          chmod +x gradlew
-          ./gradlew buildJniNative
-
-      - name: Build Mirai Plugin
-        id: build_plugin
-        run: |
-          chmod +x gradlew
-          ./gradlew buildPlugin
-          ./gradlew buildPluginLegacy
-          ./gradlew version
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.build_plugin.outputs.artifect_name }}${{ matrix.plugin_version }}
-          path: ${{ github.workspace }}/build/mirai/${{ steps.build_plugin.outputs.artifect_name }}${{ matrix.plugin_version }}
-
-  build-macos:
-    name: Build on MacOS
-    runs-on: macos-latest
-
-    strategy:
-      matrix:
-        version: [ .mirai.jar, .mirai2.jar ]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Setup JDK
-        uses: actions/setup-java@v3.4.1
-        with:
-          distribution: microsoft
-          java-version: 11
-
-      - name: Build JNI Native Library
-        run: |
-          chmod +x gradlew
-          ./gradlew buildJniNative
-
-      - name: Build Mirai Plugin
-        id: build_plugin
-        run: |
-          chmod +x gradlew
-          ./gradlew buildPlugin
-          ./gradlew buildPluginLegacy
-          ./gradlew version
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
