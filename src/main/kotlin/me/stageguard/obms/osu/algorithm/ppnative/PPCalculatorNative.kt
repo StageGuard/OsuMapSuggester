@@ -9,15 +9,30 @@ import java.io.DataInputStream
 import java.io.File
 
 open class PPCalculatorNative private constructor(
-    private var _nPtr: Long) : PerformanceCalculator<PPResult<DifficultyAttributes>> {
+    private var _nPtr: Long) : PerformanceCalculator<PPResult<DifficultyAttributes>>, AutoCloseable {
     private var _nAttributeResultPtr: Long? = null
+
+    fun inheritAttributes(provider: PPCalculatorNative) : PPCalculatorNative {
+        LAZY_LOAD_LIB
+        assertNativePointer(_nPtr)
+
+        val attrPtr = provider._nAttributeResultPtr
+            ?: throw UnsupportedOperationException("Cannot inherit attribute from $provider because the provider hasn't calculated result.")
+
+        val ptr = attributes(_nPtr, attrPtr)
+        assertNativePointer(_nPtr)
+        _nPtr = ptr
+
+        provider._nAttributeResultPtr = null
+        return this
+    }
 
     override fun mods(vararg mods: Mod): PPCalculatorNative {
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = mods(_nPtr, ModCombination.of(mods.toList()).rawValue)
-        _nPtr = ptr
         assertNativePointer(ptr)
+        _nPtr = ptr
         return this
     }
 
@@ -25,8 +40,8 @@ open class PPCalculatorNative private constructor(
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = mods(_nPtr, ModCombination.of(mods).rawValue)
+        assertNativePointer(_nPtr)
         _nPtr = ptr
-        assertNativePointer(ptr)
         return this
     }
 
@@ -34,8 +49,8 @@ open class PPCalculatorNative private constructor(
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = combo(_nPtr, cb)
+        assertNativePointer(_nPtr)
         _nPtr = ptr
-        assertNativePointer(ptr)
         return this
     }
 
@@ -43,8 +58,8 @@ open class PPCalculatorNative private constructor(
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = n300(_nPtr, n)
+        assertNativePointer(_nPtr)
         _nPtr = ptr
-        assertNativePointer(ptr)
         return this
     }
 
@@ -52,8 +67,8 @@ open class PPCalculatorNative private constructor(
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = n100(_nPtr, n)
+        assertNativePointer(_nPtr)
         _nPtr = ptr
-        assertNativePointer(ptr)
         return this
     }
 
@@ -61,8 +76,8 @@ open class PPCalculatorNative private constructor(
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = n50(_nPtr, n)
+        assertNativePointer(_nPtr)
         _nPtr = ptr
-        assertNativePointer(ptr)
         return this
     }
 
@@ -70,8 +85,8 @@ open class PPCalculatorNative private constructor(
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = misses(_nPtr, n)
+        assertNativePointer(_nPtr)
         _nPtr = ptr
-        assertNativePointer(ptr)
         return this
     }
 
@@ -79,8 +94,8 @@ open class PPCalculatorNative private constructor(
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = passedObjects(_nPtr, n)
+        assertNativePointer(_nPtr)
         _nPtr = ptr
-        assertNativePointer(ptr)
         return this
     }
 
@@ -88,8 +103,8 @@ open class PPCalculatorNative private constructor(
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
         val ptr = accuracy(_nPtr, acc)
+        assertNativePointer(_nPtr)
         _nPtr = ptr
-        assertNativePointer(ptr)
         return this
     }
 
@@ -126,6 +141,15 @@ open class PPCalculatorNative private constructor(
                 aimStrain, sliderFactor, speedStrain, maxCombo, nCircles, nSliders, nSpinners
             ))
         } }
+    }
+
+    override fun toString(): String {
+        return "PPCalculatorNative(ptr=$_nPtr, attributePtr=$_nAttributeResultPtr)"
+    }
+
+    override fun close() {
+        if (_nPtr != -1L) releaseCalculator(_nPtr)
+        _nAttributeResultPtr ?.run { releaseAttribute(this) }
     }
 
     companion object {
@@ -165,6 +189,7 @@ private val LAZY_LOAD_LIB by lazy {
 }
 
 @JvmName("nCreate") private external fun createFromNative(beatmapPath: String): Long
+@JvmName("nAttributes") private external fun attributes(ptr: Long, attrPtr: Long): Long
 @JvmName("nMods") private external fun mods(ptr: Long, mods: Int): Long
 @JvmName("nCombo") private external fun combo(ptr: Long, combo: Int): Long
 @JvmName("nN300") private external fun n300(ptr: Long, n300: Int): Long
@@ -174,3 +199,5 @@ private val LAZY_LOAD_LIB by lazy {
 @JvmName("nPassedObjects") private external fun passedObjects(ptr: Long, passedObjects: Int): Long
 @JvmName("nAccuracy") private external fun accuracy(ptr: Long, accuracy: Double): Long
 @JvmName("nCalculate") private external fun calculate(ptr: Long): ByteArray
+@JvmName("nReleaseAttribute") private external fun releaseAttribute(attrPtr: Long)
+@JvmName("nReleaseCalculator") private external fun releaseCalculator(attr: Long)
