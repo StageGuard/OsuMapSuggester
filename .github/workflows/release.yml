@@ -78,6 +78,7 @@ jobs:
           chmod +x gradlew
           ./gradlew buildPlugin
           ./gradlew buildPluginLegacy
+          ./gradlew version
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
@@ -116,6 +117,7 @@ jobs:
           chmod +x gradlew
           ./gradlew buildPlugin
           ./gradlew buildPluginLegacy
+          ./gradlew version
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
