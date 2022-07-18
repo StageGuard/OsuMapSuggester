@@ -9,8 +9,8 @@ plugins {
     kotlin("plugin.serialization") version kotlinVersion
 }
 
-group = "me.stageguard"
-version = "2.4.0"
+project.group = "me.stageguard"
+project.version = "2.4.0"
 
 repositories {
     maven("https://maven.aliyun.com/repository/public")
@@ -31,6 +31,17 @@ val atomicFUVersion = "0.17.3"
 
 val host: String = System.getProperty("os.name")
 val arch: String = System.getProperty("os.arch")
+val targetOs = when {
+    host == "Mac OS X" -> "macos"
+    host.startsWith("Win") -> "windows"
+    host.startsWith("Linux") -> "linux"
+    else -> error("Unsupported OS: $host")
+}
+val targetArch = when (arch) {
+    "x86_64", "amd64" -> "x64"
+    "aarch64" -> "arm64"
+    else -> error("Unsupported arch: $arch")
+}
 
 configure<KotlinProjectExtension> {
     project.dependencies {
@@ -96,6 +107,12 @@ compileKotlin.kotlinOptions {
 val compileTestKotlin: KotlinCompile by tasks
 compileTestKotlin.kotlinOptions {
     jvmTarget = "11"
+}
+
+val version: Task by tasks.creating {
+    group = "verification"
+    file("$projectDir/version")
+        .writeText("OsuMapSuggester-${targetOs}-${targetArch}-${project.version}")
 }
 
 val checkCargo: Task by tasks.creating {
@@ -198,18 +215,6 @@ val generateJniHeaders: Task by tasks.creating {
 
 
 afterEvaluate {
-    val targetOs = when {
-        host == "Mac OS X" -> "macos"
-        host.startsWith("Win") -> "windows"
-        host.startsWith("Linux") -> "linux"
-        else -> error("Unsupported OS: $host")
-    }
-    val targetArch = when (arch) {
-        "x86_64", "amd64" -> "x64"
-        "aarch64" -> "arm64"
-        else -> error("Unsupported arch: $arch")
-    }
-
     arrayOf("buildPlugin", "buildPluginLegacy").forEach { taskName ->
         tasks.named<Jar>(taskName).configure {
             archiveBaseName.set("OsuMapSuggester-${targetOs}-${targetArch}")

@@ -25,12 +25,12 @@ jobs:
           distribution: microsoft
           java-version: 11
 
-      - name: Build jni native library
+      - name: Build JNI Native Library
         run: |
           chmod +x gradlew
           ./gradlew buildJniNative
 
-      - name: Build mirai plugin
+      - name: Build Mirai Plugin
         run: |
           chmod +x gradlew
           ./gradlew build
@@ -51,12 +51,12 @@ jobs:
           distribution: microsoft
           java-version: 11
 
-      - name: Build jni native library
+      - name: JNI Native Library
         run: |
           chmod +x gradlew
           ./gradlew buildJniNative
 
-      - name: Build mirai plugin
+      - name: Build Mirai Plugin
         run: |
           chmod +x gradlew
           ./gradlew build
@@ -77,12 +77,12 @@ jobs:
           distribution: microsoft
           java-version: 11
 
-      - name: Build jni native library
+      - name: JNI Native Library
         run: |
           chmod +x gradlew
           ./gradlew buildJniNative
 
-      - name: Build mirai plugin
+      - name: Build Mirai Plugin
         run: |
           chmod +x gradlew
           ./gradlew build
