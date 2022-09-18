@@ -174,7 +174,7 @@ private val LAZY_LOAD_LIB by lazy {
         host == "Linux" -> "librosu_pp.so"
         else -> throw Error("Unsupported platform: $host")
     }
-    val tempLibDir = File(System.getProperty("java.io.tmpdir") + libName).also { it.createNewFile() }
+    val tempLibDir = File(System.getProperty("java.io.tmpdir") + "/$libName").also { it.createNewFile() }
     val libInputStream = PPCalculatorNative::class.java.getResourceAsStream("/$libName")
 
     if (libInputStream != null) {
