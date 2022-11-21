@@ -22,6 +22,7 @@ object MessageRoute {
             bestPerformanceAnalyze()
             skill()
             recentScore()
+            profile()
             //suggester
             suggesterTrigger()
             ruleset()
