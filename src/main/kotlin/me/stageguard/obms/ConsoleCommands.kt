@@ -78,7 +78,7 @@ object ConsoleCommands : CompositeCommand(
             }?.map { f -> f.nameWithoutExtension.toInt() }
             if (beatmap != null) {
                 val result = BeatmapSkillTable.addAllViaBid(beatmap) ?: 0
-                OsuMapSuggester.logger.info { "Finish refreshing beatmap cache, newly updated: $result" }
+                OsuMapSuggester.logger.info { "Finish updating beatmap cache, newly updated: $result." }
             }
         }
     }

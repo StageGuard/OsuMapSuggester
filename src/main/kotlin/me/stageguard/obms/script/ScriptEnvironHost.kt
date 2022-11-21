@@ -16,7 +16,7 @@ object ScriptEnvironHost : CoroutineScope {
     private lateinit var initJob: Job
     private lateinit var ctx: Context
     private lateinit var topLevelScope: ImporterTopLevel
-    @OptIn(ExperimentalCoroutinesApi::class, ObsoleteCoroutinesApi::class)
+    @OptIn(DelicateCoroutinesApi::class)
     private val dispatcher = newSingleThreadContext("JavaScriptContext")
     private val lock = Mutex()
     private val exceptionHandler = CoroutineExceptionHandler { _: CoroutineContext, throwable: Throwable ->
@@ -104,6 +104,7 @@ object ScriptEnvironHost : CoroutineScope {
         withProperties(properties) {
             putGlobalProperty("__${'$'}internalRunAndGetResult${'$'}", null)
             runInterruptible(this@scriptContext.coroutineContext) { compile(source).exec(ctx, topLevelScope) }
+            @Suppress("UNCHECKED_CAST")
             topLevelScope["__${'$'}internalRunAndGetResult${'$'}"] as T
         }
     }
