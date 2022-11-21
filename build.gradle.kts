@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("net.mamoe.mirai-console") version "2.12.0"
+    id("net.mamoe.mirai-console") version "2.13.0"
     val kotlinVersion = "1.7.0"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
