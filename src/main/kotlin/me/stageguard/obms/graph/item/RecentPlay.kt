@@ -180,13 +180,13 @@ object RecentPlay {
                 color = colorWhite
                 mode = PaintMode.FILL
                 strokeWidth = 1f
-            })
+            }, 3f * scale)
             val songArtist = TextLine.make(beatmapSet.artist, Font(semiBoldFont, 28f * scale))
             drawTextLineWithShadow(songArtist, 3f * scale, songTitle.capHeight + 15f * scale, paint.apply {
                 color = colorWhite
                 mode = PaintMode.FILL
                 strokeWidth = 1f * scale
-            })
+            }, 3f * scale)
 
             translate(0f, songTitle.capHeight + songArtist.capHeight + 27f * scale)
 
@@ -565,19 +565,19 @@ object RecentPlay {
             drawTextLineWithShadow(scoreText,
                 (otherScoreInfoWidth - scoreText.width) / 2,
                 scoreText.capHeight,
-                paint.setColor(colorYellow)
+                paint.setColor(colorYellow), 3f * scale
             )
             translate(0f, scoreText.capHeight + 15f * scale + score.capHeight + 35f * scale)
             drawTextLineWithShadow(accuracyText,
                 (otherScoreInfoWidth - accuracyText.width) / 2,
                 accuracyText.capHeight,
-                paint.setColor(colorYellow)
+                paint.setColor(colorYellow), 3f * scale
             )
             translate(0f, accuracyText.capHeight + 15f * scale + accuracy.capHeight + 35f * scale)
             drawTextLineWithShadow(maxComboText,
                 (otherScoreInfoWidth - maxComboText.width) / 2,
                 maxComboText.capHeight,
-                paint.setColor(colorYellow)
+                paint.setColor(colorYellow), 3f * scale
             )
             restoreToCount(otherInfoTextSavePoint)
 
@@ -604,51 +604,51 @@ object RecentPlay {
                 drawTextLineWithShadow(score,
                     (otherScoreInfoWidth - scoreWidth) / 2,
                     scoreText.capHeight + 15f * scale + score.capHeight,
-                    paint.setColor(colorWhite)
+                    paint.setColor(colorWhite), 3f * scale
                 )
                 drawTextLineWithShadow(bestScore,
                     (otherScoreInfoWidth - scoreWidth) / 2 + score.width,
                     scoreText.capHeight + 15f * scale + score.capHeight,
-                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed)
+                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
                 )
                 translate(0f, scoreText.capHeight + 15f * scale + score.capHeight + 35f * scale)
                 drawTextLineWithShadow(accuracy,
                     (otherScoreInfoWidth - accuracyWidth) / 2,
                     accuracyText.capHeight + 15f * scale + accuracy.capHeight,
-                    paint.setColor(colorWhite)
+                    paint.setColor(colorWhite), 3f * scale
                 )
                 drawTextLineWithShadow(bestAccuracy,
                     (otherScoreInfoWidth - accuracyWidth) / 2 + accuracy.width,
                     accuracyText.capHeight + 15f * scale + accuracy.capHeight,
-                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed)
+                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
                 )
                 translate(0f, accuracyText.capHeight + 15f * scale + accuracy.capHeight + 35f * scale)
                 drawTextLineWithShadow(maxCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
-                    paint.setColor(colorWhite)
+                    paint.setColor(colorWhite), 3f * scale
                 )
                 drawTextLineWithShadow(bestMaxCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2 + maxCombo.width,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
-                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed)
+                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
                 )
                 drawTextLineWithShadow(perfectCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2 + maxCombo.width + bestMaxCombo.width,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
-                    paint.setColor(colorWhite)
+                    paint.setColor(colorWhite), 3f * scale
                 )
             } else {
                 drawTextLineWithShadow(score,
                     (otherScoreInfoWidth - score.width) / 2,
                     scoreText.capHeight + 15f * scale + score.capHeight,
-                    paint.setColor(colorWhite)
+                    paint.setColor(colorWhite), 3f * scale
                 )
                 translate(0f, scoreText.capHeight + 15f * scale + score.capHeight + 35f * scale)
                 drawTextLineWithShadow(accuracy,
                     (otherScoreInfoWidth - accuracy.width) / 2,
                     accuracyText.capHeight + 15f * scale + accuracy.capHeight,
-                    paint.setColor(if(scoreDTO.accuracy == 1.0) colorGreen else colorWhite)
+                    paint.setColor(if(scoreDTO.accuracy == 1.0) colorGreen else colorWhite), 3f * scale
                 )
                 translate(0f, accuracyText.capHeight + 15f * scale + accuracy.capHeight + 35f * scale)
                 val maxComboWidth = maxCombo.width + perfectCombo.width
@@ -657,12 +657,12 @@ object RecentPlay {
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
                     paint.setColor(attribute.ifRight {
                         if(scoreDTO.maxCombo == it.maxCombo) colorGreen else colorWhite
-                    } ?: colorWhite)
+                    } ?: colorWhite), 3f * scale
                 )
                 drawTextLineWithShadow(perfectCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2 + maxCombo.width,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
-                    paint.setColor(colorWhite)
+                    paint.setColor(colorWhite), 3f * scale
                 )
             }
 

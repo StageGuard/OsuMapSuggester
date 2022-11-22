@@ -24,7 +24,7 @@ fun Canvas.drawPpCurveGraph(
     val ppCurveText = TextLine.make("PP curve", Font(semiBoldFont, 18f * scale))
     drawTextLineWithShadow(ppCurveText,
         (graphCardWidth - ppCurveText.width) / 2, graphCardHeight - 15f * scale,
-        paint.setColor(textColor)
+        paint.setColor(textColor), 3f * scale
     )
 
     val maxValue = ifFCPpCurvePoints.last().second
@@ -159,7 +159,7 @@ fun Canvas.drawPpCurveGraph(
             color = Color.makeRGB(255, 102, 171)
             strokeWidth = 2f * scale
         }, 2f * scale)
-        drawTextLineWithShadow(ppText, 5f + xCoord + actualPpValueText.width, -5f * scale - yCoordActualPp + textOffset, paint.apply {
+        drawTextLineWithShadow(ppText, 5f * scale + xCoord + actualPpValueText.width, -5f * scale - yCoordActualPp + textOffset, paint.apply {
             color = Color.makeRGB(209, 148, 175)
             strokeWidth = 2f * scale
         }, 2f * scale)
@@ -170,7 +170,7 @@ fun Canvas.drawPpCurveGraph(
                 color = ifFcPpDotColor
                 strokeWidth = 6f * scale
             })
-            drawTextLineWithShadow(ifFullComboPpValueText, -5f + xCoord - ifFullComboPpValueText.width - ppText.width, -5f * scale - yCoordIfFullComboPp, paint.apply {
+            drawTextLineWithShadow(ifFullComboPpValueText, -5f * scale + xCoord - ifFullComboPpValueText.width - ppText.width, -5f * scale - yCoordIfFullComboPp, paint.apply {
                 color = Color.makeRGB(255, 102, 171)
                 strokeWidth = 2f * scale
             }, 2f * scale)

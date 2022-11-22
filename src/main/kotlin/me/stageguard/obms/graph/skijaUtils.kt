@@ -102,7 +102,7 @@ fun Canvas.drawRoundCorneredImage(src: Image, left: Float, top: Float, radius: F
 
 fun Canvas.drawTextLineWithShadow(
     textLine: TextLine, x: Float, y: Float, paint: Paint,
-    dropShadowX: Float = 3f, dropShadowY: Float = dropShadowX, shadowColor: Int = Color.makeRGB(0, 0, 0)
+    dropShadowX: Float, dropShadowY: Float = dropShadowX, shadowColor: Int = Color.makeRGB(0, 0, 0)
 ) {
     val currentPaintColor = paint.color
     val currentPaintStrokeWidth = paint.strokeWidth

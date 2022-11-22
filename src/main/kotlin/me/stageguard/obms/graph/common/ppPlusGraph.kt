@@ -25,7 +25,7 @@ fun Canvas.drawPPPlusGraph(
     val ppPlusGraphText = TextLine.make("Strain skill of the beatmap", Font(semiBoldFont, 18f * scale))
     drawTextLineWithShadow(ppPlusGraphText,
         (graphCardWidth - ppPlusGraphText.width) / 2, graphCardHeight - 15f * scale,
-        paint.setColor(textColor)
+        paint.setColor(textColor), 3f * scale
     )
     val graphCenterY = (graphCardHeight - 20f * scale - ppPlusGraphText.capHeight) / 2
     val radius = 70f * scale
