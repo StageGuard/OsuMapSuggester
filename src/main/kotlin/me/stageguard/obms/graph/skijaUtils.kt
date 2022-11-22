@@ -10,7 +10,15 @@ import java.io.File
 import java.io.InputStream
 import kotlin.math.ceil
 
-fun resourcePath(path: String) = OsuMapSuggester.dataFolder.absolutePath + File.separator + "resources" + File.separator + path
+private val RES_PATH_ROOT by lazy {
+    if (System.getProperty("me.stageguard.obms.debug", "0") == "1") {
+        "./src/main"
+    } else {
+        OsuMapSuggester.dataFolder.absolutePath
+    }
+}
+
+fun resourcePath(path: String) = RES_PATH_ROOT + File.separator + "resources" + File.separator + path
 fun resourceStream(path: String): InputStream = File(resourcePath(path)).inputStream()
 fun typeface(variant: String) = Typeface.makeFromFile(resourcePath("font/Torus-$variant.otf"))
 fun image(path: String) = Image.makeFromEncoded(resourceStream(path).readAllBytes())
