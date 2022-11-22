@@ -118,7 +118,7 @@ object MapSuggester {
                 rulesetHeadHeight / 2f + rulesetText.capHeight / 2f + 3f,
                 paint.apply {
                 color = colorWhite
-            })
+            }, 3f)
 
             translate(0f, rulesetHeadHeight)
             translate(rulesetGlobalPadding, rulesetGlobalPadding)
@@ -243,15 +243,14 @@ object MapSuggester {
                 color = beatmapInfo.ifRight { colorWhite } ?: colorGray
                 mode = PaintMode.FILL
                 strokeWidth = 1f
-            })
+            }, 3f)
             drawTextLineWithShadow(songArtist,
                 3f, songTitle.capHeight + 15f + songArtist.capHeight,
                 paint.apply {
                     color = beatmapInfo.ifRight { colorWhite } ?: colorGray
                     mode = PaintMode.FILL
                     strokeWidth = 1f
-                }
-            )
+                }, 3f)
 
             translate(0f, songTitle.capHeight + 15f + songArtist.capHeight)
 
