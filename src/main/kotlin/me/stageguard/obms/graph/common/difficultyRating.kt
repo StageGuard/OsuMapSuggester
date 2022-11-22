@@ -11,44 +11,44 @@ fun Canvas.drawDifficultyRatingCard(
     height: Float,
     star: Double, version: String, maxTextLength: Int,
     backgroundColor: Int, versionTextColor: Int, starTextColor: Int,
-    paint: Paint
+    paint: Paint, scale: Float = 1.0f
 ) {
     val versionText = TextLine.make(kotlin.run {
         if(version.length > maxTextLength) version.take(maxTextLength - 3).plus("...") else version
-    }, Font(semiBoldFont, 22f))
+    }, Font(semiBoldFont, 22f * scale))
     val starText = TextLine.make("Star Difficulty: $star", Font(
-        semiBoldFont, 18f)
+        semiBoldFont, 18f * scale)
     )
 
     drawRRect(
-        RRect.makeXYWH(0f, 0f, 60f + max(versionText.width, starText.width) + 45f, height, 90f),
+        RRect.makeXYWH(0f, 0f, 60f * scale + max(versionText.width, starText.width) + 45f * scale, height, 90f),
         paint.apply {
             mode = PaintMode.FILL
             color = backgroundColor
         }
     )
 
-    drawCircle(10f + 25f, 10f + 25f, 20f, paint.apply {
+    drawCircle((10f + 25f) * scale, (10f + 25f) * scale, 20f * scale, paint.apply {
         mode = PaintMode.FILL
         color = Color.makeRGB(255, 255, 255)
     })
-    drawCircle(10f + 25f, 10f + 25f, 14f, paint.apply {
+    drawCircle((10f + 25f) * scale, (10f + 25f) * scale, 14f * scale, paint.apply {
         mode = PaintMode.STROKE
         color = difficultyColor(star)
-        strokeWidth = 5f
+        strokeWidth = 5f * scale
     })
 
-    drawTextLineWithShadow(versionText, height, 17f + versionText.capHeight, paint.apply {
+    drawTextLineWithShadow(versionText, height, 17f * scale + versionText.capHeight, paint.apply {
         mode = PaintMode.FILL
         color = versionTextColor
-    }, 1f)
+    }, 1f * scale)
 
     drawTextLineWithShadow(starText, height,
-        10f + versionText.capHeight + starText.capHeight + 17f
+        10f * scale + versionText.capHeight + starText.capHeight + 17f * scale
         , paint.apply {
             mode = PaintMode.FILL
             color = starTextColor
-        }, 1f)
+        }, 1f * scale)
 }
 
 private fun difficultyColor(value: Double) : Int {

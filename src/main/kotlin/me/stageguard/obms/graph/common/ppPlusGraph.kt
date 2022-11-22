@@ -15,20 +15,20 @@ fun Canvas.drawPPPlusGraph(
     graphCardWidth: Float, graphCardHeight: Float,
     ju: Double, fl: Double, sp: Double, st: Double, pr: Double, co: Double,
     backgroundColor: Int, textColor: Int, graphColorMax: Int, graphColorMin: Int,
-    paint: Paint
+    paint: Paint, scale: Float = 1.0f
 ) {
-    drawRRect(RRect.makeXYWH(0f, 0f, graphCardWidth, graphCardHeight, 16f), paint.apply {
+    drawRRect(RRect.makeXYWH(0f, 0f, graphCardWidth, graphCardHeight, 16f * scale), paint.apply {
         color = backgroundColor
         mode = PaintMode.FILL
     })
 
-    val ppPlusGraphText = TextLine.make("Strain skill of the beatmap", Font(semiBoldFont, 18f))
+    val ppPlusGraphText = TextLine.make("Strain skill of the beatmap", Font(semiBoldFont, 18f * scale))
     drawTextLineWithShadow(ppPlusGraphText,
-        (graphCardWidth - ppPlusGraphText.width) / 2, graphCardHeight - 15f,
+        (graphCardWidth - ppPlusGraphText.width) / 2, graphCardHeight - 15f * scale,
         paint.setColor(textColor)
     )
-    val graphCenterY = (graphCardHeight - 20f - ppPlusGraphText.capHeight) / 2
-    val radius = 70f
+    val graphCenterY = (graphCardHeight - 20f * scale - ppPlusGraphText.capHeight) / 2
+    val radius = 70f * scale
 
     val totalSkill = ju + fl + sp + st + pr + co
     val skills = listOf(
@@ -56,8 +56,8 @@ fun Canvas.drawPPPlusGraph(
         save()
         translate(graphCardWidth / 2, graphCenterY)
 
-        val skillName = TextLine.make(it.first, Font(semiBoldFont, 18f))
-        val skillValue = TextLine.make(format1DFix.format(it.second), Font(semiBoldFont, 18f))
+        val skillName = TextLine.make(it.first, Font(semiBoldFont, 18f * scale))
+        val skillValue = TextLine.make(format1DFix.format(it.second), Font(semiBoldFont, 18f * scale))
         val skillWidth = max(skillName.width, skillValue.width)
         val skillHeight = skillName.capHeight + 5f + skillValue.capHeight
 
