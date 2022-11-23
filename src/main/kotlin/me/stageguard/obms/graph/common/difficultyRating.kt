@@ -21,7 +21,7 @@ fun Canvas.drawDifficultyRatingCard(
     )
 
     drawRRect(
-        RRect.makeXYWH(0f, 0f, 60f * scale + max(versionText.width, starText.width) + 45f * scale, height, 90f),
+        RRect.makeXYWH(0f, 0f, 60f * scale + max(versionText.width, starText.width) + 45f * scale, height, 90f * scale),
         paint.apply {
             mode = PaintMode.FILL
             color = backgroundColor
