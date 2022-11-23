@@ -128,34 +128,23 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
     val mods = score.mods.parseMods()
     val ppCurvePoints = (mutableListOf<Pair<Double, Double>>() to mutableListOf<Pair<Double, Double>>()).also { p ->
         beatmapFile.onRight {
-            var calculatorCurrent = PPCalculatorNative.of(it.absolutePath)
-                .mods(mods)
+            p.first.add(score.accuracy * 100 to PPCalculatorNative.of(it.absolutePath).mods(mods)
                 .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
                 .misses(score.statistics.countMiss)
                 .combo(score.maxCombo)
-                .accuracy(score.accuracy * 100)
-
-            p.first.add(score.accuracy * 100 to calculatorCurrent.calculate().total)
-
-            var calculatorFullCombo = PPCalculatorNative.of(it.absolutePath)
-                .mods(mods)
-                .accuracy(score.accuracy * 100)
-            p.second.add(score.accuracy * 100 to calculatorFullCombo.calculate().total)
-
+                .accuracy(score.accuracy * 100).calculate().total)
+            p.second.add(score.accuracy * 100 to PPCalculatorNative.of(it.absolutePath).mods(mods).accuracy(score.accuracy * 100).calculate().total)
             generateSequence(900) { s -> if(s == 1000) null else s + 5 }.forEach { step ->
                 val acc = step / 10.0
-
-                calculatorCurrent = PPCalculatorNative.of(it.absolutePath)
-                    .inheritAttributes(calculatorCurrent).accuracy(acc)
-                p.first.add(acc to calculatorCurrent.calculate().total)
-
-                calculatorFullCombo = PPCalculatorNative.of(it.absolutePath)
-                    .inheritAttributes(calculatorFullCombo).accuracy(acc)
-                p.second.add(acc to calculatorFullCombo.calculate().total)
+                p.second.add(acc to PPCalculatorNative.of(it.absolutePath).mods(mods).accuracy(acc).calculate().total)
+                p.first.add(acc to
+                        PPCalculatorNative.of(it.absolutePath).mods(mods)
+                            .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
+                            .misses(score.statistics.countMiss)
+                            .combo(score.maxCombo)
+                            .accuracy(acc).calculate().total
+                )
             }
-
-            calculatorCurrent.close()
-            calculatorFullCombo.close()
         }
     }
     val skillAttributes = beatmap.mapRight { it.calculateSkills(ModCombination.of(mods)) }
