@@ -39,6 +39,15 @@ fun ByteBuf.readNullableString() : String? {
     return readString()
 }
 
+@Throws(IOException::class)
+fun ByteBuf.readNullTerminatedString() = buildString {
+    while (true) {
+        val b = readByte()
+        if (b == 0.toByte()) break
+        append(b.toInt().toChar())
+    }
+}
+
 @Throws(Exception::class)
 fun ByteBuf.readCompressedLzmaContent(): ByteBuf {
     val bufferedIStream = ByteBufInputStream(this, true).buffered()
