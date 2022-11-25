@@ -10,21 +10,11 @@ import java.io.InputStream
 
 suspend fun KotlinPlugin.exportStaticResourcesToDataFolder() = withContext(Dispatchers.IO) {
     listOf(
+        "/font/osuFont.fnt",
+        "/font/osuFont_0.png",
         "/font/Torus-Bold.otf",
         "/font/Torus-Regular.otf",
         "/font/Torus-SemiBold.otf",
-        "/image/mod_dt.png",
-        "/image/mod_ez.png",
-        "/image/mod_fl.png",
-        "/image/mod_hd.png",
-        "/image/mod_hr.png",
-        "/image/mod_ht.png",
-        "/image/mod_nc.png",
-        "/image/mod_nf.png",
-        "/image/mod_nm.png",
-        "/image/mod_pf.png",
-        "/image/mod_sd.png",
-        "/image/mod_so.png",
         "/svg/grade_a.svg",
         "/svg/grade_b.svg",
         "/svg/grade_c.svg",

@@ -1,23 +1,52 @@
 package me.stageguard.obms.utils.bmf
 
-import io.netty.buffer.ByteBuf
+import io.github.humbleui.skija.Image
+import io.github.humbleui.skija.Surface
 import io.netty.buffer.Unpooled
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import me.stageguard.obms.utils.readNullTerminatedString
 import java.io.File
 import java.lang.IndexOutOfBoundsException
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.properties.Delegates
 
 class BitmapFont(
-    var bitmapFontInfo: BitmapFontInfo,
-    var bitmapFontCommon: BitmapFontCommon,
-    val pages: Map<Int, String>,
-    val characters: Map<Int, BitmapCharacter>
-) {
+    private val file: File,
+    private val bitmapFontInfo: BitmapFontInfo,
+    private val bitmapFontCommon: BitmapFontCommon,
+    private val pages: Map<Int, String>,
+    private val characters: Map<Int, BitmapCharacter>
+) : Iterable<BitmapCharacter> {
+    private val fontFaceCache: ConcurrentHashMap<String, Image> = ConcurrentHashMap()
+
+    operator fun get(value: Int) : Image? {
+        val character = characters[value] ?: return null
+        val pageFileName = pages[character.page] ?: return null
+
+        val image = fontFaceCache.getOrPut(pageFileName) {
+            runBlocking(Dispatchers.IO) {
+                Image.makeFromEncoded(File(file.parent, pageFileName).inputStream().use { it.readAllBytes() })
+            }
+        }
+
+        return Surface.makeRasterN32Premul(character.width, character.height).run {
+            canvas.translate(-character.x.toFloat(), -character.y.toFloat())
+            canvas.drawImage(image, 0f, 0f)
+            canvas.restore()
+            makeImageSnapshot()
+        }
+    }
     companion object {
         val BMF_MAGIC = byteArrayOf(66, 77, 70)
         val SUPPORTED_VERSION = 3
 
-        fun readFromReader(stream: ByteBuf) : BitmapFont{
+        fun readFromFile(path: String): BitmapFont {
+            val file = File(path)
+            check(file.exists() && file.isFile) { "BitmapFont file $path is not exists or not a file." }
+
+            val stream = Unpooled.wrappedBuffer(file.inputStream().use { it.readBytes() })
+
             ByteArray(3).apply {
                 stream.readBytes(this)
                 check(this.contentEquals(BMF_MAGIC)) { "Unknown BitmapFont format." }
@@ -64,8 +93,11 @@ class BitmapFont(
                 blockId = try { stream.readByte().toInt() } catch (_: IndexOutOfBoundsException) { -1 }
             }
 
-            return BitmapFont(bitmapFontInfo, bitmapFontCommon, pages, characters)
+            return BitmapFont(file, bitmapFontInfo, bitmapFontCommon, pages, characters)
         }
-        fun readFromFile(path: String) = readFromReader(Unpooled.wrappedBuffer(File(path).inputStream().use { it.readBytes() }))
+    }
+
+    override fun iterator(): Iterator<BitmapCharacter> {
+        return characters.values.iterator()
     }
 }

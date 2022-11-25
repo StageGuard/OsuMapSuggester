@@ -6,6 +6,7 @@ import io.github.humbleui.skija.*
 import io.github.humbleui.skija.svg.SVGDOM
 import io.github.humbleui.types.RRect
 import io.github.humbleui.types.Rect
+import me.stageguard.obms.utils.bmf.BitmapFont
 import java.io.File
 import java.io.InputStream
 import kotlin.math.ceil
@@ -121,6 +122,14 @@ fun Canvas.drawTextLineWithShadow(
         strokeWidth = currentPaintStrokeWidth
         mode = currentPaintMode
     }
+}
+
+fun Canvas.drawBitmapFontText(
+    bitmapFont: BitmapFont, character: Int,
+    x: Float, y: Float, paint: Paint,
+) {
+    val image = bitmapFont[character] ?: Surface.makeRasterN32Premul(1, 1).makeImageSnapshot()
+    drawImage(image, x, y, paint)
 }
 
 fun lerpColor(src: Int, dst: Int, percentage: Double) =

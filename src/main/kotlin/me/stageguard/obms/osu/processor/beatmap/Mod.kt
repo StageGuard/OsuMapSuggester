@@ -61,69 +61,73 @@ class ModCombination private constructor(private val value: Int) {
     }
 }
 
-sealed class Mod(val value: Int) {
-    object None : Mod(0) {
+enum class Mod(val value: Int, val type: ModType, val iconCharacter: Int = -1) {
+    None(0, ModType.None, 0xe005) {
         override fun toString() = "NM"
-    }
-    object NoFail : Mod(1) {
+    },
+    NoFail(1, ModType.DifficultyReduction, 0xe044) {
         override fun toString() = "NF"
-    }
-    object Easy : Mod(2) {
+    },
+    Easy(2, ModType.DifficultyReduction, 0xe03e) {
         override fun toString() = "EZ"
-    }
-    object TouchDevice : Mod(4) {
+    },
+    TouchDevice(4, ModType.None) {
         override fun toString() = "TD"
-    }
-    object Hidden : Mod(8) {
+    },
+    Hidden(8, ModType.DifficultyIncrease, 0xe042) {
         override fun toString() = "HD"
-    }
-    object HardRock : Mod(16) {
+    },
+    HardRock(16, ModType.DifficultyIncrease, 0xe041) {
         override fun toString() = "HR"
-    }
-    object SuddenDeath : Mod(32) {
+    },
+    SuddenDeath(32, ModType.DifficultyIncrease, 0xe047) {
         override fun toString() = "SD"
-    }
-    object DoubleTime : Mod(64) {
+    },
+    DoubleTime(64, ModType.DifficultyIncrease, 0xe03d) {
         override fun toString() = "DT"
-    }
-    object Relax : Mod(128) {
+    },
+    Relax(128, ModType.Automation) {
         override fun toString() = "RX"
-    }
-    object HalfTime : Mod(256) {
+    },
+    HalfTime(256, ModType.DifficultyReduction, 0xe040) {
         override fun toString() = "HT"
-    }
-    object NightCore : Mod(512) {
+    },
+    NightCore(512, ModType.DifficultyIncrease, 0xe043) {
         override fun toString() = "NC"
-    }
-    object Flashlight : Mod(1024) {
+    },
+    Flashlight(1024, ModType.DifficultyIncrease, 0xe03f) {
         override fun toString() = "FL"
-    }
-    object Autoplay : Mod(2048) {
+    },
+    Autoplay(2048, ModType.Automation) {
         override fun toString() = "AP"
-    }
-    object SpunOut : Mod(4096) {
+    },
+    SpunOut(4096, ModType.Automation, 0xe046) {
         override fun toString() = "SO"
-    }
-    object Relax2 : Mod(8192)
-    object Perfect : Mod(16384) {
+    },
+    Relax2(8192, ModType.Automation),
+    Perfect(16384, ModType.DifficultyIncrease, 0xe049) {
         override fun toString() = "PF"
-    }
-    object Key4 : Mod(32768)
-    object Key5 : Mod(65536)
-    object Key6 : Mod(131072)
-    object Key7 : Mod(262144)
-    object Key8 : Mod(524288)
-    object FadeIn : Mod(1048576)
-    object Random : Mod(2097152)
-    object Cinema : Mod(4194304)
-    object Target : Mod(8388608)
-    object Key9 : Mod(16777216)
-    object KeyCoop : Mod(33554432)
-    object Key1 : Mod(67108864)
-    object Key3 : Mod(134217728)
-    object Key2 : Mod(268435456)
-    object ScoreV2 : Mod(536870912) {
+    },
+    Key4(32768, ModType.None),
+    Key5(65536, ModType.None),
+    Key6(131072, ModType.None),
+    Key7(262144, ModType.None),
+    Key8(524288, ModType.None),
+    FadeIn(1048576, ModType.None),
+    Random(2097152, ModType.None),
+    Cinema(4194304, ModType.None),
+    Target(8388608, ModType.None),
+    Key9(16777216, ModType.None),
+    KeyCoop(33554432, ModType.None),
+    Key1(67108864, ModType.None),
+    Key3(134217728, ModType.None),
+    Key2(268435456, ModType.None),
+    ScoreV2(536870912, ModType.None) {
         override fun toString() = "V2"
-    }
-    object Mirror : Mod(1073741824)
+    },
+    Mirror(1073741824, ModType.None)
+}
+
+enum class ModType {
+    DifficultyIncrease, DifficultyReduction, Automation, None
 }

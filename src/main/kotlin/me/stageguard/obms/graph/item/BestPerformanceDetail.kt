@@ -5,6 +5,8 @@ import me.stageguard.obms.bot.route.OrderResult
 import me.stageguard.obms.graph.*
 import io.github.humbleui.skija.*
 import io.github.humbleui.types.RRect
+import me.stageguard.obms.graph.common.drawModIcon
+import me.stageguard.obms.osu.processor.beatmap.Mod
 import kotlin.math.*
 
 @Suppress("DuplicatedCode")
@@ -193,10 +195,18 @@ object BestPerformanceDetail {
             //mod info
             val marginToPPInfo = accInfoStart - 25f //margin
             var negativeOffset = 0f
-            entry.score.mods.forEach {
-                val icon = image("image/mod_${it.lowercase()}.png")
-                negativeOffset += icon.width + 1f
-                drawImage(icon, marginToPPInfo - negativeOffset, (cardHeight - icon.height) / 2f + 2f)
+            val modIconWidth = 45f
+            val modIconHeight = 32f
+            entry.score.mods.map { m -> enumValues<Mod>().find { it.toString() == m } }.forEach { mod ->
+                if (mod != null) {
+                    negativeOffset += modIconWidth + 1f
+                    drawModIcon(mod,
+                        modIconWidth, modIconHeight,
+                        marginToPPInfo - negativeOffset, (cardHeight - modIconHeight) / 2f + 2f,
+                        backgroundColor = Color.makeRGB(255, 204, 33),
+                        foregroundColor = Color.makeRGB(84, 84, 84)
+                    )
+                }
             }
         }
 
@@ -403,10 +413,18 @@ object BestPerformanceDetail {
             //mod info
             val marginToPPInfo = accInfoStart - 25f //margin
             var negativeOffset = 0f
-            entry.score.mods.forEach {
-                val icon = image("image/mod_${it.lowercase()}.png")
-                negativeOffset += icon.width + 1f
-                drawImage(icon, marginToPPInfo - negativeOffset, (cardHeight - icon.height) / 2f + 2f)
+            val modIconWidth = 45f
+            val modIconHeight = 32f
+            entry.score.mods.map { m -> enumValues<Mod>().find { it.toString() == m } }.forEach { mod ->
+                if (mod != null) {
+                    negativeOffset += modIconWidth + 1f
+                    drawModIcon(mod,
+                        modIconWidth, modIconHeight,
+                        marginToPPInfo - negativeOffset, (cardHeight - modIconHeight) / 2f + 2f,
+                        backgroundColor = Color.makeRGB(255, 204, 33),
+                        foregroundColor = Color.makeRGB(84, 84, 84)
+                    )
+                }
             }
         }
 

@@ -26,6 +26,7 @@ import me.stageguard.obms.utils.InferredOptionalValue
 import io.github.humbleui.skija.*
 import io.github.humbleui.types.RRect
 import io.github.humbleui.types.Rect
+import me.stageguard.obms.graph.common.drawModIcon
 import java.lang.Exception
 import java.util.*
 import kotlin.math.*
@@ -390,12 +391,9 @@ object RecentPlay {
             translate(- maxTextWidth - 10f * scale, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight + (42f + 10f) * scale)
 
             var modXOffset = 0f
-            mods.toList().map { m ->
-                m.toString().lowercase(Locale.getDefault())
-            }.forEach {
-                val icon = image("image/mod_$it.png").scale(scale)
-                drawImage(icon, modXOffset, 0f)
-                modXOffset += icon.width + 3f * scale
+            mods.toList().forEach { mod ->
+                drawModIcon(mod, 45f * scale, 32f * scale, modXOffset, 0f)
+                modXOffset += (45f + 3f) * scale
             }
 
             restore()
