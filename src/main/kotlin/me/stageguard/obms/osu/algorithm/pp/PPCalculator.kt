@@ -202,6 +202,7 @@ open class PPCalculator protected constructor(
             aim = aimValue,
             speed = speedValue,
             accuracy = accValue,
+            flashlight = 0.0,
             attributes = attributes.get()
         )
     }
@@ -216,6 +217,7 @@ open class PPResult<ATTR : DifficultyAttributes>(
     val aim: Double,
     val speed: Double,
     val accuracy: Double,
+    val flashlight: Double,
     val attributes: ATTR? = null
 ) {
     override fun toString(): String {

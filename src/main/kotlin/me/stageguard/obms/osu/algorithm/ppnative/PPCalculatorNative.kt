@@ -120,6 +120,7 @@ open class PPCalculatorNative private constructor(
             val aim = data.readDouble()
             val speed = data.readDouble()
             val accuracy = data.readDouble()
+            val flashlight = data.readDouble()
             val stars = data.readDouble()
             val approachRate = data.readDouble()
             val overallDifficulty = data.readDouble()
@@ -136,7 +137,7 @@ open class PPCalculatorNative private constructor(
             // this calculator is consumed by unsafe { Box::from_raw(calc_ptr) }
             _nPtr = -1L
 
-            PPResult(total, aim, speed,accuracy, DifficultyAttributes(
+            PPResult(total, aim, speed, accuracy, flashlight, DifficultyAttributes(
                 stars, approachRate, overallDifficulty, hpDrain, circleSize,
                 aimStrain, sliderFactor, speedStrain, maxCombo, nCircles, nSliders, nSpinners
             ))
