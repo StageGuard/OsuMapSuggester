@@ -41,12 +41,12 @@ object RecentPlay {
     private val mapperAvatarEdgeLength get() = 60f * scale
     private val playerAvatarEdgeLength get() = 68f * scale
     private val difficultyPanelHeight get() = 70f * scale
-    private val rankStatusHeight get() = 55f  * scale
+    private val rankStatusHeight get() = 55f * scale
     private val beatmapAttributePanelWidth get() = 360 * scale
     private val beatmapAttributePanelHeight get() = 205f * scale
     private val replayDataHeight get() = 55f * scale
     private val replayDetailWidth get() = 300f * scale
-    private val scoreInfoHeight get() =  cardHeight - songInfoHeight
+    private val scoreInfoHeight get() = cardHeight - songInfoHeight
 
     val songInfoShadowColor = Color.makeARGB(153, 34, 40, 42)
     val scoreInfoBackgroundColor = Color.makeRGB(42, 34, 38)
@@ -70,8 +70,8 @@ object RecentPlay {
         }
 
     private suspend fun getAvatarFromUrlOrDefault(url: String) =
-        ImageCache.getImageAsSkijaImage(url).rightOrNull ?: defaultAvatarImage.rightOrNull ?:
-            throw IllegalStateException("Cannot get avatar fom server and local: $url")
+        ImageCache.getImageAsSkijaImage(url).rightOrNull ?: defaultAvatarImage.rightOrNull
+        ?: throw IllegalStateException("Cannot get avatar fom server and local: $url")
 
 
     suspend fun drawRecentPlayCard(
@@ -82,7 +82,7 @@ object RecentPlay {
         skillAttributes: OptionalValue<SkillAttributes>,
         userBestScore: OptionalValue<BeatmapUserScoreDTO>,
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>
-    ) : Surface {
+    ): Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
         val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
         val mapperAvatar = mapperInfo?.avatarUrl?.let { getAvatarFromUrlOrDefault(it) }
@@ -102,7 +102,7 @@ object RecentPlay {
         userBestScore: OptionalValue<BeatmapUserScoreDTO>,
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>,
         playerAvatar: Image, mapperAvatar: Image?, songCover: OptionalValue<Image>,
-    ) : Surface {
+    ): Surface {
         val surface = Surface.makeRasterN32Premul(
             (replayAnalyzer.ifRight { (cardWidth + replayDetailWidth).toInt() } ?: cardWidth).toInt(),
             cardHeight.toInt()
@@ -158,24 +158,35 @@ object RecentPlay {
 
             val songBid = TextLine.make("BID: ${scoreDTO.beatmap!!.id}", Font(semiBoldFont, 16f * scale))
             drawRRect(RRect.makeXYWH(
-                cardWidth - songBid.width - 20f * scale, 0f, songBid.width + 20f * scale, songBid.capHeight + 20f * scale, 8f * scale
+                cardWidth - songBid.width - 20f * scale,
+                0f,
+                songBid.width + 20f * scale,
+                songBid.capHeight + 20f * scale,
+                8f * scale
             ), paint.apply {
                 color = transparent40PercentBlack
                 mode = PaintMode.FILL
             })
-            drawTextLine(songBid, cardWidth - songBid.width - 10f * scale, songBid.capHeight + 10f * scale, paint.apply {
-                color = colorGray
-                mode = PaintMode.FILL
-                strokeWidth = 1f * scale
-            })
+            drawTextLine(
+                songBid,
+                cardWidth - songBid.width - 10f * scale,
+                songBid.capHeight + 10f * scale,
+                paint.apply {
+                    color = colorGray
+                    mode = PaintMode.FILL
+                    strokeWidth = 1f * scale
+                })
 
             //song basic info
             val songTitle = TextLine.make(kotlin.run {
                 val title = beatmapSet.title
-                if(title.length > 30) title.take(27).plus("...") else title
+                if (title.length > 30) title.take(27).plus("...") else title
             }, Font(semiBoldFont, 42f * scale))
 
-            translate(songInfoPadding /*+ songHeaderImageWidth*/ + 20f * scale, songInfoPadding + songTitle.capHeight + 14f * scale)
+            translate(
+                songInfoPadding /*+ songHeaderImageWidth*/ + 20f * scale,
+                songInfoPadding + songTitle.capHeight + 14f * scale
+            )
 
             drawTextLineWithShadow(songTitle, 0f, 0f, paint.apply {
                 color = colorWhite
@@ -192,20 +203,29 @@ object RecentPlay {
             translate(0f, songTitle.capHeight + songArtist.capHeight + 27f * scale)
 
             //mapper info
-            mapperAvatar ?.run a@ {
-                val scaledMapperAvatar = this@a.scale(mapperAvatarEdgeLength / this@a.width, mapperAvatarEdgeLength / this@a.height)
+            mapperAvatar?.run a@{
+                val scaledMapperAvatar =
+                    this@a.scale(mapperAvatarEdgeLength / this@a.width, mapperAvatarEdgeLength / this@a.height)
                 drawRoundCorneredImage(scaledMapperAvatar, 0f, 0f, 12f * scale)
             }
 
             val mapperName = TextLine.make("mapped by ${beatmapSet.creator}", Font(regularFont, 20f * scale))
-            drawTextLineWithShadow(mapperName, mapperAvatarEdgeLength + 15f * scale, mapperName.capHeight + 10f * scale, paint.apply {
-                color = colorWhite
-                mode = PaintMode.FILL
-                strokeWidth = 1f * scale
-            }, 2f * scale)
+            drawTextLineWithShadow(
+                mapperName,
+                mapperAvatarEdgeLength + 15f * scale,
+                mapperName.capHeight + 10f * scale,
+                paint.apply {
+                    color = colorWhite
+                    mode = PaintMode.FILL
+                    strokeWidth = 1f * scale
+                },
+                2f * scale
+            )
 
-            val beatmapsetCreateTime = TextLine.make("created at ${scoreDTO.beatmap.lastUpdated}", Font(regularFont, 20f * scale))
-            drawTextLineWithShadow(beatmapsetCreateTime, mapperAvatarEdgeLength + 15f * scale,
+            val beatmapsetCreateTime =
+                TextLine.make("created at ${scoreDTO.beatmap.lastUpdated}", Font(regularFont, 20f * scale))
+            drawTextLineWithShadow(
+                beatmapsetCreateTime, mapperAvatarEdgeLength + 15f * scale,
                 mapperName.capHeight + beatmapsetCreateTime.capHeight + 22f * scale,
                 paint.apply {
                     color = colorWhite
@@ -227,61 +247,80 @@ object RecentPlay {
             restoreToCount(songInfoSavePoint)
 
             //rank status
-            val rankStatus = TextLine.make(beatmapSet.status.uppercase(Locale.getDefault()), Font(boldFont, 28f * scale))
+            val rankStatus =
+                TextLine.make(beatmapSet.status.uppercase(Locale.getDefault()), Font(boldFont, 28f * scale))
             drawRRect(
                 RRect.makeXYWH(
-                cardWidth - songInfoPadding - rankStatus.width - 40f * 2 * scale, songInfoPadding,
-                rankStatus.width + 40f * 2 * scale, rankStatusHeight, 90f * scale
-            ), paint.apply {
-                mode = PaintMode.FILL
-                color = transparent40PercentBlack
-            })
+                    cardWidth - songInfoPadding - rankStatus.width - 40f * 2 * scale, songInfoPadding,
+                    rankStatus.width + 40f * 2 * scale, rankStatusHeight, 90f * scale
+                ), paint.apply {
+                    mode = PaintMode.FILL
+                    color = transparent40PercentBlack
+                })
             drawTextLine(rankStatus,
-                cardWidth - songInfoPadding - rankStatus.width - 40f * scale, songInfoPadding + rankStatusHeight / 2 + rankStatus.capHeight / 2,
+                cardWidth - songInfoPadding - rankStatus.width - 40f * scale,
+                songInfoPadding + rankStatusHeight / 2 + rankStatus.capHeight / 2,
                 paint.apply {
                     color = colorGray
                 }
             )
 
             save()
-            translate(cardWidth - songInfoPadding - beatmapAttributePanelWidth, songInfoPadding + rankStatusHeight + 15f * scale)
+            translate(
+                cardWidth - songInfoPadding - beatmapAttributePanelWidth,
+                songInfoPadding + rankStatusHeight + 15f * scale
+            )
 
             //difficulty attributes
-            drawRRect(RRect.makeXYWH(0f, 0f, beatmapAttributePanelWidth, beatmapAttributePanelHeight, 16f * scale), paint.apply {
-                color = transparent40PercentBlack
-                mode = PaintMode.FILL
-            })
+            drawRRect(
+                RRect.makeXYWH(0f, 0f, beatmapAttributePanelWidth, beatmapAttributePanelHeight, 16f * scale),
+                paint.apply {
+                    color = transparent40PercentBlack
+                    mode = PaintMode.FILL
+                })
 
             val totalLengthIcon = svgDom("svg/total_length.svg").toScaledImage(0.07f * scale)
-            val totalLengthText = TextLine.make(parseTime(when {
-                mods.dt() -> round(scoreDTO.beatmap.totalLength / 1.5).toInt()
-                mods.ht() -> round(scoreDTO.beatmap.totalLength * 1.33).toInt()
-                else -> scoreDTO.beatmap.totalLength
-            }), Font(semiBoldFont, 18f * scale))
+            val totalLengthText = TextLine.make(
+                parseTime(
+                    when {
+                        mods.dt() -> round(scoreDTO.beatmap.totalLength / 1.5).toInt()
+                        mods.ht() -> round(scoreDTO.beatmap.totalLength * 1.33).toInt()
+                        else -> scoreDTO.beatmap.totalLength
+                    }
+                ), Font(semiBoldFont, 18f * scale)
+            )
             val bpmIcon = svgDom("svg/bpm.svg").toScaledImage(0.07f * scale)
-            val bpmText = TextLine.make(when {
-                mods.dt() -> format1DFix.format(scoreDTO.beatmap.bpm * 1.5)
-                mods.ht() -> format1DFix.format(scoreDTO.beatmap.bpm / 1.33)
-                else -> format1DFix.format(scoreDTO.beatmap.bpm)
-            }, Font(semiBoldFont, 18f * scale))
+            val bpmText = TextLine.make(
+                when {
+                    mods.dt() -> format1DFix.format(scoreDTO.beatmap.bpm * 1.5)
+                    mods.ht() -> format1DFix.format(scoreDTO.beatmap.bpm / 1.33)
+                    else -> format1DFix.format(scoreDTO.beatmap.bpm)
+                }, Font(semiBoldFont, 18f * scale)
+            )
 
             val totalLengthWidth = totalLengthIcon.width + 20f * scale + totalLengthText.width
             val bpmWidth = bpmIcon.width + 20f * scale + bpmText.width
 
             drawImage(totalLengthIcon, (beatmapAttributePanelWidth / 2 - totalLengthWidth) / 2, 12f * scale)
-            drawTextLineWithShadow(totalLengthText,
+            drawTextLineWithShadow(
+                totalLengthText,
                 (beatmapAttributePanelWidth / 2 - totalLengthWidth) / 2 + 20f * scale + totalLengthIcon.width - 8f * scale,
                 13f * scale + totalLengthIcon.height / 2 + totalLengthText.capHeight / 2, paint.apply {
-                    color = if(mods.dt() || mods.ht()) colorYellow else colorWhite
+                    color = if (mods.dt() || mods.ht()) colorYellow else colorWhite
                 }, 1f
             )
             paint.color = colorWhite
 
-            drawImage(bpmIcon, beatmapAttributePanelWidth / 2 + (beatmapAttributePanelWidth / 2 - bpmWidth) / 2 - 10f * scale, 12f * scale)
-            drawTextLineWithShadow(bpmText,
+            drawImage(
+                bpmIcon,
+                beatmapAttributePanelWidth / 2 + (beatmapAttributePanelWidth / 2 - bpmWidth) / 2 - 10f * scale,
+                12f * scale
+            )
+            drawTextLineWithShadow(
+                bpmText,
                 beatmapAttributePanelWidth / 2 + (beatmapAttributePanelWidth / 2 - bpmWidth) / 2 + 20f * scale + totalLengthIcon.width - 10f * scale,
                 13f * scale + bpmIcon.height / 2 + bpmText.capHeight / 2, paint.apply {
-                    color = if(mods.dt() || mods.ht()) colorYellow else colorWhite
+                    color = if (mods.dt() || mods.ht()) colorYellow else colorWhite
                 }, 1f
             )
             paint.color = colorWhite
@@ -294,9 +333,27 @@ object RecentPlay {
             val overallDifficultyText = TextLine.make("Overall Difficulty", Font(regularFont, 18f * scale))
 
             drawTextLineWithShadow(circleSizeText, 0f, circleSizeText.capHeight, paint, 1f * scale)
-            drawTextLineWithShadow(hpDrainText, 0f, circleSizeText.capHeight + circleSizeText.capHeight + 13f * scale, paint, 1f * scale)
-            drawTextLineWithShadow(approachRateText, 0f, circleSizeText.capHeight + circleSizeText.capHeight + hpDrainText.capHeight + 26f * scale, paint, 1f * scale)
-            drawTextLineWithShadow(overallDifficultyText, 0f, circleSizeText.capHeight + circleSizeText.capHeight + hpDrainText.capHeight + approachRateText.capHeight + 39f * scale, paint, 1f * scale)
+            drawTextLineWithShadow(
+                hpDrainText,
+                0f,
+                circleSizeText.capHeight + circleSizeText.capHeight + 13f * scale,
+                paint,
+                1f * scale
+            )
+            drawTextLineWithShadow(
+                approachRateText,
+                0f,
+                circleSizeText.capHeight + circleSizeText.capHeight + hpDrainText.capHeight + 26f * scale,
+                paint,
+                1f * scale
+            )
+            drawTextLineWithShadow(
+                overallDifficultyText,
+                0f,
+                circleSizeText.capHeight + circleSizeText.capHeight + hpDrainText.capHeight + approachRateText.capHeight + 39f * scale,
+                paint,
+                1f * scale
+            )
 
 
             val circleSize = TextLine.make(attribute.ifRight {
@@ -312,28 +369,57 @@ object RecentPlay {
                 format1DFix.format(it.overallDifficulty)
             } ?: scoreDTO.beatmap.accuracy.toString(), Font(boldFont, 18f * scale))
 
-            val maxAttributeWidth = max(max(circleSize.width, hpDrain.width), max(approachRate.width, overallDifficulty.width))
+            val maxAttributeWidth =
+                max(max(circleSize.width, hpDrain.width), max(approachRate.width, overallDifficulty.width))
 
-            drawTextLineWithShadow(circleSize, beatmapAttributePanelWidth - 20f * 2 * scale - maxAttributeWidth, circleSize.capHeight, paint.apply {
-                color = if(mods.hr() || mods.ez()) colorYellow else colorWhite
-            }, 1f * scale)
+            drawTextLineWithShadow(
+                circleSize,
+                beatmapAttributePanelWidth - 20f * 2 * scale - maxAttributeWidth,
+                circleSize.capHeight,
+                paint.apply {
+                    color = if (mods.hr() || mods.ez()) colorYellow else colorWhite
+                },
+                1f * scale
+            )
             paint.color = colorWhite
-            drawTextLineWithShadow(hpDrain, beatmapAttributePanelWidth - 20f * 2 * scale - maxAttributeWidth, circleSize.capHeight + hpDrain.capHeight + 13f * scale, paint.apply {
-                color = if(mods.hr() || mods.ez()) colorYellow else colorWhite
-            }, 1f * scale)
+            drawTextLineWithShadow(
+                hpDrain,
+                beatmapAttributePanelWidth - 20f * 2 * scale - maxAttributeWidth,
+                circleSize.capHeight + hpDrain.capHeight + 13f * scale,
+                paint.apply {
+                    color = if (mods.hr() || mods.ez()) colorYellow else colorWhite
+                },
+                1f * scale
+            )
             paint.color = colorWhite
-            drawTextLineWithShadow(approachRate, beatmapAttributePanelWidth - 20f * 2 * scale - maxAttributeWidth, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + 26f * scale, paint.apply {
-                color = if(mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite
-            }, 1f * scale)
+            drawTextLineWithShadow(
+                approachRate,
+                beatmapAttributePanelWidth - 20f * 2 * scale - maxAttributeWidth,
+                circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + 26f * scale,
+                paint.apply {
+                    color = if (mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite
+                },
+                1f * scale
+            )
             paint.color = colorWhite
-            drawTextLineWithShadow(overallDifficulty, beatmapAttributePanelWidth - 20f * 2 * scale - maxAttributeWidth, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight + 39f * scale, paint.apply {
-                color = if(mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite
-            }, 1f * scale)
+            drawTextLineWithShadow(
+                overallDifficulty,
+                beatmapAttributePanelWidth - 20f * 2 * scale - maxAttributeWidth,
+                circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight + 39f * scale,
+                paint.apply {
+                    color = if (mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite
+                },
+                1f * scale
+            )
             paint.color = colorWhite
 
-            val maxTextWidth = max(max(circleSizeText.width, hpDrainText.width), max(approachRateText.width, overallDifficultyText.width))
+            val maxTextWidth = max(
+                max(circleSizeText.width, hpDrainText.width),
+                max(approachRateText.width, overallDifficultyText.width)
+            )
 
-            val attributeBarLength = beatmapAttributePanelWidth - 40f * scale - maxAttributeWidth - maxTextWidth - (10f + 10f) * scale //5f and 10f is translation offset
+            val attributeBarLength =
+                beatmapAttributePanelWidth - 40f * scale - maxAttributeWidth - maxTextWidth - (10f + 10f) * scale //5f and 10f is translation offset
 
             translate(maxTextWidth + 10f * scale, 0f)
 
@@ -348,9 +434,11 @@ object RecentPlay {
                 }
             )
             drawLine(
-                0f, circleSize.capHeight / 2,
-                attributeBarLength * ((attribute.ifRight { it.circleSize } ?: scoreDTO.beatmap.cs) / 11.0).toFloat(), circleSize.capHeight / 2,
-                paint.setColor(if(mods.hr() || mods.ez()) colorYellow else colorWhite)
+                0f,
+                circleSize.capHeight / 2,
+                attributeBarLength * ((attribute.ifRight { it.circleSize } ?: scoreDTO.beatmap.cs) / 11.0).toFloat(),
+                circleSize.capHeight / 2,
+                paint.setColor(if (mods.hr() || mods.ez()) colorYellow else colorWhite)
             )
             //hpDrain
             drawLine(
@@ -359,9 +447,11 @@ object RecentPlay {
                 paint.setColor(transparent40PercentBlack)
             )
             drawLine(
-                0f, circleSize.capHeight + hpDrain.capHeight / 2 + 13f * scale,
-                attributeBarLength * ((attribute.ifRight { it.hpDrain } ?: scoreDTO.beatmap.drain) / 11.0).toFloat(), circleSize.capHeight + hpDrain.capHeight / 2 + 13f * scale,
-                paint.setColor(if(mods.hr() || mods.ez()) colorYellow else colorWhite)
+                0f,
+                circleSize.capHeight + hpDrain.capHeight / 2 + 13f * scale,
+                attributeBarLength * ((attribute.ifRight { it.hpDrain } ?: scoreDTO.beatmap.drain) / 11.0).toFloat(),
+                circleSize.capHeight + hpDrain.capHeight / 2 + 13f * scale,
+                paint.setColor(if (mods.hr() || mods.ez()) colorYellow else colorWhite)
             )
             //approachRate
             drawLine(
@@ -373,22 +463,29 @@ object RecentPlay {
                 0f, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight / 2 + 26f * scale,
                 attributeBarLength * ((attribute.ifRight { it.approachRate } ?: scoreDTO.beatmap.ar) / 11.0).toFloat(),
                 circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight / 2 + 26f * scale,
-                paint.setColor(if(mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite)
+                paint.setColor(if (mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite)
             )
             //overallDifficulty
             drawLine(
-                0f, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f * scale,
-                attributeBarLength, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f * scale,
+                0f,
+                circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f * scale,
+                attributeBarLength,
+                circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f * scale,
                 paint.setColor(transparent40PercentBlack)
             )
             drawLine(
-                0f, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f * scale,
-                attributeBarLength * ((attribute.ifRight { it.overallDifficulty } ?: scoreDTO.beatmap.accuracy) / 11.0).toFloat(),
+                0f,
                 circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f * scale,
-                paint.setColor(if(mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite)
+                attributeBarLength * ((attribute.ifRight { it.overallDifficulty }
+                    ?: scoreDTO.beatmap.accuracy) / 11.0).toFloat(),
+                circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight / 2 + 39f * scale,
+                paint.setColor(if (mods.isDoubleTimeOrHalfTime() || mods.hr() || mods.ez()) colorYellow else colorWhite)
             )
 
-            translate(- maxTextWidth - 10f * scale, circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight + (42f + 10f) * scale)
+            translate(
+                -maxTextWidth - 10f * scale,
+                circleSize.capHeight + hpDrain.capHeight + approachRate.capHeight + overallDifficulty.capHeight + (42f + 10f) * scale
+            )
 
             var modXOffset = 0f
             mods.toList().forEach { mod ->
@@ -405,18 +502,22 @@ object RecentPlay {
             val playTime = TextLine.make("played at ${scoreDTO.createdAt}", Font(semiBoldFont, 20f * scale))
 
             drawRoundCorneredImage(scaledPlayerAvatarImage, 40f * scale, 20f * scale, 12f * scale)
-            drawTextLineWithShadow(playerName,
+            drawTextLineWithShadow(
+                playerName,
                 40f * scale + scaledPlayerAvatarImage.width + 20f * scale,
                 20f * scale + playerName.capHeight + 13f * scale, paint.apply {
-                color = colorWhite
-            }, 2f * scale)
-            drawTextLineWithShadow(playTime,
+                    color = colorWhite
+                }, 2f * scale
+            )
+            drawTextLineWithShadow(
+                playTime,
                 40f * scale + scaledPlayerAvatarImage.width + 20f * scale,
                 20f * scale + playerName.capHeight + playTime.capHeight + 27f * scale, paint.apply {
-                color = colorWhite
-            }, 2f * scale)
+                    color = colorWhite
+                }, 2f * scale
+            )
 
-            val replayAvailable = if(scoreDTO.replay == true) "Replay is available." else "Replay is unavailable."
+            val replayAvailable = if (scoreDTO.replay == true) "Replay is available." else "Replay is unavailable."
             val replay = TextLine.make(replayAvailable, Font(semiBoldFont, 22f * scale))
 
             drawRRect(RRect.makeXYWH(
@@ -427,7 +528,8 @@ object RecentPlay {
                 mode = PaintMode.FILL
                 color = transparent40PercentBlack
             })
-            drawTextLine(replay, cardWidth - 40f * scale - replay.width - 40f * scale,
+            drawTextLine(
+                replay, cardWidth - 40f * scale - replay.width - 40f * scale,
                 (40f * scale + scaledPlayerAvatarImage.height) / 2 + replay.capHeight / 2,
                 paint.setColor(colorGray)
             )
@@ -462,8 +564,13 @@ object RecentPlay {
                 mode = PaintMode.FILL
             })
 
-            val scaledRankIcon = svgDom("svg/grade_${scoreDTO.rank.lowercase(Locale.getDefault())}.svg").toScaledImage(3.2f * scale)
-            drawImage(scaledRankIcon, xWidth * 0.48f - scaledRankIcon.width / 2, xHeight / 2 - scaledRankIcon.height / 2)
+            val scaledRankIcon =
+                svgDom("svg/grade_${scoreDTO.rank.lowercase(Locale.getDefault())}.svg").toScaledImage(3.2f * scale)
+            drawImage(
+                scaledRankIcon,
+                xWidth * 0.48f - scaledRankIcon.width / 2,
+                xHeight / 2 - scaledRankIcon.height / 2
+            )
 
             //hit result
             save()
@@ -472,68 +579,80 @@ object RecentPlay {
             val intervalBetweenHitIconAndText = 10f * scale
 
             val hitGreatIcon = TextLine.make("GREAT", Font(boldFont, 32f * scale))
-            val hitGreatText = TextLine.make(usNumber.format(scoreDTO.statistics.count300), Font(semiBoldFont, 28f * scale))
+            val hitGreatText =
+                TextLine.make(usNumber.format(scoreDTO.statistics.count300), Font(semiBoldFont, 28f * scale))
             val hitGreatHeight = hitGreatIcon.capHeight + hitGreatText.capHeight + intervalBetweenHitIconAndText
             val hitGreatWidth = max(hitGreatIcon.width, hitGreatText.width)
 
-            drawTextLineWithShadow(hitGreatIcon,
+            drawTextLineWithShadow(
+                hitGreatIcon,
                 (cos(PI / 2.0 + PI / 5.0 * 1) * 180f * scale - hitGreatWidth / 2).toFloat(),
                 (-sin(PI / 2.0 + PI / 5.0 * 1) * 130f * scale - hitGreatHeight / 2 + hitGreatIcon.capHeight).toFloat(),
                 paint.apply { color = Color.makeRGB(110, 183, 214) },
                 2f * scale, shadowColor = Color.makeRGB(70, 117, 137)
             )
-            drawTextLineWithShadow(hitGreatText,
+            drawTextLineWithShadow(
+                hitGreatText,
                 (cos(PI / 2.0 + PI / 5.0 * 1) * 180f * scale - hitGreatWidth / 2 + (hitGreatWidth - hitGreatText.width) / 2).toFloat(),
                 (-sin(PI / 2.0 + PI / 5.0 * 1) * 130f * scale - hitGreatHeight / 2 + hitGreatIcon.capHeight + hitGreatText.capHeight + intervalBetweenHitIconAndText).toFloat(),
                 paint.setColor(colorWhite), 3f * scale
             ) // 2.05, 2.95, 4
 
             val hitGoodIcon = TextLine.make("GOOD", Font(boldFont, 32f * scale))
-            val hitGoodText = TextLine.make(usNumber.format(scoreDTO.statistics.count100), Font(semiBoldFont, 28f * scale))
+            val hitGoodText =
+                TextLine.make(usNumber.format(scoreDTO.statistics.count100), Font(semiBoldFont, 28f * scale))
             val hitGoodHeight = hitGoodIcon.capHeight + hitGoodText.capHeight + intervalBetweenHitIconAndText
             val hitGoodWidth = max(hitGoodIcon.width, hitGoodText.width)
 
-            drawTextLineWithShadow(hitGoodIcon,
+            drawTextLineWithShadow(
+                hitGoodIcon,
                 (cos(PI / 2.0 + PI / 5.0 * 2.05) * 180f * scale - hitGoodWidth / 2).toFloat(),
                 (-sin(PI / 2.0 + PI / 5.0 * 2.05) * 130f * scale - hitGoodHeight / 2 + hitGoodIcon.capHeight).toFloat(),
                 paint.apply { color = Color.makeRGB(187, 254, 35) },
                 2f * scale, shadowColor = Color.makeRGB(130, 177, 24)
             )
-            drawTextLineWithShadow(hitGoodText,
+            drawTextLineWithShadow(
+                hitGoodText,
                 (cos(PI / 2.0 + PI / 5.0 * 2.05) * 180f * scale - hitGoodWidth / 2 + (hitGoodWidth - hitGoodText.width) / 2).toFloat(),
                 (-sin(PI / 2.0 + PI / 5.0 * 2.05) * 130f * scale - hitGoodHeight / 2 + hitGoodIcon.capHeight + hitGoodText.capHeight + intervalBetweenHitIconAndText).toFloat(),
                 paint.setColor(colorWhite), 3f * scale
             )
 
             val hitMehIcon = TextLine.make("MEH", Font(boldFont, 32f * scale))
-            val hitMehText = TextLine.make(usNumber.format(scoreDTO.statistics.count50), Font(semiBoldFont, 28f * scale))
+            val hitMehText =
+                TextLine.make(usNumber.format(scoreDTO.statistics.count50), Font(semiBoldFont, 28f * scale))
             val hitMehHeight = hitMehIcon.capHeight + hitMehText.capHeight + intervalBetweenHitIconAndText
             val hitMehWidth = max(hitMehIcon.width, hitMehText.width)
 
-            drawTextLineWithShadow(hitMehIcon,
+            drawTextLineWithShadow(
+                hitMehIcon,
                 (cos(PI / 2.0 + PI / 5.0 * 2.95) * 180f * scale - hitMehWidth / 2).toFloat(),
                 (-sin(PI / 2.0 + PI / 5.0 * 2.95) * 130f * scale - hitMehHeight / 2 + hitMehIcon.capHeight).toFloat(),
                 paint.apply { color = Color.makeRGB(244, 196, 40) },
                 2f * scale, shadowColor = Color.makeRGB(167, 134, 27)
             )
-            drawTextLineWithShadow(hitMehText,
+            drawTextLineWithShadow(
+                hitMehText,
                 (cos(PI / 2.0 + PI / 5.0 * 2.95) * 180f * scale - hitMehWidth / 2 + (hitMehWidth - hitMehText.width) / 2).toFloat(),
                 (-sin(PI / 2.0 + PI / 5.0 * 2.95) * 130f * scale - hitMehHeight / 2 + hitMehIcon.capHeight + hitMehText.capHeight + intervalBetweenHitIconAndText).toFloat(),
                 paint.setColor(colorWhite), 3f * scale
             )
 
             val hitMissIcon = TextLine.make("MISS", Font(boldFont, 32f * scale))
-            val hitMissText = TextLine.make(usNumber.format(scoreDTO.statistics.countMiss), Font(semiBoldFont, 28f * scale))
+            val hitMissText =
+                TextLine.make(usNumber.format(scoreDTO.statistics.countMiss), Font(semiBoldFont, 28f * scale))
             val hitMissHeight = hitMissIcon.capHeight + hitMissText.capHeight + intervalBetweenHitIconAndText
             val hitMissWidth = max(hitMissIcon.width, hitMissText.width)
 
-            drawTextLineWithShadow(hitMissIcon,
+            drawTextLineWithShadow(
+                hitMissIcon,
                 (cos(PI / 2.0 + PI / 5.0 * 4) * 180f * scale - hitMissWidth / 2).toFloat(),
                 (-sin(PI / 2.0 + PI / 5.0 * 4) * 130f * scale - hitMissHeight / 2 + hitMissIcon.capHeight).toFloat(),
                 paint.apply { color = Color.makeRGB(207, 69, 71) },
                 2f * scale, shadowColor = Color.makeRGB(130, 43, 44)
             )
-            drawTextLineWithShadow(hitMissText,
+            drawTextLineWithShadow(
+                hitMissText,
                 (cos(PI / 2.0 + PI / 5.0 * 4) * 180f * scale - hitMissWidth / 2 + (hitMissWidth - hitMissText.width) / 2).toFloat(),
                 (-sin(PI / 2.0 + PI / 5.0 * 4) * 130f * scale - hitMissHeight / 2 + hitMissIcon.capHeight + hitMissText.capHeight + intervalBetweenHitIconAndText).toFloat(),
                 paint.setColor(colorWhite), 3f * scale
@@ -549,9 +668,11 @@ object RecentPlay {
             val maxComboText = TextLine.make("Max Combo", Font(semiBoldFont, 28f * scale))
 
             val score = TextLine.make(usNumber.format(scoreDTO.score), Font(boldFont, 28f * scale))
-            val accuracy = TextLine.make(format2DFix.format(scoreDTO.accuracy * 100.0) + "%", Font(boldFont, 28f * scale))
+            val accuracy =
+                TextLine.make(format2DFix.format(scoreDTO.accuracy * 100.0) + "%", Font(boldFont, 28f * scale))
             val maxCombo = TextLine.make(usNumber.format(scoreDTO.maxCombo), Font(boldFont, 28f * scale))
-            val perfectCombo = TextLine.make(" / " + (attribute.ifRight { usNumber.format(it.maxCombo) } ?: "-"), Font(boldFont, 28f * scale))
+            val perfectCombo = TextLine.make(" / " + (attribute.ifRight { usNumber.format(it.maxCombo) } ?: "-"),
+                Font(boldFont, 28f * scale))
 
 
             val totalHeight = scoreText.capHeight + accuracyText.capHeight + maxComboText.capHeight +
@@ -560,93 +681,121 @@ object RecentPlay {
             translate(0f, (xHeight - totalHeight) / 2)
 
             val otherInfoTextSavePoint = save()
-            drawTextLineWithShadow(scoreText,
+            drawTextLineWithShadow(
+                scoreText,
                 (otherScoreInfoWidth - scoreText.width) / 2,
                 scoreText.capHeight,
                 paint.setColor(colorYellow), 3f * scale
             )
             translate(0f, scoreText.capHeight + 15f * scale + score.capHeight + 35f * scale)
-            drawTextLineWithShadow(accuracyText,
+            drawTextLineWithShadow(
+                accuracyText,
                 (otherScoreInfoWidth - accuracyText.width) / 2,
                 accuracyText.capHeight,
                 paint.setColor(colorYellow), 3f * scale
             )
             translate(0f, accuracyText.capHeight + 15f * scale + accuracy.capHeight + 35f * scale)
-            drawTextLineWithShadow(maxComboText,
+            drawTextLineWithShadow(
+                maxComboText,
                 (otherScoreInfoWidth - maxComboText.width) / 2,
                 maxComboText.capHeight,
                 paint.setColor(colorYellow), 3f * scale
             )
             restoreToCount(otherInfoTextSavePoint)
 
-            if(userBestScore.isRight
+            if (userBestScore.isRight
                 && userBestScore.right.score.id != scoreDTO.id
                 && userBestScore.right.score.run {
                     scoreDTO.score != this.score
-                        && scoreDTO.accuracy != this.accuracy
-                        && scoreDTO.maxCombo != this.maxCombo
-                }){
+                            && scoreDTO.accuracy != this.accuracy
+                            && scoreDTO.maxCombo != this.maxCombo
+                }
+            ) {
                 val unwrapped = userBestScore.right.score
 
                 val scoreDiff = scoreDTO.score - unwrapped.score
-                val bestScore = TextLine.make(" (${scoreDiff.run { if(this > 0) "+${usNumber.format(this)}" else usNumber.format(this) }})", Font(semiBoldFont, 18f * scale))
+                val bestScore = TextLine.make(
+                    " (${
+                        scoreDiff.run {
+                            if (this > 0) "+${usNumber.format(this)}" else usNumber.format(this)
+                        }
+                    })", Font(semiBoldFont, 18f * scale)
+                )
                 val accuracyDiff = (scoreDTO.accuracy - unwrapped.accuracy) * 100.0
-                val bestAccuracy = TextLine.make(" (${if(accuracyDiff > 0) "+" else ""}${format2DFix.format(accuracyDiff)}%)", Font(semiBoldFont, 18f * scale))
+                val bestAccuracy = TextLine.make(
+                    " (${if (accuracyDiff > 0) "+" else ""}${format2DFix.format(accuracyDiff)}%)",
+                    Font(semiBoldFont, 18f * scale)
+                )
                 val maxComboDiff = scoreDTO.maxCombo - unwrapped.maxCombo
-                val bestMaxCombo = TextLine.make(" (${maxComboDiff.run { if(this > 0) "+${usNumber.format(this)}" else usNumber.format(this) }})", Font(semiBoldFont, 18f * scale))
+                val bestMaxCombo = TextLine.make(
+                    " (${
+                        maxComboDiff.run {
+                            if (this > 0) "+${usNumber.format(this)}" else usNumber.format(this)
+                        }
+                    })", Font(semiBoldFont, 18f * scale)
+                )
 
                 val scoreWidth = score.width + bestScore.width
                 val accuracyWidth = accuracy.width + bestAccuracy.width
                 val maxComboWidth = maxCombo.width + bestMaxCombo.width + perfectCombo.width
 
-                drawTextLineWithShadow(score,
+                drawTextLineWithShadow(
+                    score,
                     (otherScoreInfoWidth - scoreWidth) / 2,
                     scoreText.capHeight + 15f * scale + score.capHeight,
                     paint.setColor(colorWhite), 3f * scale
                 )
-                drawTextLineWithShadow(bestScore,
+                drawTextLineWithShadow(
+                    bestScore,
                     (otherScoreInfoWidth - scoreWidth) / 2 + score.width,
                     scoreText.capHeight + 15f * scale + score.capHeight,
-                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
+                    if (scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
                 )
                 translate(0f, scoreText.capHeight + 15f * scale + score.capHeight + 35f * scale)
-                drawTextLineWithShadow(accuracy,
+                drawTextLineWithShadow(
+                    accuracy,
                     (otherScoreInfoWidth - accuracyWidth) / 2,
                     accuracyText.capHeight + 15f * scale + accuracy.capHeight,
                     paint.setColor(colorWhite), 3f * scale
                 )
-                drawTextLineWithShadow(bestAccuracy,
+                drawTextLineWithShadow(
+                    bestAccuracy,
                     (otherScoreInfoWidth - accuracyWidth) / 2 + accuracy.width,
                     accuracyText.capHeight + 15f * scale + accuracy.capHeight,
-                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
+                    if (scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
                 )
                 translate(0f, accuracyText.capHeight + 15f * scale + accuracy.capHeight + 35f * scale)
-                drawTextLineWithShadow(maxCombo,
+                drawTextLineWithShadow(
+                    maxCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
                     paint.setColor(colorWhite), 3f * scale
                 )
-                drawTextLineWithShadow(bestMaxCombo,
+                drawTextLineWithShadow(
+                    bestMaxCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2 + maxCombo.width,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
-                    if(scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
+                    if (scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
                 )
-                drawTextLineWithShadow(perfectCombo,
+                drawTextLineWithShadow(
+                    perfectCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2 + maxCombo.width + bestMaxCombo.width,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
                     paint.setColor(colorWhite), 3f * scale
                 )
             } else {
-                drawTextLineWithShadow(score,
+                drawTextLineWithShadow(
+                    score,
                     (otherScoreInfoWidth - score.width) / 2,
                     scoreText.capHeight + 15f * scale + score.capHeight,
                     paint.setColor(colorWhite), 3f * scale
                 )
                 translate(0f, scoreText.capHeight + 15f * scale + score.capHeight + 35f * scale)
-                drawTextLineWithShadow(accuracy,
+                drawTextLineWithShadow(
+                    accuracy,
                     (otherScoreInfoWidth - accuracy.width) / 2,
                     accuracyText.capHeight + 15f * scale + accuracy.capHeight,
-                    paint.setColor(if(scoreDTO.accuracy == 1.0) colorGreen else colorWhite), 3f * scale
+                    paint.setColor(if (scoreDTO.accuracy == 1.0) colorGreen else colorWhite), 3f * scale
                 )
                 translate(0f, accuracyText.capHeight + 15f * scale + accuracy.capHeight + 35f * scale)
                 val maxComboWidth = maxCombo.width + perfectCombo.width
@@ -654,10 +803,11 @@ object RecentPlay {
                     (otherScoreInfoWidth - maxComboWidth) / 2,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
                     paint.setColor(attribute.ifRight {
-                        if(scoreDTO.maxCombo == it.maxCombo) colorGreen else colorWhite
+                        if (scoreDTO.maxCombo == it.maxCombo) colorGreen else colorWhite
                     } ?: colorWhite), 3f * scale
                 )
-                drawTextLineWithShadow(perfectCombo,
+                drawTextLineWithShadow(
+                    perfectCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2 + maxCombo.width,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
                     paint.setColor(colorWhite), 3f * scale
@@ -673,7 +823,7 @@ object RecentPlay {
             //pp+ and pp graph background
             translate(25f * scale, 25f * scale)
 
-            if(skillAttributes.isRight) {
+            if (skillAttributes.isRight) {
                 val unwrapped = skillAttributes.right
                 drawPPPlusGraph(
                     graphCardWidth, graphCardHeight,
@@ -686,12 +836,14 @@ object RecentPlay {
                 val unavailable2 = TextLine.make("is unavailable", Font(semiBoldFont, 28f * scale))
                 val width = max(unavailable1.width, unavailable2.width)
                 val height = unavailable1.capHeight + unavailable2.capHeight + 10f * scale
-                drawTextLineWithShadow(unavailable1,
+                drawTextLineWithShadow(
+                    unavailable1,
                     (graphCardWidth - width) / 2 + (width - unavailable1.width) / 2,
                     graphCardHeight / 2 - (height - unavailable1.height) / 2,
                     paint.setColor(colorGray), 1f * scale
                 )
-                drawTextLineWithShadow(unavailable2,
+                drawTextLineWithShadow(
+                    unavailable2,
                     (graphCardWidth - width) / 2 + (width - unavailable2.width) / 2,
                     graphCardHeight / 2 - (height - unavailable2.height) / 2 + 10f * scale + unavailable2.capHeight,
                     paint.setColor(colorGray), 1f * scale
@@ -700,7 +852,7 @@ object RecentPlay {
 
             translate(graphCardWidth + 20f * scale, 0f)
 
-            if(ppCurvePoints.first.isNotEmpty() && ppCurvePoints.second.isNotEmpty()) {
+            if (ppCurvePoints.first.isNotEmpty() && ppCurvePoints.second.isNotEmpty()) {
                 drawPpCurveGraph(
                     graphCardWidth, graphCardHeight,
                     ppCurvePoints.first, ppCurvePoints.second,
@@ -713,12 +865,14 @@ object RecentPlay {
                 val unavailable2 = TextLine.make("is unavailable", Font(semiBoldFont, 28f * scale))
                 val width = max(unavailable1.width, unavailable2.width)
                 val height = unavailable1.capHeight + unavailable2.capHeight + 10f * scale
-                drawTextLineWithShadow(unavailable1,
+                drawTextLineWithShadow(
+                    unavailable1,
                     (graphCardWidth - width) / 2 + (width - unavailable1.width) / 2,
                     graphCardHeight / 2 - (height - unavailable1.height) / 2,
                     paint.setColor(colorGray), 1f * scale
                 )
-                drawTextLineWithShadow(unavailable2,
+                drawTextLineWithShadow(
+                    unavailable2,
                     (graphCardWidth - width) / 2 + (width - unavailable2.width) / 2,
                     graphCardHeight / 2 - (height - unavailable2.height) / 2 + 10f * scale + unavailable2.capHeight,
                     paint.setColor(colorGray), 1f * scale
@@ -797,9 +951,9 @@ object RecentPlay {
                 val (barHeight, barWidth) = 120f * scale to 3f * scale
                 val groupedTiming = Array(200 / 5 + 1) { 0 }.also { arr ->
                     rep.timingDistributions.forEach { time ->
-                        if(time < -100.0) {
+                        if (time < -100.0) {
                             arr[0] = arr[0].plus(1)
-                        } else if(time > 100.0) {
+                        } else if (time > 100.0) {
                             arr[arr.lastIndex] = arr[arr.lastIndex].plus(1)
                         } else {
                             val idx = round((time + 100) / 5.0).toInt()
@@ -818,12 +972,16 @@ object RecentPlay {
                             color = colorWhite
                             strokeWidth = barWidth
                         })
-                    if(idx % 4 == 0) {
+                    if (idx % 4 == 0) {
                         val text = TextLine.make(startTiming.toString(), Font(semiBoldFont, 10f * scale))
-                        drawTextLine(text, acc + barWidth / 2 - text.width / 2, barHeight + 10f * scale + text.capHeight, paint.apply {
-                            color = colorGray
-                            strokeWidth = 1f * scale
-                        })
+                        drawTextLine(
+                            text,
+                            acc + barWidth / 2 - text.width / 2,
+                            barHeight + 10f * scale + text.capHeight,
+                            paint.apply {
+                                color = colorGray
+                                strokeWidth = 1f * scale
+                            })
                         startTiming += 20
                     }
                     acc + barWidth + eachPaddingWidth
@@ -831,14 +989,20 @@ object RecentPlay {
 
                 translate(0f, barHeight + (10f + 35f) * scale)
 
-                val averageHitTimeOffset = TextLine.make("Average Offset: ${format2DFix.format(rep.averageHitTimeOffset)} ms", Font(semiBoldFont, 14f * scale))
+                val averageHitTimeOffset = TextLine.make(
+                    "Average Offset: ${format2DFix.format(rep.averageHitTimeOffset)} ms",
+                    Font(semiBoldFont, 14f * scale)
+                )
                 drawTextLine(averageHitTimeOffset, 9f * scale, averageHitTimeOffset.capHeight, paint.apply {
                     color = colorWhite
                     strokeWidth = 1f * scale
                 })
                 translate(0f, averageHitTimeOffset.capHeight + 15f * scale)
 
-                val unstableRate = TextLine.make("Unstable Rate: ${format2DFix.format(rep.unstableRate)}", Font(semiBoldFont, 14f * scale))
+                val unstableRate = TextLine.make(
+                    "Unstable Rate: ${format2DFix.format(rep.unstableRate)}",
+                    Font(semiBoldFont, 14f * scale)
+                )
                 drawTextLine(unstableRate, 9f * scale, unstableRate.capHeight, paint.apply {
                     color = colorWhite
                     strokeWidth = 1f * scale
@@ -862,10 +1026,10 @@ object RecentPlay {
                 val heatmapMatrix = Array(dotDensity) { Array(dotDensity) { 0 } }
                 rep.hits.map { h -> h.hitPointPercentage }.forEach {
                     heatmapMatrix[
-                            max(0, min(round(it.first * dotDensity).toInt(), dotDensity - 1))
+                        max(0, min(round(it.first * dotDensity).toInt(), dotDensity - 1))
                     ][
-                            max(0, min(round(it.second * dotDensity).toInt(), dotDensity - 1))
-                    ] ++
+                        max(0, min(round(it.second * dotDensity).toInt(), dotDensity - 1))
+                    ]++
                 }
                 val maxHeatmapDotHitCount = heatmapMatrix.maxOf { w -> w.maxOf { h -> h } }
 
@@ -894,7 +1058,10 @@ object RecentPlay {
                 restore()
                 translate(0f, heatmapCircleRadius * 2 + 35f * scale)
 
-                val averagePrecision = TextLine.make("Precision: ${format2DFix.format(rep.averagePrecision * 100)}%", Font(semiBoldFont, 14f * scale))
+                val averagePrecision = TextLine.make(
+                    "Precision: ${format2DFix.format(rep.averagePrecision * 100)}%",
+                    Font(semiBoldFont, 14f * scale)
+                )
                 drawTextLine(averagePrecision, 9f, averagePrecision.capHeight, paint.apply {
                     color = colorWhite
                     mode = PaintMode.FILL

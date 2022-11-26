@@ -44,16 +44,16 @@ object MapSuggester {
     private val rulesetListBackgroundColor = Color.makeRGB(35, 42, 34)
     private val rulesetBackgroundColor = Color.makeRGB(23, 28, 23)
     private val rulesetItemBackgroundColor = Color.makeRGB(47, 56, 46)
-    private val rulesetPrimaryTextColor = Color.makeRGB(170,217,166)
-    private val rulesetSecondlyTextColor = Color.makeRGB(145,163,143)
+    private val rulesetPrimaryTextColor = Color.makeRGB(170, 217, 166)
+    private val rulesetSecondlyTextColor = Color.makeRGB(145, 163, 143)
 
     suspend fun drawRecommendBeatmapCard(
         beatmapInfo: OptionalValue<BeatmapDTO>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String
-    ) : Surface {
+    ): Surface {
         val songCover = beatmapInfo.mapRight { ImageCache.getImageAsSkijaImage(it.beatmapset!!.covers.cover2x) }
         val suggester = OsuUserInfo.getOsuIdAndName(beatmapType.author).run {
-            if(this != null) {
+            if (this != null) {
                 Either.invoke<Long, Pair<Int, String>>(this)
             } else {
                 Either.invoke(beatmapType.author)
@@ -64,7 +64,7 @@ object MapSuggester {
         )
     }
 
-    fun drawRulesetList(ruleset: List<Ruleset>, creatorsInfo: List<Pair<Long, Pair<Int, String>?>>) : Surface {
+    fun drawRulesetList(ruleset: List<Ruleset>, creatorsInfo: List<Pair<Long, Pair<Int, String>?>>): Surface {
 
         val columnNames = listOf(
             30f to TextLine.make("ID", Font(semiBoldFont, 16f)),
@@ -117,8 +117,9 @@ object MapSuggester {
                 rulesetGlobalPadding,
                 rulesetHeadHeight / 2f + rulesetText.capHeight / 2f + 3f,
                 paint.apply {
-                color = colorWhite
-            }, 3f)
+                    color = colorWhite
+                }, 3f
+            )
 
             translate(0f, rulesetHeadHeight)
             translate(rulesetGlobalPadding, rulesetGlobalPadding)
@@ -159,21 +160,27 @@ object MapSuggester {
             listOf(
                 30f to (TextLine.make(skill.id.toString(), Font(regularFont, 16f)) to colorWhite),
                 60f to (TextLine.make(skill.name.run {
-                    if(this.length > 12) this.take(12).plus("...") else this
+                    if (this.length > 12) this.take(12).plus("...") else this
                 }, Font(semiBoldFont, 16f)) to rulesetPrimaryTextColor),
                 250f to (TextLine.make(
-                    creatorInfo ?.second ?: "<unknown>", Font(semiBoldFont, 16f)
+                    creatorInfo?.second ?: "<unknown>", Font(semiBoldFont, 16f)
                 ) to rulesetPrimaryTextColor),
                 380f to (TextLine.make(skill.author.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor),
                 495f to (TextLine.make(
-                    creatorInfo ?.run { first.toString() } ?: "<unknown>", Font(semiBoldFont, 16f)
+                    creatorInfo?.run { first.toString() } ?: "<unknown>", Font(semiBoldFont, 16f)
                 ) to rulesetSecondlyTextColor),
                 595f to (TextLine.make(
                     skill.triggers.replace(";", "; "), Font(semiBoldFont, 16f)
                 ) to rulesetSecondlyTextColor),
-                1070f to (TextLine.make(skill.priority.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor),
+                1070f to (TextLine.make(
+                    skill.priority.toString(),
+                    Font(semiBoldFont, 16f)
+                ) to rulesetSecondlyTextColor),
                 1170f to (TextLine.make(skill.addDate.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor),
-                1285f to (TextLine.make(skill.lastEdited.toString(), Font(semiBoldFont, 16f)) to rulesetSecondlyTextColor)
+                1285f to (TextLine.make(
+                    skill.lastEdited.toString(),
+                    Font(semiBoldFont, 16f)
+                ) to rulesetSecondlyTextColor)
             ).forEach {
                 drawTextLine(it.second.first,
                     it.first, rulesetCardHeight / 2f + it.second.first.capHeight / 2, paint.apply {
@@ -190,7 +197,7 @@ object MapSuggester {
         beatmapInfo: OptionalValue<BeatmapDTO>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String,
         songCover: OptionalValue<OptionalValue<Image>>, suggester: Either<Long, Pair<Int, String>>
-    ) : Surface {
+    ): Surface {
         val surface = Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt())
 
         val paint = Paint().apply {
@@ -199,23 +206,26 @@ object MapSuggester {
 
         surface.canvas.apply {
             //blurred song cover
-            songCover.onRight { it.onRight { c ->
-                Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt()).run imgSurface@ {
-                    this.canvas.drawImage(
-                        c.cutCenter(cardWidth / c.width, cardHeight / c.height),
-                        0f, 0f
-                    )
-                    this.canvas.drawRect(
-                        Rect.makeXYWH(0f, 0f, cardWidth, cardHeight),
-                        Paint().setColor(songInfoShadowColor).setMode(PaintMode.FILL)
-                    )
-                    makeImageSnapshot()
-                }.also { blurred ->
-                    drawImage(blurred, 0f, 0f,
-                        Paint().setImageFilter(ImageFilter.makeBlur(8f, 8f, FilterTileMode.CLAMP))
-                    )
+            songCover.onRight {
+                it.onRight { c ->
+                    Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt()).run imgSurface@{
+                        this.canvas.drawImage(
+                            c.cutCenter(cardWidth / c.width, cardHeight / c.height),
+                            0f, 0f
+                        )
+                        this.canvas.drawRect(
+                            Rect.makeXYWH(0f, 0f, cardWidth, cardHeight),
+                            Paint().setColor(songInfoShadowColor).setMode(PaintMode.FILL)
+                        )
+                        makeImageSnapshot()
+                    }.also { blurred ->
+                        drawImage(
+                            blurred, 0f, 0f,
+                            Paint().setImageFilter(ImageFilter.makeBlur(8f, 8f, FilterTileMode.CLAMP))
+                        )
+                    }
                 }
-            } }
+            }
 
             //PP Plus graph
             save()
@@ -233,7 +243,7 @@ object MapSuggester {
 
             val songTitle = TextLine.make(kotlin.run {
                 val title = beatmapInfo.ifRight { it.beatmapset!!.title } ?: "<Unknown>"
-                if(title.length > 22) title.take(27).plus("...") else title
+                if (title.length > 22) title.take(27).plus("...") else title
             }, Font(semiBoldFont, 40f))
             val songArtist = TextLine.make(
                 beatmapInfo.ifRight { it.beatmapset!!.artist } ?: "<Unknown>",
@@ -250,7 +260,8 @@ object MapSuggester {
                     color = beatmapInfo.ifRight { colorWhite } ?: colorGray
                     mode = PaintMode.FILL
                     strokeWidth = 1f
-                }, 3f)
+                }, 3f
+            )
 
             translate(0f, songTitle.capHeight + 15f + songArtist.capHeight)
 
@@ -283,7 +294,7 @@ object MapSuggester {
             val bpmV = TextLine.make(beatmapSkill.bpm.toString(), Font(regularFont, 20f))
             listOf(lenT, lenV, bpmT, bpmV).foldIndexed(0f) { idx, acc, text ->
                 drawTextLineWithShadow(text, acc, text.capHeight, paint.apply {
-                    color = if((idx + 1) % 2 == 0) colorYellow else colorWhite
+                    color = if ((idx + 1) % 2 == 0) colorYellow else colorWhite
                     mode = PaintMode.FILL
                     strokeWidth = 1f
                 }, 2f)
@@ -311,7 +322,7 @@ object MapSuggester {
                 TextLine.make(beatmapSkill.overallDifficulty.toString(), Font(regularFont, 20f))
             ).foldIndexed(attrText.width) { idx, acc, text ->
                 drawTextLineWithShadow(text, acc, 0f, paint.apply {
-                    color = if((idx + 1) % 2 == 0) colorYellow else colorWhite
+                    color = if ((idx + 1) % 2 == 0) colorYellow else colorWhite
                     mode = PaintMode.FILL
                     strokeWidth = 1f
                 }, 2f)
@@ -322,14 +333,16 @@ object MapSuggester {
 
             //suggester
             drawRRect(
-                RRect.makeXYWH(0f, 0f,
-                cardWidth - (20f + ppPlusGraphWidth + 20f + 35f), cardHeight - (40f +
-                    songTitle.capHeight + 15f + songArtist.capHeight +
-                    18f + mapperName.capHeight + 22f +
-                    difficultyPanelHeight + 22f +
-                    lenT.capHeight + 15f +
-                    attrText.capHeight + 20f + 20f),
-                12f),
+                RRect.makeXYWH(
+                    0f, 0f,
+                    cardWidth - (20f + ppPlusGraphWidth + 20f + 35f), cardHeight - (40f +
+                            songTitle.capHeight + 15f + songArtist.capHeight +
+                            18f + mapperName.capHeight + 22f +
+                            difficultyPanelHeight + 22f +
+                            lenT.capHeight + 15f +
+                            attrText.capHeight + 20f + 20f),
+                    12f
+                ),
                 paint.apply {
                     color = transparent20PercentBlack
                     mode = PaintMode.FILL
@@ -357,10 +370,11 @@ object MapSuggester {
             val suggestedByText = TextLine.make("suggested by ", Font(regularFont, 16f))
             drawTextLineWithShadow(suggestedByText, 0f, suggestedByText.capHeight,
                 paint.apply {
-                color = colorWhite
-                mode = PaintMode.FILL
-                strokeWidth = 1f
-            }, 2f)
+                    color = colorWhite
+                    mode = PaintMode.FILL
+                    strokeWidth = 1f
+                }, 2f
+            )
 
             (suggester.ifRight { s ->
                 listOf(
@@ -386,7 +400,7 @@ object MapSuggester {
 
             val addonTipText = TextLine.make(additionalTip.ifEmpty { "No comment" }, Font(regularFont, 16f))
             drawTextLineWithShadow(addonTipText, 0f, addonTipText.capHeight, paint.apply {
-                color = if(additionalTip.isEmpty()) colorGray else colorYellow
+                color = if (additionalTip.isEmpty()) colorGray else colorYellow
                 mode = PaintMode.FILL
                 strokeWidth = 1f
             }, 2f)

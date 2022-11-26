@@ -17,9 +17,11 @@ object BestPerformanceDetail {
     private const val backgroundPadding = 60f
     private const val intervalBetweenCards = 10f
     private const val ppBackgroundWidth = 125f
+
     // Draw detailed card
     private const val detailedCardWidth = 1215f + cardHeight
     private const val detailedPpBackgroundWidth = 235f
+
     // Colors
     private val backgroundBaseColor = Color.makeRGB(42, 34, 38)
     private val backgroundColor = Color.makeRGB(70, 57, 63)
@@ -36,15 +38,15 @@ object BestPerformanceDetail {
 
     fun drawBestPerformancesImage(
         result: OrderResult
-    ) : Surface {
+    ): Surface {
         val isSingleColumn = result.scores.all { it !is OrderResult.Entry.Versus }
         val isDetailedBp = result.scores.any { it is OrderResult.Entry.DetailAnalyze }
         val theLastLine = result.scores.last().drawLine
 
-        val surfaceWidth = if(isDetailedBp) { //draw detailed bpa
+        val surfaceWidth = if (isDetailedBp) { //draw detailed bpa
             backgroundPadding * 2 + detailedCardWidth
         } else { // draw bpvs or bpa
-            backgroundPadding * 2 + cardWidth + (if(isSingleColumn) 0f else intervalBetweenCards + cardWidth)
+            backgroundPadding * 2 + cardWidth + (if (isSingleColumn) 0f else intervalBetweenCards + cardWidth)
         }
         val surfaceHeight = backgroundPadding * 2 + intervalBetweenCards * theLastLine + (theLastLine + 1) * cardHeight
 
@@ -55,24 +57,29 @@ object BestPerformanceDetail {
             val backgroundImage = image("image/background.png")
             drawImage(backgroundImage, 0f, surfaceHeight - backgroundImage.height.toFloat())
 
-            if(isDetailedBp) {
+            if (isDetailedBp) {
                 result.scores.forEach {
                     val card = drawDetailedSingleCard(it as OrderResult.Entry.DetailAnalyze)
-                    drawImage(card,
-                        backgroundPadding, backgroundPadding + it.drawLine * (card.height + intervalBetweenCards))
+                    drawImage(
+                        card,
+                        backgroundPadding, backgroundPadding + it.drawLine * (card.height + intervalBetweenCards)
+                    )
                 }
             } else {
-                if(isSingleColumn) {
+                if (isSingleColumn) {
                     result.scores.forEach {
                         val card = drawNormalSingleCard(it)
-                        drawImage(card,
-                            backgroundPadding, backgroundPadding + it.drawLine * (card.height + intervalBetweenCards))
+                        drawImage(
+                            card,
+                            backgroundPadding, backgroundPadding + it.drawLine * (card.height + intervalBetweenCards)
+                        )
                     }
                 } else {
                     result.scores.forEach {
                         val card = drawNormalSingleCard(it)
-                        drawImage(card,
-                            backgroundPadding + (if(it is OrderResult.Entry.Versus && it.isLeft) 0f else card.width + intervalBetweenCards),
+                        drawImage(
+                            card,
+                            backgroundPadding + (if (it is OrderResult.Entry.Versus && it.isLeft) 0f else card.width + intervalBetweenCards),
                             backgroundPadding + it.drawLine * (card.height + intervalBetweenCards)
                         )
                     }
@@ -84,7 +91,7 @@ object BestPerformanceDetail {
 
     private fun drawNormalSingleCard(
         entry: OrderResult.Entry
-    ) : Image {
+    ): Image {
         require(entry.score.pp != null)
 
         val surface = Surface.makeRasterN32Premul(
@@ -110,7 +117,10 @@ object BestPerformanceDetail {
             //beatmap info
             val songText = TextLine.make("${entry.score.beatmapset!!.title} ", Font(semiBoldFont, 18f))
             val authorText = TextLine.make("by ${entry.score.beatmapset!!.artist}", Font(semiBoldFont, 16f))
-            val variant = TextLine.make("${entry.score.beatmap!!.difficultyRating} | ${entry.score.beatmap!!.version}", Font(regularFont, 16f))
+            val variant = TextLine.make(
+                "${entry.score.beatmap!!.difficultyRating} | ${entry.score.beatmap!!.version}",
+                Font(regularFont, 16f)
+            )
             drawTextLine(songText,
                 rankSvgImage.width * 2f,
                 (cardHeight - songText.height / 2) / 2f + 2f,
@@ -143,8 +153,7 @@ object BestPerformanceDetail {
                     .lineTo(cardWidth - cardHeight / 2f, cardHeight)
                     .lineTo(cardWidth - ppBackgroundWidth + 0f, cardHeight)
                     .lineTo(cardWidth - ppBackgroundWidth + cardHeight / 4f, cardHeight / 2f)
-                    .lineTo(cardWidth - ppBackgroundWidth + 0f, 0f)
-                , paint.apply {
+                    .lineTo(cardWidth - ppBackgroundWidth + 0f, 0f), paint.apply {
                     color = ppBackgroundColor
                     mode = PaintMode.FILL
                 })
@@ -169,9 +178,14 @@ object BestPerformanceDetail {
             )
             //pp info
             val accInfoStart = cardWidth - ppBackgroundWidth - 180f
-            val accText = TextLine.make("${format2DFix.format(entry.score.accuracy * 100.0f)}%    ", Font(semiBoldFont, 18f))
-            val weightedPPText = TextLine.make("${format2DFix.format(entry.score.weight!!.pp)}pp", Font(semiBoldFont, 18f))
-            val weightedPercentage = TextLine.make("weighted ${format2DFix.format(entry.score.weight!!.percentage)}%", Font(regularFont, 16f))
+            val accText =
+                TextLine.make("${format2DFix.format(entry.score.accuracy * 100.0f)}%    ", Font(semiBoldFont, 18f))
+            val weightedPPText =
+                TextLine.make("${format2DFix.format(entry.score.weight!!.pp)}pp", Font(semiBoldFont, 18f))
+            val weightedPercentage = TextLine.make(
+                "weighted ${format2DFix.format(entry.score.weight!!.percentage)}%",
+                Font(regularFont, 16f)
+            )
             drawTextLine(accText,
                 accInfoStart,
                 (cardHeight - accText.height / 2) / 2f + 2f,
@@ -200,7 +214,8 @@ object BestPerformanceDetail {
             entry.score.mods.map { m -> enumValues<Mod>().find { it.toString() == m } }.forEach { mod ->
                 if (mod != null) {
                     negativeOffset += modIconWidth + 1f
-                    drawModIcon(mod,
+                    drawModIcon(
+                        mod,
                         modIconWidth, modIconHeight,
                         marginToPPInfo - negativeOffset, (cardHeight - modIconHeight) / 2f + 2f,
                         backgroundColor = Color.makeRGB(255, 204, 33),
@@ -259,7 +274,8 @@ object BestPerformanceDetail {
                 ((cardHeight - rankChangeText.width) / 2.0).toFloat(),
                 cardHeight / 2f + rankChangeText.height / 4f,
                 paint.apply {
-                    paint.color = if (entry.rankChange > 0) rankUpColor else if (entry.rankChange < 0) rankDownColor else timeTextColor
+                    paint.color =
+                        if (entry.rankChange > 0) rankUpColor else if (entry.rankChange < 0) rankDownColor else timeTextColor
                 }
             )
             //rank icon
@@ -271,7 +287,10 @@ object BestPerformanceDetail {
             //beatmap info
             val songText = TextLine.make("${entry.score.beatmapset!!.title} ", Font(semiBoldFont, 18f))
             val authorText = TextLine.make("by ${entry.score.beatmapset.artist}", Font(semiBoldFont, 16f))
-            val variant = TextLine.make("${entry.score.beatmap!!.difficultyRating} | ${entry.score.beatmap.version}", Font(regularFont, 16f))
+            val variant = TextLine.make(
+                "${entry.score.beatmap!!.difficultyRating} | ${entry.score.beatmap.version}",
+                Font(regularFont, 16f)
+            )
             drawTextLine(songText,
                 cardHeight + rankSvgImage.width * 2f,
                 (cardHeight - songText.height / 2) / 2f + 2f,
@@ -304,15 +323,14 @@ object BestPerformanceDetail {
                     .lineTo(detailedCardWidth - cardHeight / 2f, cardHeight)
                     .lineTo(detailedCardWidth - detailedPpBackgroundWidth + 0f, cardHeight)
                     .lineTo(detailedCardWidth - detailedPpBackgroundWidth + cardHeight / 4f, cardHeight / 2f)
-                    .lineTo(detailedCardWidth - detailedPpBackgroundWidth + 0f, 0f)
-                , paint.apply {
+                    .lineTo(detailedCardWidth - detailedPpBackgroundWidth + 0f, 0f), paint.apply {
                     color = ppBackgroundColor
                     mode = PaintMode.FILL
                 })
             drawRRect(RRect.makeXYWH(detailedCardWidth - cardHeight, 0f, cardHeight, cardHeight, 15f), paint)
             //draw pp text
             val ppText = TextLine.make("pp", Font(semiBoldFont, 16f))
-            if(abs(round(entry.score.pp) - round(entry.recalculatedPp)) <= 1) {
+            if (abs(round(entry.score.pp) - round(entry.recalculatedPp)) <= 1) {
                 val ppValueText = TextLine.make(round(entry.score.pp).toInt().toString(), Font(boldFont, 20f))
                 val totalWidth = ppValueText.width + ppText.width
                 drawTextLine(ppValueText,
@@ -330,23 +348,30 @@ object BestPerformanceDetail {
                     }
                 )
             } else {
-                val beforeRecalculatePPValue = TextLine.make(round(
-                    if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) entry.recalculatedPp else entry.score.pp
-                ).toInt().toString(), Font(boldFont, 20f))
-                val afterRecalculatePPValue = TextLine.make(round(
-                    if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) entry.score.pp else entry.recalculatedPp
-                ).toInt().toString(), Font(boldFont, 20f))
+                val beforeRecalculatePPValue = TextLine.make(
+                    round(
+                        if (entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) entry.recalculatedPp else entry.score.pp
+                    ).toInt().toString(), Font(boldFont, 20f)
+                )
+                val afterRecalculatePPValue = TextLine.make(
+                    round(
+                        if (entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) entry.score.pp else entry.recalculatedPp
+                    ).toInt().toString(), Font(boldFont, 20f)
+                )
                 val rightArrow = svgDom("svg/arrow_right.svg").run {
                     toScaledImage(beforeRecalculatePPValue.height * 0.8.toFloat() / root!!.height.value)
                 }
-                val totalWidth = beforeRecalculatePPValue.width + ppText.width + rightArrow.width + beforeRecalculatePPValue.width + ppText.width + 20
+                val totalWidth =
+                    beforeRecalculatePPValue.width + ppText.width + rightArrow.width + beforeRecalculatePPValue.width + ppText.width + 20
                 drawTextLine(beforeRecalculatePPValue,
                     detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f,
                     cardHeight / 2f + beforeRecalculatePPValue.height / 4f,
                     paint.apply {
-                        color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
-                            if(entry.recalculatedPp > entry.score.pp) ppColor else beforeRecalculatePpColor
-                        } else { ppColor }
+                        color = if (entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                            if (entry.recalculatedPp > entry.score.pp) ppColor else beforeRecalculatePpColor
+                        } else {
+                            ppColor
+                        }
                     }
                 )
                 drawTextLine(ppText,
@@ -354,24 +379,30 @@ object BestPerformanceDetail {
                             + beforeRecalculatePPValue.width,
                     cardHeight / 2f + beforeRecalculatePPValue.height / 4f,
                     paint.apply {
-                        color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
-                            if(entry.recalculatedPp > entry.score.pp) ppTextColor else beforeRecalculatePpTextColor
-                        } else { ppTextColor }
+                        color = if (entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                            if (entry.recalculatedPp > entry.score.pp) ppTextColor else beforeRecalculatePpTextColor
+                        } else {
+                            ppTextColor
+                        }
                     }
                 )
-                drawImage(rightArrow,
+                drawImage(
+                    rightArrow,
                     detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f +
                             beforeRecalculatePPValue.width + ppText.width + 10.toFloat(),
                     (cardHeight - rightArrow.height) / 2,
-                    paint)
+                    paint
+                )
                 drawTextLine(afterRecalculatePPValue,
                     detailedCardWidth - (detailedPpBackgroundWidth - cardHeight / 4 + totalWidth) / 2f +
                             beforeRecalculatePPValue.width + ppText.width + rightArrow.width + 20.toFloat(),
                     cardHeight / 2f + afterRecalculatePPValue.height / 4f,
                     paint.apply {
-                        color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
-                            if(entry.recalculatedPp > entry.score.pp) beforeRecalculatePpColor else ppColor
-                        } else { beforeRecalculatePpColor }
+                        color = if (entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                            if (entry.recalculatedPp > entry.score.pp) beforeRecalculatePpColor else ppColor
+                        } else {
+                            beforeRecalculatePpColor
+                        }
                     }
                 )
                 drawTextLine(ppText,
@@ -379,17 +410,24 @@ object BestPerformanceDetail {
                             beforeRecalculatePPValue.width + ppText.width + rightArrow.width + afterRecalculatePPValue.width + 20.toFloat(),
                     cardHeight / 2f + afterRecalculatePPValue.height / 4f,
                     paint.apply {
-                        color = if(entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
-                            if(entry.recalculatedPp > entry.score.pp) beforeRecalculatePpTextColor else ppTextColor
-                        } else { beforeRecalculatePpTextColor }
+                        color = if (entry.analyzeDetailType == AnalyzeDetailType.OutdatedAlgorithm) {
+                            if (entry.recalculatedPp > entry.score.pp) beforeRecalculatePpTextColor else ppTextColor
+                        } else {
+                            beforeRecalculatePpTextColor
+                        }
                     }
                 )
             }
             //pp info
             val accInfoStart = detailedCardWidth - detailedPpBackgroundWidth - 180f
-            val accText = TextLine.make("${format2DFix.format(entry.score.accuracy * 100.0f)}%", Font(semiBoldFont, 18f))
-            val weightedPPText = TextLine.make("${format2DFix.format(entry.recalculatedWeightedPp)}pp", Font(semiBoldFont, 18f))
-            val weightedPercentage = TextLine.make("weighted ${format2DFix.format(entry.recalculatedWeightedPp / entry.recalculatedPp * 100.0f)}%", Font(regularFont, 16f))
+            val accText =
+                TextLine.make("${format2DFix.format(entry.score.accuracy * 100.0f)}%", Font(semiBoldFont, 18f))
+            val weightedPPText =
+                TextLine.make("${format2DFix.format(entry.recalculatedWeightedPp)}pp", Font(semiBoldFont, 18f))
+            val weightedPercentage = TextLine.make(
+                "weighted ${format2DFix.format(entry.recalculatedWeightedPp / entry.recalculatedPp * 100.0f)}%",
+                Font(regularFont, 16f)
+            )
             drawTextLine(accText,
                 accInfoStart,
                 (cardHeight - accText.height / 2) / 2f + 2f,
@@ -418,7 +456,8 @@ object BestPerformanceDetail {
             entry.score.mods.map { m -> enumValues<Mod>().find { it.toString() == m } }.forEach { mod ->
                 if (mod != null) {
                     negativeOffset += modIconWidth + 1f
-                    drawModIcon(mod,
+                    drawModIcon(
+                        mod,
                         modIconWidth, modIconHeight,
                         marginToPPInfo - negativeOffset, (cardHeight - modIconHeight) / 2f + 2f,
                         backgroundColor = Color.makeRGB(255, 204, 33),
