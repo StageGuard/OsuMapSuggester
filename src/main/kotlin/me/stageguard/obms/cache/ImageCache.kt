@@ -1,5 +1,6 @@
 package me.stageguard.obms.cache
 
+import io.github.humbleui.skija.Data
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
@@ -15,14 +16,17 @@ import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.InferredOptionalValue
 import me.stageguard.obms.utils.OptionalValue
 import io.github.humbleui.skija.Image
+import io.github.humbleui.skija.svg.SVGDOM
+import me.stageguard.obms.RefactoredException
+import me.stageguard.obms.graph.svgDom
+import me.stageguard.obms.utils.Either.Companion.invoke
 import java.io.File
 import java.io.InputStream
-import java.lang.Exception
+import kotlin.properties.Delegates
 
 object ImageCache {
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun imageFile(name: String) =
-        File(OsuMapSuggester.dataFolder.absolutePath + File.separator + "image" + File.separator + name)
+    private inline fun imageFile(name: String) = File(File(OsuMapSuggester.dataFolder.absolutePath, "image"), name)
 
     suspend fun getImageAsStream(
         url: String, maxTryCount: Int = 4, tryCount: Int = 1
@@ -79,6 +83,36 @@ object ImageCache {
     }
 
     suspend fun getImageAsSkijaImage(url: String) = getImageAsStream(url).run {
-        runInterruptible { mapRight { Image.makeFromEncoded(it.readAllBytes()) } }
+        runInterruptible { mapRight { it.use { stream -> Image.makeFromEncoded(stream.readAllBytes()) } } }
+    }
+
+    suspend fun getSVGAsSkiaSVGDOM(url: String, saveFile: String, maxTryCount: Int = 5): OptionalValue<SVGDOM> {
+        val file = imageFile(saveFile)
+        if (file.exists() && file.isFile) {
+            try {
+                return InferredOptionalValue(runInterruptible {
+                    imageFile(file.name).inputStream().use { SVGDOM(Data.makeFromBytes(it.readAllBytes())) }
+                })
+            } catch (_: Exception) {
+                file.delete()
+            }
+        }
+
+        var exception: RefactoredException by Delegates.notNull()
+        repeat(maxTryCount) {
+            file.delete()
+            val imageStream = OsuWebApi.openStream(url, headers = mapOf(), parameters = mapOf())
+            exception = imageStream.onRight {
+                file.createNewFile()
+                return it.use { s ->
+                    val bytes = s.readAllBytes()
+                    file.writeBytes(bytes)
+                    InferredOptionalValue(runInterruptible {
+                        imageFile(file.name).inputStream().use { SVGDOM(Data.makeFromBytes(bytes)) }
+                    })
+                }
+            }.left
+        }
+        return Either(exception)
     }
 }

@@ -50,6 +50,7 @@ fun GroupMessageSubscribersBuilder.skill() {
                     speed = scoreSkills.calculateWeightedSkill { speed },
                     stamina = scoreSkills.calculateWeightedSkill { stamina },
                     accuracy = scoreSkills.calculateWeightedSkill { accuracy },
+                    flashlight = 0.0,
                     precision = 0.0, //precision calculation have bugs.
                 )
 

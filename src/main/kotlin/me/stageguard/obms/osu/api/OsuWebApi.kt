@@ -195,7 +195,7 @@ object OsuWebApi {
         }
     }
 
-    suspend fun me(user: Long): OptionalValue<GetUserDTO> = get("/me", user = user)
+    suspend fun me(user: Long): OptionalValue<GetOwnDTO> = get("/me", user = user)
 
 
     /**

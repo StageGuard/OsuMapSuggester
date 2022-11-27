@@ -29,6 +29,40 @@ data class GetUserDTO(
 )
 
 @Serializable
+data class GetOwnDTO(
+    @SerialName("avatar_url")
+    val avatarUrl: String,
+    @SerialName("country")
+    val country: CountryDTO,
+    @SerialName("country_code")
+    val countryCode: String,
+    @SerialName("id")
+    val id: Int,
+    @SerialName("is_active")
+    val isActive: Boolean,
+    @SerialName("is_deleted")
+    val isDeleted: Boolean,
+    @SerialName("is_online")
+    val isOnline: Boolean,
+    @SerialName("monthly_playcounts")
+    val monthlyPlaycounts: List<MonthlyPlaycountDTO>,
+    @SerialName("statistics")
+    val statistics: UserStatisticsDTO,
+    @SerialName("username")
+    val username: String,
+    @SerialName("cover_url")
+    val coverUrl: String,
+    @SerialName("discord")
+    val discord: String?,
+    @SerialName("twitter")
+    val twitter: String?,
+    @SerialName("website")
+    val website: String?,
+    @SerialName("rank_history")
+    val rankHistory: RankHistoryDTO
+)
+
+@Serializable
 data class CountryDTO(
     @SerialName("code")
     val code: String,
@@ -78,8 +112,13 @@ data class UserStatisticsDTO(
     @SerialName("total_hits")
     val totalHits: Long,
     @SerialName("total_score")
-    val totalScore: Long
-)
+    val totalScore: Long,
+    @SerialName("global_rank")
+    val globalRank: Long? = null,
+    @SerialName("country_rank")
+    val countryRank: Long? = null,
+
+    )
 
 @Serializable
 data class GradeCountsDTO(

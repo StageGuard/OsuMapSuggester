@@ -122,6 +122,7 @@ class PPPlusCalculator private constructor(
             flowAim = flowAimValue,
             speed = speedValue,
             accuracy = accuracyValue,
+            flashlight = 0.0,
             stamina = staminaValue,
             precision = precisionValue,
             attributes = this.attributes.get()
@@ -141,11 +142,12 @@ class PPPlusResult(
     val flowAim: Double,
     speed: Double,
     accuracy: Double,
+    flashlight: Double,
     val stamina: Double,
     val precision: Double,
     attributes: SkillAttributes? = null
 ) : PPResult<SkillAttributes>(
-    total, aim, speed, accuracy, attributes
+    total, aim, speed, accuracy, flashlight, attributes
 ) {
     override fun toString(): String {
         return "PPPlusResult(aim=$aim, jumpAim=$jumpAim, flowAim=$flowAim, speed=$speed, accuracy=$accuracy, stamina=$stamina, precision=$precision)"

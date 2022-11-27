@@ -4,6 +4,7 @@ import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.utils.lerp
 import io.github.humbleui.skija.*
 import io.github.humbleui.skija.svg.SVGDOM
+import io.github.humbleui.skija.svg.SVGLength
 import io.github.humbleui.types.RRect
 import io.github.humbleui.types.Rect
 import me.stageguard.obms.utils.bmf.BitmapFont
@@ -22,8 +23,8 @@ private val RES_PATH_ROOT by lazy {
 fun resourcePath(path: String) = RES_PATH_ROOT + File.separator + "resources" + File.separator + path
 fun resourceStream(path: String): InputStream = File(resourcePath(path)).inputStream()
 fun typeface(variant: String) = Typeface.makeFromFile(resourcePath("font/Torus-$variant.otf"))
-fun image(path: String) = Image.makeFromEncoded(resourceStream(path).readAllBytes())
-fun svgDom(path: String) = SVGDOM(Data.makeFromBytes(resourceStream(path).readAllBytes()))
+fun image(path: String) = resourceStream(path).use { Image.makeFromEncoded(it.readAllBytes()) }
+fun svgDom(path: String) = resourceStream(path).use { SVGDOM(Data.makeFromBytes(it.readAllBytes())) }
 
 fun Surface.bytes(
     format: EncodedImageFormat = EncodedImageFormat.WEBP
@@ -46,7 +47,13 @@ fun Canvas.drawSvg(dom: SVGDOM, x: Float, y: Float, scale: Float = 1.0f, paint: 
     drawImage(surface.makeImageSnapshot(), x, y, paint)
 }
 
-fun SVGDOM.toScaledImage(ratio: Float): Image = kotlin.run {
+fun SVGDOM.toScaledImage(
+    ratio: Float,
+    overrideWidth: Float? = null,
+    overrideHeight: Float? = overrideWidth
+): Image = kotlin.run {
+    if (overrideWidth != null) root!!.width = SVGLength(overrideWidth)
+    if (overrideHeight != null) root!!.height = SVGLength(overrideHeight)
     val surface = root!!.run {
         Surface.makeRasterN32Premul(ceil(width.value * ratio).toInt(), ceil(height.value * ratio).toInt())
     }
@@ -103,24 +110,30 @@ fun Canvas.drawRoundCorneredImage(src: Image, left: Float, top: Float, radius: F
 
 fun Canvas.drawTextLineWithShadow(
     textLine: TextLine, x: Float, y: Float, paint: Paint,
-    dropShadowX: Float, dropShadowY: Float = dropShadowX, shadowColor: Int = Color.makeRGB(0, 0, 0)
+    dropShadowX: Float, dropShadowY: Float = dropShadowX,
+    shadowColor: Int = Color.makeRGB(0, 0, 0), shadowBlurRadius: Float = 0f,
 ) {
     val currentPaintColor = paint.color
-    val currentPaintStrokeWidth = paint.strokeWidth
     val currentPaintMode = paint.mode
-    drawTextLine(textLine, x + dropShadowX, y + dropShadowY, paint.apply {
+    val currentPaintStrokeWidth = paint.strokeWidth
+    val shadowPaint = Paint().apply {
         color = shadowColor
         mode = PaintMode.FILL
-        strokeWidth = 1f
-    })
+        if (shadowBlurRadius != 0f) {
+            maskFilter = MaskFilter.makeBlur(FilterBlurMode.NORMAL, shadowBlurRadius)
+        }
+    }
+
+    drawTextLine(textLine, x + dropShadowX, y + dropShadowY, shadowPaint)
     drawTextLine(textLine, x, y, paint.apply {
         color = currentPaintColor
         mode = PaintMode.FILL
         strokeWidth = 1f
     })
     paint.apply {
-        strokeWidth = currentPaintStrokeWidth
+        color = currentPaintColor
         mode = currentPaintMode
+        strokeWidth = currentPaintStrokeWidth
     }
 }
 
