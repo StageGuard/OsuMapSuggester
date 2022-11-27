@@ -162,6 +162,9 @@ object RecentPlay {
                 0f,
                 songBid.width + 20f * scale,
                 songBid.capHeight + 20f * scale,
+                0f,
+                0f,
+                0f,
                 8f * scale
             ), paint.apply {
                 color = transparent40PercentBlack
@@ -578,85 +581,64 @@ object RecentPlay {
 
             val intervalBetweenHitIconAndText = 10f * scale
 
-            val hitGreatIcon = TextLine.make("GREAT", Font(boldFont, 32f * scale))
-            val hitGreatText =
-                TextLine.make(usNumber.format(scoreDTO.statistics.count300), Font(semiBoldFont, 28f * scale))
-            val hitGreatHeight = hitGreatIcon.capHeight + hitGreatText.capHeight + intervalBetweenHitIconAndText
-            val hitGreatWidth = max(hitGreatIcon.width, hitGreatText.width)
-
-            drawTextLineWithShadow(
-                hitGreatIcon,
-                (cos(PI / 2.0 + PI / 5.0 * 1) * 180f * scale - hitGreatWidth / 2).toFloat(),
-                (-sin(PI / 2.0 + PI / 5.0 * 1) * 130f * scale - hitGreatHeight / 2 + hitGreatIcon.capHeight).toFloat(),
-                paint.apply { color = Color.makeRGB(110, 183, 214) },
-                2f * scale, shadowColor = Color.makeRGB(70, 117, 137)
-            )
-            drawTextLineWithShadow(
-                hitGreatText,
-                (cos(PI / 2.0 + PI / 5.0 * 1) * 180f * scale - hitGreatWidth / 2 + (hitGreatWidth - hitGreatText.width) / 2).toFloat(),
-                (-sin(PI / 2.0 + PI / 5.0 * 1) * 130f * scale - hitGreatHeight / 2 + hitGreatIcon.capHeight + hitGreatText.capHeight + intervalBetweenHitIconAndText).toFloat(),
-                paint.setColor(colorWhite), 3f * scale
-            ) // 2.05, 2.95, 4
-
-            val hitGoodIcon = TextLine.make("GOOD", Font(boldFont, 32f * scale))
-            val hitGoodText =
-                TextLine.make(usNumber.format(scoreDTO.statistics.count100), Font(semiBoldFont, 28f * scale))
-            val hitGoodHeight = hitGoodIcon.capHeight + hitGoodText.capHeight + intervalBetweenHitIconAndText
-            val hitGoodWidth = max(hitGoodIcon.width, hitGoodText.width)
-
-            drawTextLineWithShadow(
-                hitGoodIcon,
-                (cos(PI / 2.0 + PI / 5.0 * 2.05) * 180f * scale - hitGoodWidth / 2).toFloat(),
-                (-sin(PI / 2.0 + PI / 5.0 * 2.05) * 130f * scale - hitGoodHeight / 2 + hitGoodIcon.capHeight).toFloat(),
-                paint.apply { color = Color.makeRGB(187, 254, 35) },
-                2f * scale, shadowColor = Color.makeRGB(130, 177, 24)
-            )
-            drawTextLineWithShadow(
-                hitGoodText,
-                (cos(PI / 2.0 + PI / 5.0 * 2.05) * 180f * scale - hitGoodWidth / 2 + (hitGoodWidth - hitGoodText.width) / 2).toFloat(),
-                (-sin(PI / 2.0 + PI / 5.0 * 2.05) * 130f * scale - hitGoodHeight / 2 + hitGoodIcon.capHeight + hitGoodText.capHeight + intervalBetweenHitIconAndText).toFloat(),
-                paint.setColor(colorWhite), 3f * scale
+            data class HitResult(
+                val angelFactor: Float,
+                val name: String,
+                val value: Int,
+                val iconColor: Int,
+                val shadowColor: Int,
             )
 
-            val hitMehIcon = TextLine.make("MEH", Font(boldFont, 32f * scale))
-            val hitMehText =
-                TextLine.make(usNumber.format(scoreDTO.statistics.count50), Font(semiBoldFont, 28f * scale))
-            val hitMehHeight = hitMehIcon.capHeight + hitMehText.capHeight + intervalBetweenHitIconAndText
-            val hitMehWidth = max(hitMehIcon.width, hitMehText.width)
+            listOf(
+                HitResult(
+                    1f,
+                    "G R E A T",
+                    scoreDTO.statistics.count300,
+                    Color.makeRGB(110, 183, 214),
+                    Color.makeRGB(70, 117, 137)
+                ),
+                HitResult(
+                    2.05f,
+                    "G O O D",
+                    scoreDTO.statistics.count100,
+                    Color.makeRGB(187, 254, 35),
+                    Color.makeRGB(130, 177, 24)
+                ),
+                HitResult(
+                    2.95f,
+                    "M E H",
+                    scoreDTO.statistics.count50,
+                    Color.makeRGB(244, 196, 40),
+                    Color.makeRGB(167, 134, 27)
+                ),
+                HitResult(
+                    4f,
+                    "M I S S",
+                    scoreDTO.statistics.countMiss,
+                    Color.makeRGB(207, 69, 71),
+                    Color.makeRGB(130, 43, 44)
+                ),
+            ).forEach {
+                val hitIcon = TextLine.make(it.name, Font(boldFont, 32f * scale))
+                val hitText =
+                    TextLine.make(usNumber.format(it.value), Font(semiBoldFont, 28f * scale))
+                val hitHeight = hitIcon.capHeight + hitText.capHeight + intervalBetweenHitIconAndText
+                val hitWidth = max(hitIcon.width, hitText.width)
 
-            drawTextLineWithShadow(
-                hitMehIcon,
-                (cos(PI / 2.0 + PI / 5.0 * 2.95) * 180f * scale - hitMehWidth / 2).toFloat(),
-                (-sin(PI / 2.0 + PI / 5.0 * 2.95) * 130f * scale - hitMehHeight / 2 + hitMehIcon.capHeight).toFloat(),
-                paint.apply { color = Color.makeRGB(244, 196, 40) },
-                2f * scale, shadowColor = Color.makeRGB(167, 134, 27)
-            )
-            drawTextLineWithShadow(
-                hitMehText,
-                (cos(PI / 2.0 + PI / 5.0 * 2.95) * 180f * scale - hitMehWidth / 2 + (hitMehWidth - hitMehText.width) / 2).toFloat(),
-                (-sin(PI / 2.0 + PI / 5.0 * 2.95) * 130f * scale - hitMehHeight / 2 + hitMehIcon.capHeight + hitMehText.capHeight + intervalBetweenHitIconAndText).toFloat(),
-                paint.setColor(colorWhite), 3f * scale
-            )
-
-            val hitMissIcon = TextLine.make("MISS", Font(boldFont, 32f * scale))
-            val hitMissText =
-                TextLine.make(usNumber.format(scoreDTO.statistics.countMiss), Font(semiBoldFont, 28f * scale))
-            val hitMissHeight = hitMissIcon.capHeight + hitMissText.capHeight + intervalBetweenHitIconAndText
-            val hitMissWidth = max(hitMissIcon.width, hitMissText.width)
-
-            drawTextLineWithShadow(
-                hitMissIcon,
-                (cos(PI / 2.0 + PI / 5.0 * 4) * 180f * scale - hitMissWidth / 2).toFloat(),
-                (-sin(PI / 2.0 + PI / 5.0 * 4) * 130f * scale - hitMissHeight / 2 + hitMissIcon.capHeight).toFloat(),
-                paint.apply { color = Color.makeRGB(207, 69, 71) },
-                2f * scale, shadowColor = Color.makeRGB(130, 43, 44)
-            )
-            drawTextLineWithShadow(
-                hitMissText,
-                (cos(PI / 2.0 + PI / 5.0 * 4) * 180f * scale - hitMissWidth / 2 + (hitMissWidth - hitMissText.width) / 2).toFloat(),
-                (-sin(PI / 2.0 + PI / 5.0 * 4) * 130f * scale - hitMissHeight / 2 + hitMissIcon.capHeight + hitMissText.capHeight + intervalBetweenHitIconAndText).toFloat(),
-                paint.setColor(colorWhite), 3f * scale
-            )
+                drawTextLineWithShadow(
+                    hitIcon,
+                    (cos(PI / 2.0 + PI / 5.0 * it.angelFactor) * 180f * scale - hitWidth / 2).toFloat(),
+                    (-sin(PI / 2.0 + PI / 5.0 * it.angelFactor) * 130f * scale - hitHeight / 2 + hitIcon.capHeight).toFloat(),
+                    paint.apply { color = it.iconColor },
+                    2f * scale, shadowColor = it.shadowColor
+                )
+                drawTextLineWithShadow(
+                    hitText,
+                    (cos(PI / 2.0 + PI / 5.0 * it.angelFactor) * 180f * scale - hitWidth / 2 + (hitWidth - hitText.width) / 2).toFloat(),
+                    (-sin(PI / 2.0 + PI / 5.0 * it.angelFactor) * 130f * scale - hitHeight / 2 + hitIcon.capHeight + hitText.capHeight + intervalBetweenHitIconAndText).toFloat(),
+                    paint.setColor(colorWhite), 3f * scale
+                )
+            }
 
             restore()
             translate(xWidth * 0.4f + rankBGRadius + 20f * scale, 0f)
