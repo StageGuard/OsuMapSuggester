@@ -3,14 +3,14 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("net.mamoe.mirai-console") version "2.14.0-dev-07000456"
+    id("net.mamoe.mirai-console") version "2.13.0"
     val kotlinVersion = "1.7.0"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 }
 
 project.group = "me.stageguard"
-project.version = "2.5.1"
+project.version = "2.5.2"
 
 repositories {
     maven("https://maven.aliyun.com/repository/public")
