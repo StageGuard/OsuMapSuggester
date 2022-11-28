@@ -115,11 +115,14 @@ object Profile {
         surface.canvas.apply {
             val cutImage = playerBanner.ifRight { image ->
                 val sizeRatio = cardHeight / cardWidth
-                val imageRatio = image.height / image.width
-                val scaled = image.scale(when {
-                    imageRatio < sizeRatio -> cardWidth / image.width
-                    else -> cardHeight / image.height
-                })
+                val imageRatio = image.height / image.width.toFloat()
+                val scale = if (imageRatio >= sizeRatio) {
+                    cardWidth / image.width
+                } else {
+                    cardHeight / image.height
+                }
+
+                val scaled = image.scale(if (imageRatio > sizeRatio) cardWidth / image.width else cardHeight / image.height)
                 scaled.cutCenter(cardWidth / scaled.width, cardHeight / scaled.height)
             }
             if (cutImage != null) {
