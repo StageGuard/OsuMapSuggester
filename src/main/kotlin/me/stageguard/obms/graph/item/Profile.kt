@@ -15,14 +15,15 @@ import me.stageguard.obms.graph.common.drawModIcon
 import me.stageguard.obms.osu.api.dto.*
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
+import me.stageguard.obms.utils.CustomLocalDateTime
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.mapRight
-import me.stageguard.obms.utils.Either.Companion.onLeft
-import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import me.stageguard.obms.utils.InferredOptionalValue
 import me.stageguard.obms.utils.OptionalValue
+import java.time.LocalDateTime
+import java.time.ZoneId
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.round
@@ -113,7 +114,12 @@ object Profile {
 
         surface.canvas.apply {
             val cutImage = playerBanner.ifRight { image ->
-                val scaled = image.scale(cardHeight / image.height)
+                val sizeRatio = cardHeight / cardWidth
+                val imageRatio = image.height / image.width
+                val scaled = image.scale(when {
+                    imageRatio < sizeRatio -> cardWidth / image.width
+                    else -> cardHeight / image.height
+                })
                 scaled.cutCenter(cardWidth / scaled.width, cardHeight / scaled.height)
             }
             if (cutImage != null) {
@@ -131,6 +137,31 @@ object Profile {
                 color = Color.makeARGB(min(255, max(round(style.backgroundAlpha * 255).toInt(), 0)), 0, 0, 0)
                 mode = PaintMode.FILL
             })
+
+            // time and help
+            val timeStamp = TextLine.make(
+                "${CustomLocalDateTime.of(LocalDateTime.now(ZoneId.of("Asia/Shanghai")))}\n",
+                Font(semiBoldFont, 24f * scale)
+            )
+            val helpText = TextLine.make(
+                "For custom panel settings, send \".info help\".",
+                Font(semiBoldFont, 14f * scale)
+            )
+            drawTextLineWithShadow(
+                timeStamp,
+                15f * scale,
+                timeStamp.capHeight + 15f * scale,
+                paint.setColor(colorWhite),
+                4 * scale,
+                shadowBlurRadius = 2f * scale
+            )
+            drawTextLine(
+                helpText,
+                cardWidth - helpText.width - 15 * scale,
+                cardHeight - 15 * scale,
+                paint.setColor(Color.withA(colorWhite, 100))
+            )
+
 
             //general info card
             val generalInfoCardHeight = cardHeight - outerCardPadding * 2.0f

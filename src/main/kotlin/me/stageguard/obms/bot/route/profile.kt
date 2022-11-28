@@ -18,6 +18,7 @@ import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import io.github.humbleui.skija.EncodedImageFormat
+import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.ProfilePanelStyle
@@ -95,29 +96,8 @@ fun GroupMessageSubscribersBuilder.profile() {
             drawInfoPanelAndSend()
             return@routeLock
         }
-        val subCommand = additionalCommand.trim().split(' ').first()
-        when (subCommand) {
-            "help" -> {
-                atReply("""
-                    自定义 Profile Panel 指南：
-                    
-                    ⚪指令：
-                    (1) .info set arg=value,[arg=value,...] - 设置背景参数
-                    (2) .info uplbg 你的自定义背景图片 - 上传自定义背景图片
-                    (3) .info rmbg - 清除你的自定义背景图片，使用主页背景图片
-                    
-                    ⚪参数：
-                    br - Blur Radius，模糊范围，数值越大模糊度越大，必须为正数，默认 16.0。
-                    ba - Background Alpha，背景不透明度，范围 0-1，数值越大则越接近纯黑色，默认 0.3。
-                    ca - Card Background Alpha，卡片不透明度，范围 0-1，会与背景不透明度叠加，默认 0.3。
-                    
-                    ⚪指令使用例：
-                    (1) .info set br=21.5,ba=0,ca=0
-                    (2) .info set ca=0.9
-                    (3) .info rmbg
-                    (4) .info uplbg 你的图片（桌面端直接将图片拖进聊天框，移动端请选择图片，勾选发送原图后点发送图片，建议比例 16:9）
-                """.trimIndent())
-            }
+        when (additionalCommand.trim().split(' ').first()) {
+            "help" -> atReply("访问 ${PluginConfig.helpLink}/Commands#info-set-argvalueargvalue- 查看自定义个人主页面板指令。")
             "set" -> {
                 val args = additionalCommand.substringAfter("set").trim()
                     .split(',').associate { a ->
@@ -130,6 +110,7 @@ fun GroupMessageSubscribersBuilder.profile() {
                     return@routeLock
                 }
 
+                var type = args["t"] ?.toIntOrNull()
                 val br = args["br"] ?.toDoubleOrNull()
                 val ba = args["ba"] ?.toDoubleOrNull()
                 val ca = args["ca"] ?.toDoubleOrNull()
@@ -138,18 +119,21 @@ fun GroupMessageSubscribersBuilder.profile() {
                     atReply("未指定任何有效参数。")
                     return@routeLock
                 }
+                if (type !in 0..2) type = null
 
                 Database.query { db ->
                     val style = db.sequenceOf(ProfilePanelStyleTable).find { f -> f.qq eq sender.id }
                     if (style == null) {
                         ProfilePanelStyleTable.insert(ProfilePanelStyle {
                             qq = sender.id
+                            this.type = type ?: 0
                             blurRadius = br ?: 16.0
                             backgroundAlpha = ba ?: 0.3
                             cardBackgroundAlpha = ca ?: 0.3
                             useCustomBg = false
                         })
                     } else {
+                        style.type = type ?: style.type
                         style.blurRadius = br ?: style.blurRadius
                         style.backgroundAlpha = ba ?: style.backgroundAlpha
                         style.cardBackgroundAlpha = ca ?: style.cardBackgroundAlpha
@@ -158,6 +142,12 @@ fun GroupMessageSubscribersBuilder.profile() {
                 }
 
                 atReply(buildString {
+                    if (type != null) append("模糊类型设置为 ${when(type) {
+                        0 -> "背景模糊"
+                        1 -> "仅卡片模糊"
+                        2 -> "无模糊"
+                        else -> error("unreachable condition.")
+                    }}，")
                     if (br != null) append("模糊范围已设置为 $br，")
                     if (ba != null) append("背景不透明度已设置为 $ba，")
                     if (ca != null) append("卡片不透明度已设置为 $ca。")
