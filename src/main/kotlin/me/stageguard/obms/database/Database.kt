@@ -6,7 +6,6 @@ import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.database.model.*
 import me.stageguard.obms.utils.retry
-import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.info
 import net.mamoe.mirai.utils.warning
@@ -136,6 +135,18 @@ object Database {
                     PRIMARY KEY (`id`)
                 );
             """.trimIndent())
+            statement.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS `${ProfilePanelStyleTable.tableName}` (
+                    `id` INT NOT NULL AUTO_INCREMENT,
+                    `qq` bigint NOT NULL,
+                    `type` INT NOT NULL,
+                    `blurRadius` DOUBLE NOT NULL,
+                    `backgroundAlpha` DOUBLE NOT NULL,
+                    `cardBackgroundAlpha` DOUBLE NOT NULL,
+                    `useCustomBG` boolean NOT NULL,
+                    PRIMARY KEY (`id`)
+                );
+            """.trimIndent())
         }
     }
 
@@ -144,7 +155,7 @@ object Database {
         hikariSource.closeQuietly()
     }
 
-    @OptIn(ConsoleExperimentalApi::class)
+
     private fun hikariDataSourceProvider() : HikariDataSource = HikariDataSource(HikariConfig().apply {
         when {
             PluginConfig.database.address == "" -> throw IllegalArgumentException("Database address is not set in config file ${PluginConfig.saveName}.")

@@ -1,16 +1,18 @@
 package me.stageguard.obms.graph
 
-import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.utils.lerp
 import io.github.humbleui.skija.*
 import io.github.humbleui.skija.svg.SVGDOM
 import io.github.humbleui.skija.svg.SVGLength
+import io.github.humbleui.types.IRect
 import io.github.humbleui.types.RRect
 import io.github.humbleui.types.Rect
+import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.utils.bmf.BitmapFont
+import me.stageguard.obms.utils.lerp
 import java.io.File
 import java.io.InputStream
 import kotlin.math.ceil
+
 
 private val RES_PATH_ROOT by lazy {
     if (System.getProperty("me.stageguard.obms.debug", "0") == "1") {
@@ -156,4 +158,29 @@ fun parseTime(second: Int) : String {
     val minute = (second / 60).run { if(this < 10) "0$this" else this.toString() }
     val remainSec = (second % 60).run { if(this < 10) "0$this" else this.toString() }
     return "${minute}:$remainSec"
+}
+
+
+fun Canvas.drawImageBlur(image: Image, rect: Rect, blurRadius: Float) {
+    val imageWidth = image.width.toFloat()
+    val imageHeight = image.height.toFloat()
+    drawRect(
+        rect,
+        Paint().apply {
+            imageFilter = ImageFilter.makeBlur(
+                blurRadius,
+                blurRadius,
+                FilterTileMode.CLAMP,
+                ImageFilter.makeImage(
+                    image,
+                    Rect.makeXYWH(0f, 0f, imageWidth, imageHeight),
+                    rect.offset(-rect.left, -rect.top)
+                        .inflate(0.1f)
+                        .scale(imageWidth / rect.width, imageHeight / rect.height),
+                    SamplingMode.MITCHELL
+                ),
+                IRect.makeXYWH(rect.left.toInt(), rect.top.toInt(), rect.width.toInt(), rect.height.toInt())
+            )
+        }
+    )
 }

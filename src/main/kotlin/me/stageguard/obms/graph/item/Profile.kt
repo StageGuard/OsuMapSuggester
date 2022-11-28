@@ -5,6 +5,9 @@ import io.github.humbleui.skija.svg.SVGDOM
 import io.github.humbleui.types.RRect
 import io.github.humbleui.types.Rect
 import me.stageguard.obms.ImageReadException
+import me.stageguard.obms.RefactoredException
+import me.stageguard.obms.bot.route.PanelStyle
+import me.stageguard.obms.bot.route.PanelType
 import me.stageguard.obms.bot.route.PerformanceStructure
 import me.stageguard.obms.cache.ImageCache
 import me.stageguard.obms.graph.*
@@ -20,7 +23,6 @@ import me.stageguard.obms.utils.Either.Companion.onRight
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import me.stageguard.obms.utils.InferredOptionalValue
 import me.stageguard.obms.utils.OptionalValue
-import java.lang.Exception
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.round
@@ -57,7 +59,8 @@ object Profile {
         }
 
     suspend fun drawProfilePanel(
-        profile: GetOwnDTO, perfs: PerformanceStructure,
+        profile: GetOwnDTO, style: PanelStyle,
+        perfs: PerformanceStructure,
         firstBpScore: ScoreDTO, lastBpScore: ScoreDTO,
         newlyGainPp: Double, currentAverageBp: Double, lastAverageBp: Double,
         maxTweenDiff: Double, maxTweenDiffRank: Int, topMods: List<Pair<Mod, Int>>
@@ -66,13 +69,23 @@ object Profile {
             ?: defaultAvatarImage.rightOrNull
             ?: throw IllegalStateException("Cannot get avatar fom server and local: ${profile.avatarUrl}")
 
-        val defaultAvatarMatchResult = defaultBannerUrlPattern.find(profile.coverUrl)
-        val playerBanner = ImageCache.getImageAsSkijaImage(
-            profile.coverUrl,
-            if (defaultAvatarMatchResult != null) {
-                "default_banner_" + defaultAvatarMatchResult.groupValues.last()
-            } else null
-        )
+        suspend fun getBannerImage(): Either<RefactoredException, Image> {
+            val defaultAvatarMatchResult = defaultBannerUrlPattern.find(profile.coverUrl)
+            return ImageCache.getImageAsSkijaImage(
+                profile.coverUrl,
+                if (defaultAvatarMatchResult != null) {
+                    "default_banner_" + defaultAvatarMatchResult.groupValues.last()
+                } else null
+            )
+        }
+
+        val playerBanner = if (style.customBgFile != null && style.customBgFile.run { exists() && isFile }) {
+            try {
+                Either<RefactoredException, Image>(style.customBgFile.inputStream().use { stream ->
+                    Image.makeFromEncoded(stream.readAllBytes())
+                })
+            } catch (ex: Exception) { getBannerImage() }
+        } else getBannerImage()
         val countryCharCode = profile.country.code.toCharArray()
             .joinToString("-") { (it.code + 127397).toString(16) }
         val countrySVG = ImageCache.getSVGAsSkiaSVGDOM(
@@ -80,7 +93,7 @@ object Profile {
         )
 
         return drawProfilePanelImpl(
-            profile, perfs, firstBpScore, lastBpScore,
+            profile, style, perfs, firstBpScore, lastBpScore,
             newlyGainPp, currentAverageBp, lastAverageBp,
             maxTweenDiff, maxTweenDiffRank, topMods,
             playerAvatar, playerBanner, countrySVG
@@ -88,7 +101,8 @@ object Profile {
     }
 
     private fun drawProfilePanelImpl(
-        profile: GetOwnDTO, perfs: PerformanceStructure,
+        profile: GetOwnDTO, style: PanelStyle,
+        perfs: PerformanceStructure,
         firstBpScore: ScoreDTO, lastBpScore: ScoreDTO,
         newlyGainPp: Double, currentAverageBp: Double, lastAverageBp: Double,
         maxTweenDiff: Double, maxTweenDiffRank: Int, topMods: List<Pair<Mod, Int>>,
@@ -98,21 +112,23 @@ object Profile {
         val paint = Paint().apply { isAntiAlias = true }
 
         surface.canvas.apply {
-            playerBanner.onRight { image ->
+            val cutImage = playerBanner.ifRight { image ->
                 val scaled = image.scale(cardHeight / image.height)
-                val cut = scaled.cutCenter(cardWidth / scaled.width, cardHeight / scaled.height)
-                drawImage(cut, 0f, 0f, Paint().apply {
-                    imageFilter = ImageFilter.makeBlur(16f * scale, 16f * scale, FilterTileMode.CLAMP)
-                    maskFilter = MaskFilter.makeBlur(FilterBlurMode.NORMAL, 10f * scale)
-                })
-            }.onLeft {
-                drawRect(Rect(0f, 0f, cardWidth, cardHeight), paint.apply {
-                    color = Color.makeRGB(255, 255, 255)
-                    mode = PaintMode.FILL
+                scaled.cutCenter(cardWidth / scaled.width, cardHeight / scaled.height)
+            }
+            if (cutImage != null) {
+                drawImage(cutImage, 0f, 0f, Paint().apply {
+                    if (style.type == PanelType.BLUR_BACKGROUND && style.blurRadius != 0.0) {
+                        imageFilter = ImageFilter.makeBlur(
+                            (style.blurRadius * scale).toFloat(),
+                            (style.blurRadius * scale).toFloat(),
+                            FilterTileMode.CLAMP
+                        )
+                    }
                 })
             }
             drawRect(Rect(0f, 0f, cardWidth, cardHeight), paint.apply {
-                color = transparent30PercentBlack
+                color = Color.makeARGB(min(255, max(round(style.backgroundAlpha * 255).toInt(), 0)), 0, 0, 0)
                 mode = PaintMode.FILL
             })
 
@@ -121,6 +137,13 @@ object Profile {
             val generalInfoCardWidth = 370 * scale
             val generalInfoCardSavePoint = save()
 
+            if (style.type == PanelType.BLUR_ITEM && cutImage != null) {
+                 drawImageBlur(cutImage, Rect.makeXYWH(
+                    outerCardPadding,
+                    outerCardPadding,
+                    generalInfoCardWidth, generalInfoCardHeight
+                ), (style.blurRadius * scale).toFloat())
+            }
             translate(outerCardPadding, outerCardPadding)
             drawGeneralInfoCard(
                 generalInfoCardWidth, generalInfoCardHeight,
@@ -129,7 +152,7 @@ object Profile {
                 profile.statistics.globalRank, profile.statistics.countryRank,
                 profile.statistics.pp!!,
                 profile.discord, profile.twitter, profile.website,
-                paint
+                paint, style,
             )
             restoreToCount(generalInfoCardSavePoint)
 
@@ -138,11 +161,18 @@ object Profile {
             val detailInfoCardHeight = 340f * scale
             val detailInfoCardSavePoint = save()
 
+            if (style.type == PanelType.BLUR_ITEM && cutImage != null) {
+                drawImageBlur(cutImage, Rect.makeXYWH(
+                    outerCardPadding + generalInfoCardWidth + innerCardHorizontalPadding,
+                    outerCardPadding,
+                    detailInfoCardWidth, detailInfoCardHeight
+                ), (style.blurRadius * scale).toFloat())
+            }
             translate(outerCardPadding + generalInfoCardWidth + innerCardHorizontalPadding, outerCardPadding)
             drawDetailInfoCard(
                 detailInfoCardWidth, detailInfoCardHeight,
                 profile.statistics, profile.rankHistory, profile.statistics.gradeCounts,
-                paint
+                paint, style
             )
             restoreToCount(detailInfoCardSavePoint)
 
@@ -150,15 +180,30 @@ object Profile {
             val perfCardWidth = (detailInfoCardWidth - innerCardHorizontalPadding) / 2
             val perfCardHeight = generalInfoCardHeight - detailInfoCardHeight - innerCardVerticalPadding
             val perfCardSavePoint = save()
+
+            if (style.type == PanelType.BLUR_ITEM && cutImage != null) {
+                drawImageBlur(cutImage, Rect.makeXYWH(
+                    outerCardPadding + generalInfoCardWidth + innerCardHorizontalPadding,
+                    outerCardPadding + detailInfoCardHeight + innerCardVerticalPadding,
+                    perfCardWidth, perfCardHeight
+                ), (style.blurRadius * scale).toFloat())
+            }
             translate(
                 outerCardPadding + generalInfoCardWidth + innerCardHorizontalPadding,
                 outerCardPadding + detailInfoCardHeight + innerCardVerticalPadding
             )
-            drawPerformanceCard(perfCardWidth, perfCardHeight, profile.statistics.pp, perfs, paint)
+            drawPerformanceCard(perfCardWidth, perfCardHeight, profile.statistics.pp, perfs, paint, style)
             restoreToCount(perfCardSavePoint)
 
             // best perf card
             val bestPerfCardSavePoint = save()
+            if (style.type == PanelType.BLUR_ITEM && cutImage != null) {
+                drawImageBlur(cutImage, Rect.makeXYWH(
+                    outerCardPadding + generalInfoCardWidth + perfCardWidth + innerCardHorizontalPadding * 2,
+                    outerCardPadding + detailInfoCardHeight + innerCardVerticalPadding,
+                    perfCardWidth, perfCardHeight
+                ), (style.blurRadius * scale).toFloat())
+            }
             translate(
                 outerCardPadding + generalInfoCardWidth + perfCardWidth + innerCardHorizontalPadding * 2,
                 outerCardPadding + detailInfoCardHeight + innerCardVerticalPadding
@@ -167,7 +212,7 @@ object Profile {
                 perfCardWidth, perfCardHeight,
                 firstBpScore, lastBpScore, currentAverageBp, lastAverageBp,
                 maxTweenDiff, maxTweenDiffRank, topMods,
-                paint
+                paint, style
             )
             restoreToCount(bestPerfCardSavePoint)
         }
@@ -181,14 +226,14 @@ object Profile {
         currentAverageBp: Double, lastAverageBp: Double,
         maxTweenDiff: Double, maxTweenDiffRank: Int,
         topMods: List<Pair<Mod, Int>>,
-        paint: Paint,
+        paint: Paint, style: PanelStyle,
     ) {
         val contentPadding = 40f * scale
         val contentWidth = width - contentPadding * scale
         drawRRect(
-            RRect.makeXYWH(0f, 0f, width, height, 20f * scale),
+            RRect.makeXYWH(0f, 0f, width, height, if (style.type == PanelType.BLUR_ITEM) 0f else 20f * scale),
             paint.apply {
-                color = transparent30PercentBlack
+                color = Color.makeARGB(min(255, max(round(style.cardBackgroundAlpha * 255).toInt(), 0)), 0, 0, 0)
                 mode = PaintMode.FILL
             }
         )
@@ -469,14 +514,14 @@ object Profile {
         width: Float, height: Float,
         totalPerformance: Double,
         perf: PerformanceStructure,
-        paint: Paint,
+        paint: Paint, style: PanelStyle,
     ) {
         val contentPadding = 40f * scale
         val contentWidth = width - contentPadding * scale
         drawRRect(
-            RRect.makeXYWH(0f, 0f, width, height, 20f * scale),
+            RRect.makeXYWH(0f, 0f, width, height, if (style.type == PanelType.BLUR_ITEM) 0f else 20f * scale),
             paint.apply {
-                color = transparent30PercentBlack
+                color = Color.makeARGB(min(255, max(round(style.cardBackgroundAlpha * 255).toInt(), 0)), 0, 0, 0)
                 mode = PaintMode.FILL
             }
         )
@@ -601,13 +646,13 @@ object Profile {
         statistics: UserStatisticsDTO,
         rankHistory: RankHistoryDTO,
         gradeCount: GradeCountsDTO,
-        paint: Paint,
+        paint: Paint, style: PanelStyle,
     ) {
         val contentPadding = 40f * scale
         drawRRect(
-            RRect.makeXYWH(0f, 0f, width, height, 20f * scale),
+            RRect.makeXYWH(0f, 0f, width, height, if (style.type == PanelType.BLUR_ITEM) 0f else 20f * scale),
             paint.apply {
-                color = transparent30PercentBlack
+                color = Color.makeARGB(min(255, max(round(style.cardBackgroundAlpha * 255).toInt(), 0)), 0, 0, 0)
                 mode = PaintMode.FILL
             }
         )
@@ -807,14 +852,14 @@ object Profile {
         globalRank: Long?, countryRank: Long?,
         perfPoint: Double,
         discord: String?, twitter: String?, website: String?,
-        paint: Paint,
+        paint: Paint, style: PanelStyle,
     ) {
         val avatarPadding = 75 * scale
         val avatarSize = width - avatarPadding * 2
         drawRRect(
-            RRect.makeXYWH(0f, 0f, width, height, 20f * scale),
+            RRect.makeXYWH(0f, 0f, width, height, if (style.type == PanelType.BLUR_ITEM) 0f else 20f * scale),
             paint.apply {
-                color = transparent30PercentBlack
+                color = Color.makeARGB(min(255, max(round(style.cardBackgroundAlpha * 255).toInt(), 0)), 0, 0, 0)
                 mode = PaintMode.FILL
             }
         )
