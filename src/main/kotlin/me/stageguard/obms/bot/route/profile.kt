@@ -115,7 +115,7 @@ fun GroupMessageSubscribersBuilder.profile() {
                 val ba = args["ba"] ?.toDoubleOrNull()
                 val ca = args["ca"] ?.toDoubleOrNull()
 
-                if (br == null && ba == null && ca == null) {
+                if (br == null && ba == null && ca == null && type == null) {
                     atReply("未指定任何有效参数。")
                     return@routeLock
                 }
