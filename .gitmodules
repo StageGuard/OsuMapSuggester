@@ -1,3 +1,6 @@
 [submodule "rosu-pp-jni"]
 	path = rosu-pp-jni
 	url = https://github.com/StageGuard/rosu-pp-jni
+[submodule "wiki"]
+	path = wiki
+	url = https://github.com/StageGuard/OsuMapSuggester.wiki.git
