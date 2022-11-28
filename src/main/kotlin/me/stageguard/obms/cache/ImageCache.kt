@@ -29,13 +29,13 @@ object ImageCache {
     private inline fun imageFile(name: String) = File(File(OsuMapSuggester.dataFolder.absolutePath, "image"), name)
 
     suspend fun getImageAsStream(
-        url: String, maxTryCount: Int = 4, tryCount: Int = 1
+        url: String, fileName: String? = null, maxTryCount: Int = 4, tryCount: Int = 1
     ) : OptionalValue<InputStream> {
         val headers = OsuWebApi.head(url, headers = mapOf(), parameters = mapOf())
         headers.onRight { h ->
             val eTag = h["etag"]
-            if (eTag != null) {
-                val file = imageFile(eTag.trim('"'))
+            if (eTag != null || fileName != null) {
+                val file = imageFile(eTag ?.trim('"') ?: fileName!!)
                 file.parentFile.mkdirs()
                 if (file.exists()) {
                     return try {
@@ -43,7 +43,7 @@ object ImageCache {
                     } catch (ex: Exception) {
                         file.delete()
                         if(tryCount < maxTryCount) {
-                            getImageAsStream(url, maxTryCount, tryCount + 1)
+                            getImageAsStream(url, fileName, maxTryCount, tryCount + 1)
                         } else {
                             Either(ImageReadException(url).suppress(ex))
                         }
@@ -60,7 +60,7 @@ object ImageCache {
                         return InferredOptionalValue(file.inputStream())
                     }.left.also {
                         return if(tryCount < maxTryCount) {
-                            getImageAsStream(url, maxTryCount, tryCount + 1)
+                            getImageAsStream(url, fileName, maxTryCount, tryCount + 1)
                         } else {
                             Either(it)
                         }
@@ -68,21 +68,21 @@ object ImageCache {
                 }
             } else {
                 return if(tryCount < maxTryCount) {
-                    getImageAsStream(url, maxTryCount, tryCount + 1)
+                    getImageAsStream(url, fileName, maxTryCount, tryCount + 1)
                 } else {
                     Either(ImageMissingETagException(url))
                 }
             }
         }.left.also {
             return if(tryCount < maxTryCount) {
-                getImageAsStream(url, maxTryCount, tryCount + 1)
+                getImageAsStream(url, fileName, maxTryCount, tryCount + 1)
             } else {
                 Either(it)
             }
         }
     }
 
-    suspend fun getImageAsSkijaImage(url: String) = getImageAsStream(url).run {
+    suspend fun getImageAsSkijaImage(url: String, fileName: String? = null) = getImageAsStream(url, fileName).run {
         runInterruptible { mapRight { it.use { stream -> Image.makeFromEncoded(stream.readAllBytes()) } } }
     }
 

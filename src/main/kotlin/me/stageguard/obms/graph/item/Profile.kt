@@ -40,6 +40,7 @@ object Profile {
     val colorGreen = Color.makeRGB(179, 255, 102)
     val colorRed = Color.makeRGB(255, 98, 98)
 
+    val defaultBannerUrlPattern = Regex("images\\/headers\\/profile-covers\\/(.+)", RegexOption.IGNORE_CASE)
     val gradeColor = mapOf(
         "XH" to Color.makeRGB(214, 225, 239),
         "X" to Color.makeRGB(255, 213, 94),
@@ -65,7 +66,13 @@ object Profile {
             ?: defaultAvatarImage.rightOrNull
             ?: throw IllegalStateException("Cannot get avatar fom server and local: ${profile.avatarUrl}")
 
-        val playerBanner = ImageCache.getImageAsSkijaImage(profile.coverUrl)
+        val defaultAvatarMatchResult = defaultBannerUrlPattern.find(profile.coverUrl)
+        val playerBanner = ImageCache.getImageAsSkijaImage(
+            profile.coverUrl,
+            if (defaultAvatarMatchResult != null) {
+                "default_banner_" + defaultAvatarMatchResult.groupValues.last()
+            } else null
+        )
         val countryCharCode = profile.country.code.toCharArray()
             .joinToString("-") { (it.code + 127397).toString(16) }
         val countrySVG = ImageCache.getSVGAsSkiaSVGDOM(
