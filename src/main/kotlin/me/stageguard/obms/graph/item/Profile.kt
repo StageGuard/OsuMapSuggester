@@ -321,7 +321,7 @@ object Profile {
             lastBpScore.beatmapset!!.title,
             lastBpScore.beatmapset.artist,
             lastBpScore.beatmap!!.version,
-            ModCombination.of(firstBpScore.mods.parseMods()),
+            ModCombination.of(lastBpScore.mods.parseMods()),
             lastBpScore.pp!!,
             universalModIconOffset,
             paint
