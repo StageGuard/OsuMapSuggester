@@ -45,11 +45,11 @@ object Profile {
 
     val defaultBannerUrlPattern = Regex("images\\/headers\\/profile-covers\\/(.+)", RegexOption.IGNORE_CASE)
     val gradeColor = mapOf(
-        "XH" to Color.makeRGB(214, 225, 239),
-        "X" to Color.makeRGB(255, 213, 94),
-        "SH" to Color.makeRGB(214, 225, 239),
-        "S" to Color.makeRGB(255, 213, 94),
-        "A" to Color.makeRGB(133, 215, 28)
+        "xh" to Color.makeRGB(214, 225, 239),
+        "x" to Color.makeRGB(255, 213, 94),
+        "sh" to Color.makeRGB(214, 225, 239),
+        "s" to Color.makeRGB(255, 213, 94),
+        "a" to Color.makeRGB(133, 215, 28)
     )
 
     private val defaultAvatarImage: OptionalValue<Image>
@@ -460,14 +460,14 @@ object Profile {
                 maskFilter = null
             }
         )
-        val gradeText = TextLine.make(grade, Font(boldFont, 26f * scale))
+        val gradeText = TextLine.make(grade.uppercase(), Font(boldFont, 26f * scale))
         drawTextLineWithShadow(
             gradeText,
             (gradeIconWidth - gradeText.width) / 2,
             (gradeIconHeight + gradeText.capHeight) / 2,
-            paint.setColor(gradeColor[grade]!!),
+            paint.setColor(gradeColor[grade.lowercase()]!!),
             4 * scale,
-            shadowColor = Color.withA(gradeColor[grade]!!, 60),
+            shadowColor = Color.withA(gradeColor[grade.lowercase()]!!, 60),
             shadowBlurRadius = 4f * scale,
         )
 
@@ -785,14 +785,14 @@ object Profile {
                 }
             )
 
-            val gradeText = TextLine.make(grade, Font(boldFont, 40f * scale))
+            val gradeText = TextLine.make(grade.uppercase(), Font(boldFont, 40f * scale))
             drawTextLineWithShadow(
                 gradeText,
                 xOffset + (gradeIconWidth - gradeText.width) / 2,
                 -gradeCountText.capHeight - 5f * scale - (gradeIconHeight - gradeText.capHeight) / 2,
-                paint.setColor(gradeColor[grade]!!),
+                paint.setColor(gradeColor[grade.lowercase()]!!),
                 4 * scale,
-                shadowColor = Color.withA(gradeColor[grade]!!, 60),
+                shadowColor = Color.withA(gradeColor[grade.lowercase()]!!, 60),
                 shadowBlurRadius = 4f * scale,
             )
 
