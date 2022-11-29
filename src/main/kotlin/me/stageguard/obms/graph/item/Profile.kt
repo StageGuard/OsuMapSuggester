@@ -9,12 +9,14 @@ import me.stageguard.obms.RefactoredException
 import me.stageguard.obms.bot.route.PanelStyle
 import me.stageguard.obms.bot.route.PanelType
 import me.stageguard.obms.bot.route.PerformanceStructure
+import me.stageguard.obms.bot.route.parseMods
 import me.stageguard.obms.cache.ImageCache
 import me.stageguard.obms.graph.*
 import me.stageguard.obms.graph.common.drawModIcon
 import me.stageguard.obms.osu.api.dto.*
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
+import me.stageguard.obms.osu.processor.beatmap.ModType
 import me.stageguard.obms.utils.CustomLocalDateTime
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.ifRight
@@ -184,7 +186,7 @@ object Profile {
                 playerAvatar, profile.username, countrySVG, profile.country.name,
                 profile.statistics.level.current, profile.statistics.level.progress,
                 profile.statistics.globalRank, profile.statistics.countryRank,
-                profile.statistics.pp!!,
+                profile.statistics.pp!!, newlyGainPp,
                 profile.discord, profile.twitter, profile.website,
                 paint, style,
             )
@@ -293,7 +295,7 @@ object Profile {
             firstBpScore.beatmapset!!.title,
             firstBpScore.beatmapset.artist,
             firstBpScore.beatmap!!.version,
-            ModCombination.ofRaw(firstBpScore.modeInt),
+            ModCombination.of(firstBpScore.mods.parseMods()),
             firstBpScore.pp,
             universalModIconOffset,
             paint
@@ -319,7 +321,7 @@ object Profile {
             lastBpScore.beatmapset!!.title,
             lastBpScore.beatmapset.artist,
             lastBpScore.beatmap!!.version,
-            ModCombination.ofRaw(lastBpScore.modeInt),
+            ModCombination.of(firstBpScore.mods.parseMods()),
             lastBpScore.pp!!,
             universalModIconOffset,
             paint
@@ -537,7 +539,14 @@ object Profile {
                 modIconWidth,
                 modIconHeight,
                 -modIconWidth - index * modIconWidth / 2,
-                (gradeIconHeight - modIconHeight) / 2
+                (gradeIconHeight - modIconHeight) / 2,
+                foregroundColor = when(mod.type) {
+                    ModType.DifficultyIncrease -> Color.makeRGB(255, 102, 102)
+                    ModType.DifficultyReduction -> Color.makeRGB(178, 255, 102)
+                    ModType.Automation -> Color.makeRGB(102, 204, 255)
+                    ModType.None -> Color.makeRGB(84, 84, 84)
+                },
+                backgroundColor = Color.withA(transparent30PercentBlack, 40)
             )
         }
 
@@ -884,7 +893,7 @@ object Profile {
         countrySVG: OptionalValue<SVGDOM>, countryName: String,
         level: Int, levelProgress: Int,
         globalRank: Long?, countryRank: Long?,
-        perfPoint: Double,
+        perfPoint: Double, newlyGainPp: Double,
         discord: String?, twitter: String?, website: String?,
         paint: Paint, style: PanelStyle,
     ) {
@@ -1009,7 +1018,15 @@ object Profile {
         mapOf(
             "Global" to ((globalRank?.let { usNumber.format(it) } ?: "-") to true),
             "Country" to ((countryRank?.let { usNumber.format(it) } ?: "-") to true),
-            "PP" to (usNumber.format(round(perfPoint).toInt()) to false)
+            "PP" to (buildString {
+                append(usNumber.format(round(perfPoint).toInt()))
+                val ngp = format2DFix.format(newlyGainPp)
+                if (newlyGainPp > 0.0) {
+                    append("(+").append(ngp).append(")")
+                } else if (newlyGainPp < 0.0) {
+                    append("(").append(ngp).append(")")
+                }
+            } to false)
         ).forEach { (name, value) ->
             val nameText = TextLine.make(name, Font(semiBoldFont, 28f * scale))
             val valueText = TextLine.make(value.first, Font(semiBoldFont, 32f * scale))
