@@ -40,10 +40,10 @@ jobs:
           ./gradlew buildPlugin
           ./gradlew buildPluginLegacy
           ./gradlew version
-          echo "::set-output name=artifect_name::$(cat version)"
+          echo "::set-output name=artifact_name::$(cat version)"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.build_plugin.outputs.artifect_name }}${{ matrix.plugin_version }}
-          path: ${{ github.workspace }}/build/mirai/${{ steps.build_plugin.outputs.artifect_name }}${{ matrix.plugin_version }}
+          name: ${{ steps.build_plugin.outputs.artifact_name }}${{ matrix.plugin_version }}
+          path: ${{ github.workspace }}/build/mirai/${{ steps.build_plugin.outputs.artifact_name }}${{ matrix.plugin_version }}
