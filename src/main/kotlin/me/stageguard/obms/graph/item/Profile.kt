@@ -115,7 +115,7 @@ object Profile {
         val paint = Paint().apply { isAntiAlias = true }
 
         surface.canvas.apply {
-            val cutImage = playerBanner.ifRight { image ->
+            val originalImage = playerBanner.ifRight { image ->
                 val sizeRatio = cardHeight / cardWidth
                 val imageRatio = image.height / image.width.toFloat()
                 val scale = if (imageRatio >= sizeRatio) {
@@ -127,17 +127,26 @@ object Profile {
                 val scaled = image.scale(if (imageRatio > sizeRatio) cardWidth / image.width else cardHeight / image.height)
                 scaled.cutCenter(cardWidth / scaled.width, cardHeight / scaled.height)
             }
-            if (cutImage != null) {
-                drawImage(cutImage, 0f, 0f, Paint().apply {
-                    if (style.type == PanelType.BLUR_BACKGROUND && style.blurRadius != 0.0) {
-                        imageFilter = ImageFilter.makeBlur(
-                            (style.blurRadius * scale).toFloat(),
-                            (style.blurRadius * scale).toFloat(),
-                            FilterTileMode.CLAMP
-                        )
-                    }
+
+            val blurredImage = if (style.type != PanelType.NO_BLUR && originalImage != null) {
+                val surf = Surface.makeRasterN32Premul(cardWidth.toInt(), cardHeight.toInt())
+                surf.canvas.drawImage(originalImage, 0f, 0f, Paint().apply {
+                    imageFilter = ImageFilter.makeBlur(
+                        (style.blurRadius * scale).toFloat(),
+                        (style.blurRadius * scale).toFloat(),
+                        FilterTileMode.CLAMP
+                    )
                 })
+                surf.makeImageSnapshot()
+            } else null
+            if (originalImage != null) {
+                drawImage(
+                    if (blurredImage != null && style.type == PanelType.BLUR_BACKGROUND) blurredImage else originalImage,
+                    0f,
+                    0f
+                )
             }
+
             drawRect(Rect(0f, 0f, cardWidth, cardHeight), paint.apply {
                 color = Color.makeARGB(min(255, max(round(style.backgroundAlpha * 255).toInt(), 0)), 0, 0, 0)
                 mode = PaintMode.FILL
@@ -145,7 +154,7 @@ object Profile {
 
             // time and help
             val timeStamp = TextLine.make(
-                "${CustomLocalDateTime.of(LocalDateTime.now(ZoneId.of("Asia/Shanghai")))}\n",
+                "${CustomLocalDateTime.of(LocalDateTime.now(ZoneId.of("Asia/Shanghai")))}",
                 Font(semiBoldFont, 24f * scale)
             )
             val helpText = TextLine.make(
@@ -173,12 +182,14 @@ object Profile {
             val generalInfoCardWidth = 370 * scale
             val generalInfoCardSavePoint = save()
 
-            if (style.type == PanelType.BLUR_ITEM && cutImage != null) {
-                 drawImageBlur(cutImage, Rect.makeXYWH(
+            if (style.type == PanelType.BLUR_ITEM && blurredImage != null) {
+                val rect = RRect.makeXYWH(
                     outerCardPadding,
                     outerCardPadding,
-                    generalInfoCardWidth, generalInfoCardHeight
-                ), (style.blurRadius * scale).toFloat())
+                    generalInfoCardWidth, generalInfoCardHeight,
+                    (style.blurRadius * scale).toFloat()
+                )
+                drawImageRect(blurredImage, rect, rect)
             }
             translate(outerCardPadding, outerCardPadding)
             drawGeneralInfoCard(
@@ -197,12 +208,14 @@ object Profile {
             val detailInfoCardHeight = 340f * scale
             val detailInfoCardSavePoint = save()
 
-            if (style.type == PanelType.BLUR_ITEM && cutImage != null) {
-                drawImageBlur(cutImage, Rect.makeXYWH(
+            if (style.type == PanelType.BLUR_ITEM && blurredImage != null) {
+                val rect = RRect.makeXYWH(
                     outerCardPadding + generalInfoCardWidth + innerCardHorizontalPadding,
                     outerCardPadding,
-                    detailInfoCardWidth, detailInfoCardHeight
-                ), (style.blurRadius * scale).toFloat())
+                    detailInfoCardWidth, detailInfoCardHeight,
+                    (style.blurRadius * scale).toFloat()
+                )
+                drawImageRect(blurredImage, rect, rect)
             }
             translate(outerCardPadding + generalInfoCardWidth + innerCardHorizontalPadding, outerCardPadding)
             drawDetailInfoCard(
@@ -217,12 +230,14 @@ object Profile {
             val perfCardHeight = generalInfoCardHeight - detailInfoCardHeight - innerCardVerticalPadding
             val perfCardSavePoint = save()
 
-            if (style.type == PanelType.BLUR_ITEM && cutImage != null) {
-                drawImageBlur(cutImage, Rect.makeXYWH(
+            if (style.type == PanelType.BLUR_ITEM && blurredImage != null) {
+                val rect = RRect.makeXYWH(
                     outerCardPadding + generalInfoCardWidth + innerCardHorizontalPadding,
                     outerCardPadding + detailInfoCardHeight + innerCardVerticalPadding,
-                    perfCardWidth, perfCardHeight
-                ), (style.blurRadius * scale).toFloat())
+                    perfCardWidth, perfCardHeight,
+                    (style.blurRadius * scale).toFloat()
+                )
+                drawImageRect(blurredImage, rect, rect)
             }
             translate(
                 outerCardPadding + generalInfoCardWidth + innerCardHorizontalPadding,
@@ -233,12 +248,14 @@ object Profile {
 
             // best perf card
             val bestPerfCardSavePoint = save()
-            if (style.type == PanelType.BLUR_ITEM && cutImage != null) {
-                drawImageBlur(cutImage, Rect.makeXYWH(
+            if (style.type == PanelType.BLUR_ITEM && blurredImage != null) {
+                val rect = RRect.makeXYWH(
                     outerCardPadding + generalInfoCardWidth + perfCardWidth + innerCardHorizontalPadding * 2,
                     outerCardPadding + detailInfoCardHeight + innerCardVerticalPadding,
-                    perfCardWidth, perfCardHeight
-                ), (style.blurRadius * scale).toFloat())
+                    perfCardWidth, perfCardHeight,
+                    (style.blurRadius * scale).toFloat()
+                )
+                drawImageRect(blurredImage, rect, rect)
             }
             translate(
                 outerCardPadding + generalInfoCardWidth + perfCardWidth + innerCardHorizontalPadding * 2,
