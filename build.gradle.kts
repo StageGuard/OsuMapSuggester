@@ -13,7 +13,6 @@ project.group = "me.stageguard"
 project.version = "2.5.2"
 
 repositories {
-    maven("https://maven.aliyun.com/repository/public")
     maven("https://packages.jetbrains.team/maven/p/skija/maven")
     maven("https://repo.mirai.mamoe.net/snapshots")
     mavenLocal()
