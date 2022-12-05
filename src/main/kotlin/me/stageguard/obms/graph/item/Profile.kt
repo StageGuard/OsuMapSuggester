@@ -51,7 +51,10 @@ object Profile {
         "x" to Color.makeRGB(255, 213, 94),
         "sh" to Color.makeRGB(214, 225, 239),
         "s" to Color.makeRGB(255, 213, 94),
-        "a" to Color.makeRGB(133, 215, 28)
+        "a" to Color.makeRGB(133, 215, 28),
+        "b" to Color.makeRGB(2, 216, 233),
+        "c" to Color.makeRGB(241, 130, 82),
+        "d" to Color.makeRGB(240, 82, 82)
     )
 
     private val defaultAvatarImage: OptionalValue<Image>
