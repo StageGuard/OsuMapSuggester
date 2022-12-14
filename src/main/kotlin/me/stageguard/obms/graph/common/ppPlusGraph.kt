@@ -13,7 +13,7 @@ import kotlin.math.sin
 
 fun Canvas.drawPPPlusGraph(
     graphCardWidth: Float, graphCardHeight: Float,
-    ju: Double, fl: Double, sp: Double, st: Double, pr: Double, co: Double,
+    title: String, skills: Map<String, Double>,
     backgroundColor: Int, textColor: Int, graphColorMax: Int, graphColorMin: Int,
     paint: Paint, scale: Float = 1.0f
 ) {
@@ -22,7 +22,7 @@ fun Canvas.drawPPPlusGraph(
         mode = PaintMode.FILL
     })
 
-    val ppPlusGraphText = TextLine.make("Strain skill of the beatmap", Font(semiBoldFont, 18f * scale))
+    val ppPlusGraphText = TextLine.make(title, Font(semiBoldFont, 18f * scale))
     drawTextLineWithShadow(ppPlusGraphText,
         (graphCardWidth - ppPlusGraphText.width) / 2, graphCardHeight - 15f * scale,
         paint.setColor(textColor), 3f * scale
@@ -30,38 +30,33 @@ fun Canvas.drawPPPlusGraph(
     val graphCenterY = (graphCardHeight - 20f * scale - ppPlusGraphText.capHeight) / 2
     val radius = 70f * scale
 
-    val totalSkill = ju + fl + sp + st + pr + co
-    val skills = listOf(
-        "Jump" to ju, "Flow" to fl, "Speed" to sp,
-        "Stamina" to st, "Precision" to pr, "Complexity" to co
-    )
-
+    val totalSkill = skills.values.sum()
     var lastAngle = -90f
 
     drawCircle(graphCardWidth / 2, graphCenterY, radius, paint.setColor(Color.makeRGB(255, 255, 255)))
 
-    skills.forEachIndexed { idx, it ->
-        val scaledRadius = (radius * (1 + 0.5 * (1.0 * it.second / totalSkill))).toFloat()
+    skills.entries.forEachIndexed { idx, (name, value) ->
+        val scaledRadius = (radius * (1 + 0.5 * (1.0 * value / totalSkill))).toFloat()
         drawArc(
             graphCardWidth / 2 - scaledRadius, graphCenterY - scaledRadius,
             graphCardWidth / 2 + scaledRadius, graphCenterY + scaledRadius,
-            lastAngle, 360f * (it.second / totalSkill).toFloat() + 1f,
+            lastAngle, 360f * (value / totalSkill).toFloat() + 1f,
             true, paint.apply {
                 color = lerpColor(graphColorMax, graphColorMin, 1.0 * idx / skills.size)
             }
         )
 
-        lastAngle += 360f * (it.second / totalSkill).toFloat()
+        lastAngle += 360f * (value / totalSkill).toFloat()
 
         save()
         translate(graphCardWidth / 2, graphCenterY)
 
-        val skillName = TextLine.make(it.first, Font(semiBoldFont, 18f * scale))
-        val skillValue = TextLine.make(format1DFix.format(it.second), Font(semiBoldFont, 18f * scale))
+        val skillName = TextLine.make(name, Font(semiBoldFont, 18f * scale))
+        val skillValue = TextLine.make(format1DFix.format(value), Font(semiBoldFont, 18f * scale))
         val skillWidth = max(skillName.width, skillValue.width)
         val skillHeight = skillName.capHeight + 5f + skillValue.capHeight
 
-        val relativeToCoord = 90 - (lastAngle - 360f * (it.second / totalSkill).toFloat() / 2)
+        val relativeToCoord = 90 - (lastAngle - 360f * (value / totalSkill).toFloat() / 2)
 
         drawTextLineWithShadow(skillName,
             (sin(relativeToCoord / 180 * PI) * radius * 1.4 - skillWidth / 2).toFloat() + (skillWidth - skillName.width) / 2,

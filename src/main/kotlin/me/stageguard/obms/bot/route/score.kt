@@ -40,6 +40,8 @@ import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.warning
 import io.github.humbleui.skija.EncodedImageFormat
+import java.util.*
+import kotlin.math.pow
 
 fun GroupMessageSubscribersBuilder.recentScore() {
     routeLock(startWithIgnoreCase(".bps")) {
@@ -126,13 +128,16 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
     val beatmap = BeatmapCache.getBeatmap(score.beatmap.id)
     //calculate pp, first: current miss, second: full combo
     val mods = score.mods.parseMods()
+    val pp = beatmapFile.mapRight {
+        PPCalculatorNative.of(it.absolutePath).mods(mods)
+            .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
+            .misses(score.statistics.countMiss)
+            .combo(score.maxCombo)
+            .accuracy(score.accuracy * 100).calculate()
+    }
     val ppCurvePoints = (mutableListOf<Pair<Double, Double>>() to mutableListOf<Pair<Double, Double>>()).also { p ->
         beatmapFile.onRight {
-            p.first.add(score.accuracy * 100 to PPCalculatorNative.of(it.absolutePath).mods(mods)
-                .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
-                .misses(score.statistics.countMiss)
-                .combo(score.maxCombo)
-                .accuracy(score.accuracy * 100).calculate().total)
+            p.first.add(score.accuracy * 100 to pp.right.total)
             p.second.add(score.accuracy * 100 to PPCalculatorNative.of(it.absolutePath).mods(mods).accuracy(score.accuracy * 100).calculate().total)
             generateSequence(900) { s -> if(s == 1000) null else s + 5 }.forEach { step ->
                 val acc = step / 10.0
@@ -147,7 +152,29 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
             }
         }
     }
-    val skillAttributes = beatmap.mapRight { it.calculateSkills(ModCombination.of(mods)) }
+
+    val skillAttributes = mutableMapOf<String, Double>()
+    val ppx = beatmap.mapRight {
+        it.calculateSkills(
+            ModCombination.of(mods),
+            Optional.of(score.statistics.run { count300 + count100 + count50 })
+        )
+    }.onRight { unwrapped ->
+        val totalAimStrain = unwrapped.jumpAimStrain + unwrapped.flowAimStrain
+        val totalStrainWithoutMultiplier = pp.right.run {
+            aim.pow(1.1) + speed.pow(1.1) + accuracy.pow(1.1) + flashlight.pow(1.1)
+        }
+
+        skillAttributes["Jump"] = pp.right.total * (pp.right.aim.pow(1.1) / totalStrainWithoutMultiplier) *
+                (unwrapped.jumpAimStrain / totalAimStrain)
+        skillAttributes["Flow"] = pp.right.total * (pp.right.aim.pow(1.1) / totalStrainWithoutMultiplier) *
+                (unwrapped.flowAimStrain / totalAimStrain)
+        skillAttributes["Speed"] = pp.right.total * (pp.right.speed.pow(1.1) / totalStrainWithoutMultiplier)
+        skillAttributes["Accuracy"] = pp.right.total * (pp.right.accuracy.pow(1.1) / totalStrainWithoutMultiplier)
+        skillAttributes["Flashlight"] = pp.right.total * (pp.right.flashlight.pow(1.1) / totalStrainWithoutMultiplier)
+
+        if (skillAttributes["Flashlight"] == 0.0) skillAttributes.remove("Flashlight")
+    }
 
     val modCombination = ModCombination.of(mods)
     val difficultyAttribute = beatmap.mapRight { it.calculateDifficultyAttributes(modCombination) }
@@ -173,7 +200,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
     } ?: Either.invoke(this@b.left) }
 
     launch(CoroutineName("Add skillAttribute of beatmap ${score.beatmap.id} to database")) {
-        val sk = skillAttributes.onLeft {
+        val sk = ppx.onLeft {
             OsuMapSuggester.logger.warning { "Error while add beatmap ${score.beatmap.id}: $it" }
             return@launch
         }.right
@@ -205,8 +232,9 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
 
     val bytes = withContext(graphicProcessorDispatcher) {
         RecentPlay.drawRecentPlayCard(
-            score, beatmapSet, mapperInfo, modCombination, difficultyAttribute,
-            ppCurvePoints, skillAttributes, userBestScore, replayAnalyzer
+            score, beatmapSet, mapperInfo, modCombination, difficultyAttribute, ppCurvePoints,
+            if(skillAttributes.isNotEmpty()) InferredOptionalValue(skillAttributes) else Either(ppx.left),
+            userBestScore, replayAnalyzer
         ).bytes(EncodedImageFormat.PNG)
     }
     val externalResource = bytes.toExternalResource("png")

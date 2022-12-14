@@ -230,10 +230,13 @@ object MapSuggester {
             //PP Plus graph
             save()
             translate(cardWidth - 20f - ppPlusGraphWidth, 20f)
+
             drawPPPlusGraph(
-                ppPlusGraphWidth, ppPlusGraphHeight,
-                beatmapSkill.jumpAimStrain, beatmapSkill.flowAimStrain, beatmapSkill.speedStrain,
-                beatmapSkill.staminaStrain, beatmapSkill.precisionStrain, beatmapSkill.rhythmComplexity,
+                ppPlusGraphWidth, ppPlusGraphHeight, "Strain skill",
+                beatmapSkill.run { mapOf(
+                    "Jump" to jumpAimStrain, "Flow" to flowAimStrain, "Speed" to speedStrain,
+                    "Stamina" to staminaStrain, "Precision" to precisionStrain, "Complexity" to rhythmComplexity
+                ) },
                 transparent40PercentBlack, colorWhite, colorYellow, colorGray, paint
             )
             restore()

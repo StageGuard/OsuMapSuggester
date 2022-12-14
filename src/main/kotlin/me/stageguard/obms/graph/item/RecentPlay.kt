@@ -79,7 +79,7 @@ object RecentPlay {
         mapperInfo: GetUserDTO?, mods: ModCombination,
         attribute: OptionalValue<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-        skillAttributes: OptionalValue<SkillAttributes>,
+        skillAttributes: OptionalValue<Map<String, Double>>,
         userBestScore: OptionalValue<BeatmapUserScoreDTO>,
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>
     ): Surface {
@@ -98,7 +98,7 @@ object RecentPlay {
         scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
         attribute: OptionalValue<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
-        skillAttributes: OptionalValue<SkillAttributes>,
+        skillAttributes: OptionalValue<Map<String, Double>>,
         userBestScore: OptionalValue<BeatmapUserScoreDTO>,
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>,
         playerAvatar: Image, mapperAvatar: Image?, songCover: OptionalValue<Image>,
@@ -806,11 +806,9 @@ object RecentPlay {
             translate(25f * scale, 25f * scale)
 
             if (skillAttributes.isRight) {
-                val unwrapped = skillAttributes.right
                 drawPPPlusGraph(
                     graphCardWidth, graphCardHeight,
-                    unwrapped.jumpAimStrain, unwrapped.flowAimStrain, unwrapped.speedStrain,
-                    unwrapped.staminaStrain, unwrapped.precisionStrain, unwrapped.accuracyStrain,
+                    "PP Segments", skillAttributes.right,
                     transparent40PercentBlack, colorWhite, colorYellow, colorGray, paint, scale
                 )
             } else {
