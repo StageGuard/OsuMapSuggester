@@ -65,7 +65,9 @@ OsuMapSuggester 将会开启一个 HTTP 前端来处理这些数据。
 
 #### 运行
 
-1. 克隆并用 IntelliJ IDEA 打开工程. 同步 gradle 项目后运行 `mirai/buildPlugin` gradle 任务来构建项目。
+1. 克隆(包括子模块)并用 IntelliJ IDEA 打开工程. 同步 gradle 项目后运行 `:mirai:buildPlugin` gradle 任务来构建项目。
+
+> 在构建之前，首先需要安装 rust 工具链 [`cargo`](https://doc.rust-lang.org/cargo/)，gradle 同步过程中会检测 cargo 安装状态，请保证 cargo 已添加到在 `PATH` 环境变量中。
 
 > 如果你不想用 IntelliJ IDEA，也可以克隆后在命令行运行 `chmod +x gradlew && ./gradlew buildPlugin` 指令来构建. 构建完成后的 jar 输出在 `build/mirai`.
 
