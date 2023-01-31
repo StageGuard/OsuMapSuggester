@@ -217,6 +217,9 @@ fun GroupMessageEvent.drawInfoPanelAndSend() {
     OsuMapSuggester.launch(
         CoroutineName("Command \"info\" of ${sender.id}") + refactoredExceptionCatcher
     ) {
+        OsuMapSuggester.logger.info("Processing user profile data of ${sender.id}.")
+        val currentTimestamp = System.currentTimeMillis()
+
         val profile = OsuWebApi.me(sender.id).rightOrThrowLeft()
         val bestScores = OsuWebApi.userScore(sender.id, type = "best", limit = 100).rightOrNull
             ?.mapIndexed { index, scoreDTO -> index to scoreDTO } ?.sortedBy { it.first } ?.toMap() ?: mapOf()
@@ -312,6 +315,11 @@ fun GroupMessageEvent.drawInfoPanelAndSend() {
             }
         } ?: DEFAULT_PANEL_STYLE
 
+        val processTimeDiff = System.currentTimeMillis() - currentTimestamp
+        OsuMapSuggester.logger.info("Finished processing user profile data of ${sender.id}, took $processTimeDiff milliseconds.")
+
+        OsuMapSuggester.logger.info("Generating user profile data of ${sender.id}.")
+        val imageCurrTimeStamp = System.currentTimeMillis()
         val bytes = withContext(graphicProcessorDispatcher) {
             Profile.drawProfilePanel(
                 profile, panelStyle, performances,
@@ -320,7 +328,10 @@ fun GroupMessageEvent.drawInfoPanelAndSend() {
                 modUsage.entries.sortedByDescending { it.value }.take(3).map { it.key to it.value }
             ).bytes(EncodedImageFormat.PNG)
         }
+        val imageTImeDiff = System.currentTimeMillis() - imageCurrTimeStamp
+        OsuMapSuggester.logger.info("Finished generating image ProfilePanel of ${sender.id}, took $imageTImeDiff milliseconds.")
         val externalResource = bytes.toExternalResource("png")
+        OsuMapSuggester.logger.info("Uploading image...")
         val image = group.uploadImage(externalResource)
         runInterruptible { externalResource.close() }
         atReply(image.toMessageChain())

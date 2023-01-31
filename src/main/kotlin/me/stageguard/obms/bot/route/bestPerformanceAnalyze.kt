@@ -71,8 +71,10 @@ suspend fun orderScores(
     analyzeDetail: Boolean = false,
     analyzeType: AnalyzeDetailType = AnalyzeDetailType.IfFullCombo,
     rangeToAnalyze: IntRange = 0..25
-) : OptionalValue<OrderResult> = scores.second.let { secList ->
-    if(secList == null) {
+) : OptionalValue<OrderResult> {
+    OsuMapSuggester.logger.info("Ordering scores...")
+    val secList = scores.second
+    return if(secList == null) {
         if(!analyzeDetail) {
             InferredOptionalValue(OrderResult(scores.first.mapIndexed { i, it -> OrderResult.Entry.Default(i, it) }))
         } else withContext(calculatorProcessorDispatcher) {
@@ -90,7 +92,7 @@ suspend fun orderScores(
                                 when(analyzeType) {
                                     AnalyzeDetailType.IfFullCombo -> this
                                     AnalyzeDetailType.OutdatedAlgorithm -> {
-                                            this.misses(score.statistics.countMiss)
+                                        this.misses(score.statistics.countMiss)
                                             .combo(score.maxCombo)
                                             .n100(score.statistics.count100)
                                             .n50(score.statistics.count50)
@@ -184,10 +186,15 @@ suspend fun orderScores(
 }
 
 suspend fun GroupMessageEvent.processOrderResultAndSend(orderResult: OrderResult) {
+    OsuMapSuggester.logger.info("Generating image BestPerformancePanel of ${sender.id}.")
+    val currTimestamp = System.currentTimeMillis()
     val bytes = withContext(graphicProcessorDispatcher) {
         BestPerformanceDetail.drawBestPerformancesImage(orderResult).bytes(EncodedImageFormat.PNG)
     }
+    val timeDiff = System.currentTimeMillis() - currTimestamp
+    OsuMapSuggester.logger.info("Finished generating image BestPerformancePanel of ${sender.id}, took $timeDiff milliseconds.")
     val externalResource = bytes.toExternalResource("png")
+    OsuMapSuggester.logger.info("uploading image...")
     val image = group.uploadImage(externalResource)
     runInterruptible { externalResource.close() }
     atReply(image.toMessageChain())
@@ -214,6 +221,8 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         OsuMapSuggester.launch(
             CoroutineName("Command \"bpvs\" of ${sender.id}") + refactoredExceptionCatcher
         ) {
+            OsuMapSuggester.logger.info("Processing best performance versus data of ${sender.id}.")
+            val currentTimestamp = System.currentTimeMillis()
             //parse message
             var (limit, offset) = 25 to 0
             val target: At = message.filterIsInstance<At>().run {
@@ -238,6 +247,8 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
             val myBpScores = OsuWebApi.userScore(user = sender.id, type = "best", limit = limit, offset = offset).rightOrThrowLeft()
             val targetBpScores = OsuWebApi.userScore(user = target.target, type = "best", limit = limit, offset = offset).rightOrThrowLeft()
 
+            val timeDiff = System.currentTimeMillis() - currentTimestamp
+            OsuMapSuggester.logger.info("Finished processing best performance versus data data of ${sender.id}, took $timeDiff milliseconds.")
             processOrderResultAndSend(orderScores(myBpScores to targetBpScores).rightOrThrowLeft())
         }
     }
@@ -246,6 +257,8 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
         OsuMapSuggester.launch(
             CoroutineName("Command \"bpa\" of ${sender.id}") + refactoredExceptionCatcher
         ) {
+            OsuMapSuggester.logger.info("Processing best performance analytics data of ${sender.id}.")
+            val currentTimestamp = System.currentTimeMillis()
             //parse message
             var (limit, offset) = 25 to 0
 
@@ -286,6 +299,8 @@ fun GroupMessageSubscribersBuilder.bestPerformanceAnalyze() {
                 analyzeDetailType, offset..limit + offset
             ).rightOrThrowLeft()
 
+            val timeDiff = System.currentTimeMillis() - currentTimestamp
+            OsuMapSuggester.logger.info("Finished processing best performance analytics data of ${sender.id}, took $timeDiff milliseconds.")
             processOrderResultAndSend(ordered)
         }
     }

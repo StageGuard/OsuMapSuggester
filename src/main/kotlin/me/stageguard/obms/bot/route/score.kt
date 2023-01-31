@@ -60,7 +60,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
                 }
             }.rightOrThrowLeft()
             val score = OsuWebApi.userScore(sender.id, type = "best", limit = 1, offset = bp - 1).rightOrThrowLeft()
-            processRecentPlayData(score.single())
+            processScoreData(score.single())
         }
     }
     routeLock(startWithIgnoreCase(".scr")) {
@@ -85,7 +85,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
                 }
             }.rightOrThrowLeft()
             val score = OsuWebApi.userBeatmapScore(sender.id, bid, mods = mods.map { it.uppercase() }).rightOrThrowLeft()
-            processRecentPlayData(score.score)
+            processScoreData(score.score)
         }
 
     }
@@ -93,7 +93,7 @@ fun GroupMessageSubscribersBuilder.recentScore() {
         OsuMapSuggester.launch(
             CoroutineName("Command \"rep\" of ${sender.id}") + refactoredExceptionCatcher
         ) {
-            processRecentPlayData(getLastScore(5).rightOrThrowLeft())
+            processScoreData(getLastScore(5).rightOrThrowLeft())
         }
     }
 }
@@ -123,7 +123,10 @@ tailrec suspend fun GroupMessageEvent.getLastScore(
     }
 
 
-suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withContext(calculatorProcessorDispatcher) {
+suspend fun GroupMessageEvent.processScoreData(score: ScoreDTO) = withContext(calculatorProcessorDispatcher) {
+    OsuMapSuggester.logger.info("Processing score data of ${sender.id} on score ${score.id}.")
+    val currentTimestamp = System.currentTimeMillis()
+
     val beatmapFile = BeatmapCache.getBeatmapFile(score.beatmap!!.id)
     val beatmap = BeatmapCache.getBeatmap(score.beatmap.id)
     //calculate pp, first: current miss, second: full combo
@@ -227,9 +230,13 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
     } else {
         InferredOptionalValue(score.beatmapset)
     }.rightOrThrowLeft()
-
     val mapperInfo = OsuWebApi.usersViaUID(sender.id, beatmapSet.userId).rightOrNull
 
+    val processTimeDiff = System.currentTimeMillis() - currentTimestamp
+    OsuMapSuggester.logger.info("Finished processing score data of ${sender.id} on ${score.id}, took $processTimeDiff milliseconds.")
+
+    OsuMapSuggester.logger.info("Generating image ScorePanel of ${sender.id} on ${score.id}.")
+    val imageTimeStamp = System.currentTimeMillis()
     val bytes = withContext(graphicProcessorDispatcher) {
         RecentPlay.drawRecentPlayCard(
             score, beatmapSet, mapperInfo, modCombination, difficultyAttribute, ppCurvePoints,
@@ -237,7 +244,10 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
             userBestScore, replayAnalyzer
         ).bytes(EncodedImageFormat.PNG)
     }
+    val imageTimeDiff = System.currentTimeMillis() - imageTimeStamp
+    OsuMapSuggester.logger.info("Finished generating image ScorePanel of ${sender.id} on ${score.id}, took $imageTimeDiff milliseconds.")
     val externalResource = bytes.toExternalResource("png")
+    OsuMapSuggester.logger.info("uploading image...")
     val image = group.uploadImage(externalResource)
     runInterruptible { externalResource.close() }
     atReply(image.toMessageChain())
