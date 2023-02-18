@@ -19,7 +19,7 @@ import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
 import me.stageguard.obms.frontend.dto.*
 import me.stageguard.obms.osu.api.OsuWebApi
-import me.stageguard.obms.osu.api.dto.BeatmapDTO
+import me.stageguard.osu.api.dto.*
 import me.stageguard.obms.osu.api.oauth.AuthType
 import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.osu.api.oauth.OAuthManager.updateToken

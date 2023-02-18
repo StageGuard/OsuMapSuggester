@@ -1,13 +1,12 @@
-package me.stageguard.obms.osu.api.dto
-import kotlinx.serialization.Serializable
+package me.stageguard.osu.api.dto
 
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
-
 @Serializable
-data class BeatmapSetSearchDTO(
+public data class BeatmapSetSearch(
     @SerialName("beatmapsets")
-    val beatmapsets: List<BeatmapsetDTO>,
+    val beatmapsets: List<BeatmapSet>,
     @SerialName("error")
     val error: String? = "",
     @SerialName("recommended_difficulty")
@@ -17,17 +16,17 @@ data class BeatmapSetSearchDTO(
     @SerialName("total")
     val total: Int,
     @SerialName("cursor")
-    val cursor: CursorDTO?
+    val cursor: Cursor?
 )
 
 @Serializable
-data class Search(
+public data class Search(
     @SerialName("sort")
     val sort: String
 )
 
 @Serializable
-data class CursorDTO(
+public data class Cursor(
     @SerialName("approved_date")
     val approvedDate: String,
     @SerialName("_id")

@@ -1,39 +1,14 @@
-package me.stageguard.obms.osu.api.dto
-import kotlinx.serialization.Serializable
+package me.stageguard.osu.api.dto
 
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
-
 @Serializable
-data class GetUserDTO(
-    @SerialName("avatar_url")
-        val avatarUrl: String,
-    @SerialName("country")
-        val country: CountryDTO,
-    @SerialName("country_code")
-        val countryCode: String,
-    @SerialName("id")
-        val id: Int,
-    @SerialName("is_active")
-        val isActive: Boolean,
-    @SerialName("is_deleted")
-        val isDeleted: Boolean,
-    @SerialName("is_online")
-        val isOnline: Boolean,
-    @SerialName("monthly_playcounts")
-        val monthlyPlaycounts: List<MonthlyPlaycountDTO>,
-    @SerialName("statistics")
-        val statistics: UserStatisticsDTO,
-    @SerialName("username")
-        val username: String
-)
-
-@Serializable
-data class GetOwnDTO(
+public data class OsuUser(
     @SerialName("avatar_url")
     val avatarUrl: String,
     @SerialName("country")
-    val country: CountryDTO,
+    val country: Country,
     @SerialName("country_code")
     val countryCode: String,
     @SerialName("id")
@@ -45,9 +20,33 @@ data class GetOwnDTO(
     @SerialName("is_online")
     val isOnline: Boolean,
     @SerialName("monthly_playcounts")
-    val monthlyPlaycounts: List<MonthlyPlaycountDTO>,
+    val monthlyPlayCounts: List<MonthlyPlayCount>,
     @SerialName("statistics")
-    val statistics: UserStatisticsDTO,
+    val statistics: UserStatistics,
+    @SerialName("username")
+    val username: String
+)
+
+@Serializable
+public data class GetOwnDTO(
+    @SerialName("avatar_url")
+    val avatarUrl: String,
+    @SerialName("country")
+    val country: Country,
+    @SerialName("country_code")
+    val countryCode: String,
+    @SerialName("id")
+    val id: Int,
+    @SerialName("is_active")
+    val isActive: Boolean,
+    @SerialName("is_deleted")
+    val isDeleted: Boolean,
+    @SerialName("is_online")
+    val isOnline: Boolean,
+    @SerialName("monthly_playcounts")
+    val monthlyPlayCounts: List<MonthlyPlayCount>,
+    @SerialName("statistics")
+    val statistics: UserStatistics,
     @SerialName("username")
     val username: String,
     @SerialName("cover_url")
@@ -59,11 +58,11 @@ data class GetOwnDTO(
     @SerialName("website")
     val website: String?,
     @SerialName("rank_history")
-    val rankHistory: RankHistoryDTO
+    val rankHistory: RankHistory
 )
 
 @Serializable
-data class CountryDTO(
+public data class Country(
     @SerialName("code")
     val code: String,
     @SerialName("name")
@@ -71,7 +70,7 @@ data class CountryDTO(
 )
 
 @Serializable
-data class MonthlyPlaycountDTO(
+public data class MonthlyPlayCount(
     @SerialName("count")
     val count: Int,
     @SerialName("start_date")
@@ -80,7 +79,7 @@ data class MonthlyPlaycountDTO(
 
 
 @Serializable
-data class RankHistoryDTO(
+public data class RankHistory(
     @SerialName("data")
     val `data`: List<Int>,
     @SerialName("mode")
@@ -88,15 +87,15 @@ data class RankHistoryDTO(
 )
 
 @Serializable
-data class UserStatisticsDTO(
+public data class UserStatistics(
     @SerialName("grade_counts")
-    val gradeCounts: GradeCountsDTO,
+    val gradeCounts: GradeCounts,
     @SerialName("hit_accuracy")
     val hitAccuracy: Double,
     @SerialName("is_ranked")
     val isRanked: Boolean,
     @SerialName("level")
-    val level: LevelDTO,
+    val level: Level,
     @SerialName("maximum_combo")
     val maximumCombo: Long,
     @SerialName("play_count")
@@ -121,7 +120,7 @@ data class UserStatisticsDTO(
     )
 
 @Serializable
-data class GradeCountsDTO(
+public data class GradeCounts(
     @SerialName("a")
     val a: Int,
     @SerialName("s")
@@ -135,7 +134,7 @@ data class GradeCountsDTO(
 )
 
 @Serializable
-data class LevelDTO(
+public data class Level(
     @SerialName("current")
     val current: Int,
     @SerialName("progress")

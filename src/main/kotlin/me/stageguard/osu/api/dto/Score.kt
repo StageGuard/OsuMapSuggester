@@ -1,25 +1,25 @@
-package me.stageguard.obms.osu.api.dto
-import kotlinx.serialization.Serializable
+package me.stageguard.osu.api.dto
 
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import me.stageguard.obms.utils.CustomLocalDateTime
 
 @Serializable
-data class BeatmapUserScoreDTO(
+public data class BeatmapUserScore(
     @SerialName("position")
     val position: Int,
     @SerialName("score")
-    val score: ScoreDTO
+    val score: Score
 )
 
 @Serializable
-data class ScoreDTO(
+public data class Score(
     @SerialName("accuracy")
     val accuracy: Double,
     @SerialName("beatmap")
-    val beatmap: BeatmapDTO? = null,
+    val beatmap: Beatmap? = null,
     @SerialName("beatmapset")
-    val beatmapset: BeatmapsetDTO? = null,
+    val beatmapset: BeatmapSet? = null,
     @SerialName("best_id")
     val bestId: Long? = null,
     @SerialName("created_at")
@@ -55,15 +55,15 @@ data class ScoreDTO(
     @SerialName("user_id")
     val userId: Int,
     @SerialName("weight")
-    val weight: WeightDTO? = null,
+    val weight: Weight? = null,
     @SerialName("user")
-    val user: UserDTO? = null
+    val user: ScoreUser? = null
     /*@SerialName("match")
     val match: String? = null*/
 )
 
 @Serializable
-data class UserDTO(
+public data class ScoreUser(
     @SerialName("avatar_url")
     val avatarUrl: String,
     @SerialName("country_code")
@@ -77,13 +77,13 @@ data class UserDTO(
 )
 
 @Serializable
-data class WeightDTO(
+public data class Weight(
     val percentage: Double,
     val pp: Double
 )
 
 @Serializable
-data class BeatmapDTO(
+public data class Beatmap(
     @SerialName("accuracy")
     val accuracy: Double,
     @SerialName("ar")
@@ -137,17 +137,17 @@ data class BeatmapDTO(
     @SerialName("version")
     val version: String,
     @SerialName("beatmapset")
-    val beatmapset: BeatmapsetDTO? = null,
+    val beatmapset: BeatmapSet? = null,
 )
 
 @Serializable
-data class BeatmapsetDTO(
+public data class BeatmapSet(
     @SerialName("artist")
     val artist: String,
     @SerialName("artist_unicode")
     val artistUnicode: String,
     @SerialName("covers")
-    val covers: CoversDTO,
+    val covers: Map<String, String>,
     @SerialName("creator")
     val creator: String,
     @SerialName("favourite_count")
@@ -175,7 +175,7 @@ data class BeatmapsetDTO(
 )
 
 @Serializable
-data class ScoreStatisticsDTO(
+public data class ScoreStatisticsDTO(
     @SerialName("count_100")
     val count100: Int,
     @SerialName("count_300")
@@ -188,24 +188,4 @@ data class ScoreStatisticsDTO(
     val countKatu: Int,
     @SerialName("count_miss")
     val countMiss: Int
-)
-
-@Serializable
-data class CoversDTO(
-    @SerialName("card")
-    val card: String,
-    @SerialName("card@2x")
-    val card2x: String,
-    @SerialName("cover")
-    val cover: String,
-    @SerialName("cover@2x")
-    val cover2x: String,
-    @SerialName("list")
-    val list: String,
-    @SerialName("list@2x")
-    val list2x: String,
-    @SerialName("slimcover")
-    val slimcover: String,
-    @SerialName("slimcover@2x")
-    val slimcover2x: String
 )

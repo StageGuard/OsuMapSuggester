@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.*
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.api.OsuWebApi
-import me.stageguard.obms.osu.api.dto.ScoreDTO
+import me.stageguard.osu.api.dto.*
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
@@ -39,7 +39,7 @@ data class OrderResult(
     val scores: List<Entry>
 ) {
     sealed class Entry(
-        open val score: ScoreDTO,
+        open val score: Score,
         open val drawLine: Int
     ) {
         class DetailAnalyze(
@@ -49,13 +49,13 @@ data class OrderResult(
             val recalculatedPp: Double,
             val recalculatedWeightedPp: Double,
             val isRecalculated: Boolean,
-            score: ScoreDTO
+            score: Score
         ) : Entry(score, drawLine)
         class Default(
-            drawLine: Int, score: ScoreDTO
+            drawLine: Int, score: Score
         ) : Entry(score, drawLine)
         class Versus(
-            val isLeft: Boolean, drawLine: Int, score: ScoreDTO
+            val isLeft: Boolean, drawLine: Int, score: Score
         ) : Entry(score, drawLine)
     }
 }
