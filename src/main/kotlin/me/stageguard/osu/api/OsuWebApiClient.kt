@@ -12,7 +12,9 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.utils.io.core.*
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.*
+import kotlinx.serialization.modules.*
 import me.stageguard.osu.api.dto.*
 import xyz.cssxsh.rosu.GameMode
 
@@ -23,7 +25,10 @@ public class OsuWebApiClient(
     public companion object {
         @PublishedApi
         internal val JSON: Json = Json {
-            ignoreUnknownKeys = System.getProperty("me.stageguard.osu.api.json.ignore")?.toBooleanStrictOrNull() ?: false
+            ignoreUnknownKeys = System.getProperty("me.stageguard.osu.api.json.ignore")?.toBooleanStrictOrNull() ?: true
+            serializersModule = SerializersModule {
+                contextual(OffsetDateTimeSerializer)
+            }
         }
         @PublishedApi
         internal val SCOPE: String = System.getProperty("me.stageguard.osu.api.scope", "identify friends.read public")
@@ -42,7 +47,7 @@ public class OsuWebApiClient(
         Auth {
             bearer {
                 sendWithoutRequest { request ->
-                    request.url.host == "osu.ppy.sh"
+                    request.url.host == "osu.ppy.sh" && request.url.pathSegments[0] != "oauth"
                 }
                 loadTokens {
                     holder.loadTokens()

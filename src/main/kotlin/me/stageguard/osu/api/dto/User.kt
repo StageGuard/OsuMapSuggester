@@ -1,7 +1,9 @@
 package me.stageguard.osu.api.dto
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import java.time.OffsetDateTime
 
 @Serializable
 public data class OsuUser(
@@ -19,12 +21,28 @@ public data class OsuUser(
     val isDeleted: Boolean,
     @SerialName("is_online")
     val isOnline: Boolean,
+    @SerialName("is_bot")
+    val isBot: Boolean = false,
+    @SerialName("is_supporter")
+    val isSupporter: Boolean = false,
+    @SerialName("is_restricted")
+    val isRestricted: Boolean = false,
+    @SerialName("is_ranked")
+    val isRanked: Boolean = false,
+    @Contextual
+    @SerialName("last_visit")
+    val lastVisit: OffsetDateTime = OffsetDateTime.MIN,
     @SerialName("monthly_playcounts")
     val monthlyPlayCounts: List<MonthlyPlayCount>,
     @SerialName("statistics")
     val statistics: UserStatistics,
     @SerialName("username")
-    val username: String
+    val username: String,
+    @SerialName("cover_url")
+    val coverUrl: String = "",
+    @Contextual
+    @SerialName("join_date")
+    val joined: OffsetDateTime = OffsetDateTime.MIN
 )
 
 @Serializable
