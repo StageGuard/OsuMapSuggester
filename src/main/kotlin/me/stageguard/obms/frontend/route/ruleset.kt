@@ -306,7 +306,7 @@ fun Application.ruleset() {
                 val decryptedOsuApiToken = SimpleEncryptionUtils.aesDecrypt(parameter.osuApiToken, ENC_KEY)
 
                 // 不直接使用 OAuthManager.getBindingToken 因为每次使用就要查询一次数据库。
-                val apiResponse = OsuWebApi.getImpl<String, BeatmapDTO>(
+                val apiResponse = OsuWebApi.getImpl<String, Beatmap>(
                     url = OsuWebApi.BASE_URL_V2 + "/beatmaps/${parameter.bid}/",
                     parameters = mapOf(),
                     mapOf("Authorization" to "Bearer $decryptedOsuApiToken")

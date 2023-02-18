@@ -3,7 +3,7 @@ package me.stageguard.obms.osu.api.oauth
 import me.stageguard.obms.RefactoredException
 import me.stageguard.osu.api.dto.*
 
-internal sealed class OAuthResult {
+sealed class OAuthResult {
     class Succeed(
         val type: Int,
         val additionalData: List<String>,

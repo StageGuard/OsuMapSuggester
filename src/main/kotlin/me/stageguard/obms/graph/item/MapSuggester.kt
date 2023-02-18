@@ -7,7 +7,7 @@ import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.graph.*
 import me.stageguard.obms.graph.common.drawDifficultyRatingCard
 import me.stageguard.obms.graph.common.drawPPPlusGraph
-import me.stageguard.obms.osu.api.dto.BeatmapDTO
+import me.stageguard.osu.api.dto.*
 import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.ifRight
 import me.stageguard.obms.utils.Either.Companion.mapRight
@@ -48,10 +48,10 @@ object MapSuggester {
     private val rulesetSecondlyTextColor = Color.makeRGB(145, 163, 143)
 
     suspend fun drawRecommendBeatmapCard(
-        beatmapInfo: OptionalValue<BeatmapDTO>, beatmapType: Ruleset,
+        beatmapInfo: OptionalValue<Beatmap>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String
     ): Surface {
-        val songCover = beatmapInfo.mapRight { ImageCache.getImageAsSkijaImage(it.beatmapset!!.covers.cover2x) }
+        val songCover = beatmapInfo.mapRight { ImageCache.getImageAsSkijaImage(it.beatmapset!!.covers["cover2x"]!!) }
         val suggester = OsuUserInfo.getOsuIdAndName(beatmapType.author).run {
             if (this != null) {
                 Either.invoke<Long, Pair<Int, String>>(this)
@@ -194,7 +194,7 @@ object MapSuggester {
     }
 
     private fun drawRecommendBeatmapCardImpl(
-        beatmapInfo: OptionalValue<BeatmapDTO>, beatmapType: Ruleset,
+        beatmapInfo: OptionalValue<Beatmap>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String,
         songCover: OptionalValue<OptionalValue<Image>>, suggester: Either<Long, Pair<Int, String>>
     ): Surface {

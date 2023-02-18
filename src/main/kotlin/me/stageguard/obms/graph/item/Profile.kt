@@ -13,7 +13,7 @@ import me.stageguard.obms.bot.route.parseMods
 import me.stageguard.obms.cache.ImageCache
 import me.stageguard.obms.graph.*
 import me.stageguard.obms.graph.common.drawModIcon
-import me.stageguard.obms.osu.api.dto.*
+import me.stageguard.osu.api.dto.*
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.beatmap.ModType
@@ -67,7 +67,7 @@ object Profile {
     suspend fun drawProfilePanel(
         profile: GetOwnDTO, style: PanelStyle,
         perfs: PerformanceStructure,
-        firstBpScore: ScoreDTO, lastBpScore: ScoreDTO,
+        firstBpScore: Score, lastBpScore: Score,
         newlyGainPp: Double, currentAverageBp: Double, lastAverageBp: Double,
         maxTweenDiff: Double, maxTweenDiffRank: Int, topMods: List<Pair<Mod, Int>>
     ): Surface {
@@ -109,7 +109,7 @@ object Profile {
     private fun drawProfilePanelImpl(
         profile: GetOwnDTO, style: PanelStyle,
         perfs: PerformanceStructure,
-        firstBpScore: ScoreDTO, lastBpScore: ScoreDTO,
+        firstBpScore: Score, lastBpScore: Score,
         newlyGainPp: Double, currentAverageBp: Double, lastAverageBp: Double,
         maxTweenDiff: Double, maxTweenDiffRank: Int, topMods: List<Pair<Mod, Int>>,
         playerAvatar: Image, playerBanner: OptionalValue<Image>, countrySVG: OptionalValue<SVGDOM>
@@ -278,7 +278,7 @@ object Profile {
 
     private fun Canvas.drawBestPerformanceCard(
         width: Float, height: Float,
-        firstBpScore: ScoreDTO, lastBpScore: ScoreDTO,
+        firstBpScore: Score, lastBpScore: Score,
         currentAverageBp: Double, lastAverageBp: Double,
         maxTweenDiff: Double, maxTweenDiffRank: Int,
         topMods: List<Pair<Mod, Int>>,
@@ -706,9 +706,9 @@ object Profile {
 
     private fun Canvas.drawDetailInfoCard(
         width: Float, height: Float,
-        statistics: UserStatisticsDTO,
-        rankHistory: RankHistoryDTO,
-        gradeCount: GradeCountsDTO,
+        statistics: UserStatistics,
+        rankHistory: RankHistory,
+        gradeCount: GradeCounts,
         paint: Paint, style: PanelStyle,
     ) {
         val contentPadding = 40f * scale
