@@ -67,7 +67,7 @@ enum class AnalyzeDetailType {
 
 @OptIn(ObsoleteCoroutinesApi::class)
 suspend fun orderScores(
-    scores: Pair<List<ScoreDTO>, List<ScoreDTO>?>,
+    scores: Pair<List<Score>, List<Score>?>,
     analyzeDetail: Boolean = false,
     analyzeType: AnalyzeDetailType = AnalyzeDetailType.IfFullCombo,
     rangeToAnalyze: IntRange = 0..25
@@ -147,7 +147,7 @@ suspend fun orderScores(
         }
     } else withContext(calculatorProcessorDispatcher) {
         val resultList = mutableListOf<OrderResult.Entry.Versus>()
-        val combined = mutableListOf<ScoreDTO>().also {
+        val combined = mutableListOf<Score>().also {
             it.addAll(scores.first)
             it.addAll(secList)
         }.toList().sortedByDescending { it.pp }

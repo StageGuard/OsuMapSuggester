@@ -36,7 +36,7 @@ import me.stageguard.obms.utils.Either.Companion.right
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.warning
-import org.jetbrains.skia.EncodedImageFormat
+import io.github.humbleui.skija.EncodedImageFormat
 import java.util.*
 import kotlin.math.pow
 
