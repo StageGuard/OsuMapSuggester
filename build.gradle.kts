@@ -14,6 +14,8 @@ repositories {
 }
 
 dependencies {
+    // rosu-pp
+    implementation("xyz.cssxsh.osu:rosu-pp-jni:0.0.1")
     // skiko/skia
     compileOnly("xyz.cssxsh.mirai:mirai-skia-plugin:1.2.4")
     // database related lib
