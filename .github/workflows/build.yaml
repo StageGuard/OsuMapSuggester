@@ -1,0 +1,47 @@
+name: "build"
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+
+jobs:
+  osu-web-api:
+    runs-on: ubuntu-latest
+    environment: BEARER_TOKENS
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: chmod -R 777 *
+        run: chmod -R 777 *
+
+      - name: Build Assemble
+        shell: bash
+        run: ./gradlew assemble --scan --info
+
+      - name: Store BearerTokens
+        shell: bash
+        run: |
+          mkdir run
+          echo "access_token=${{ secrets.ACCESS_TOKEN }}" >> run/tokens.properties 
+          echo "refresh_token=${{ secrets.REFRESH_TOKEN }}" >> run/tokens.properties 
+          echo "client_id=${{ secrets.CLIENT_ID }}" >> run/config.properties 
+          echo "secret=${{ secrets.SECRET }}" >> run/config.properties  
+          echo "base_url=${{ secrets.BASE_URL }}" >> run/config.properties  
+
+      - name: OsuWebApi Client Test
+        shell: bash
+        run: ./gradlew test --tests "me.stageguard.osu.api.OsuWebApiClientTest" --scan --info

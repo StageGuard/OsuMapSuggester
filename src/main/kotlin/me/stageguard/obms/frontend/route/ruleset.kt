@@ -19,7 +19,7 @@ import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
 import me.stageguard.obms.frontend.dto.*
 import me.stageguard.obms.osu.api.OsuWebApi
-import me.stageguard.obms.osu.api.dto.BeatmapDTO
+import me.stageguard.osu.api.dto.*
 import me.stageguard.obms.osu.api.oauth.AuthType
 import me.stageguard.obms.osu.api.oauth.OAuthManager
 import me.stageguard.obms.osu.api.oauth.OAuthManager.updateToken
@@ -306,7 +306,7 @@ fun Application.ruleset() {
                 val decryptedOsuApiToken = SimpleEncryptionUtils.aesDecrypt(parameter.osuApiToken, ENC_KEY)
 
                 // 不直接使用 OAuthManager.getBindingToken 因为每次使用就要查询一次数据库。
-                val apiResponse = OsuWebApi.getImpl<String, BeatmapDTO>(
+                val apiResponse = OsuWebApi.getImpl<String, Beatmap>(
                     url = OsuWebApi.BASE_URL_V2 + "/beatmaps/${parameter.bid}/",
                     parameters = mapOf(),
                     mapOf("Authorization" to "Bearer $decryptedOsuApiToken")

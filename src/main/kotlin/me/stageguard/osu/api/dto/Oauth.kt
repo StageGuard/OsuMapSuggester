@@ -1,10 +1,10 @@
-package me.stageguard.obms.osu.api.dto
+package me.stageguard.osu.api.dto
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
 @Serializable
-data class GetAccessTokenRequestDTO(
+public data class GetAccessTokenRequest(
     @SerialName("client_id")
     val clientId: Int,
     @SerialName("client_secret")
@@ -18,7 +18,7 @@ data class GetAccessTokenRequestDTO(
 )
 
 @Serializable
-data class RefreshTokenRequestDTO(
+public data class RefreshTokenRequest(
     @SerialName("client_id")
     val clientId: Int,
     @SerialName("client_secret")
@@ -32,7 +32,7 @@ data class RefreshTokenRequestDTO(
 )
 
 @Serializable
-data class GetAccessTokenResponseDTO(
+public data class GetAccessTokenResponse(
     @SerialName("access_token")
     val accessToken: String,
     @SerialName("expires_in")

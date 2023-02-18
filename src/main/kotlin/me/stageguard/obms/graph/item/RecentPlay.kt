@@ -8,10 +8,7 @@ import me.stageguard.obms.graph.common.drawPPPlusGraph
 import me.stageguard.obms.graph.common.drawPpCurveGraph
 import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
 import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
-import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
-import me.stageguard.obms.osu.api.dto.BeatmapsetDTO
-import me.stageguard.obms.osu.api.dto.GetUserDTO
-import me.stageguard.obms.osu.api.dto.ScoreDTO
+import me.stageguard.osu.api.dto.*
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
 import me.stageguard.obms.utils.Either
@@ -75,16 +72,16 @@ object RecentPlay {
 
 
     suspend fun drawRecentPlayCard(
-        scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO,
-        mapperInfo: GetUserDTO?, mods: ModCombination,
+        scoreDTO: Score, beatmapSet: BeatmapSet,
+        mapperInfo: OsuUser?, mods: ModCombination,
         attribute: OptionalValue<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
         skillAttributes: OptionalValue<Map<String, Double>>,
-        userBestScore: OptionalValue<BeatmapUserScoreDTO>,
+        userBestScore: OptionalValue<BeatmapUserScore>,
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>
     ): Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
-        val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
+        val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers["cover2x"]!!)
         val mapperAvatar = mapperInfo?.avatarUrl?.let { getAvatarFromUrlOrDefault(it) }
 
         return drawRecentPlayCardImpl(
@@ -95,11 +92,11 @@ object RecentPlay {
 
     @Suppress("DuplicatedCode")
     private fun drawRecentPlayCardImpl(
-        scoreDTO: ScoreDTO, beatmapSet: BeatmapsetDTO, mods: ModCombination,
+        scoreDTO: Score, beatmapSet: BeatmapSet, mods: ModCombination,
         attribute: OptionalValue<DifficultyAttributes>,
         ppCurvePoints: Pair<MutableList<Pair<Double, Double>>, MutableList<Pair<Double, Double>>>,
         skillAttributes: OptionalValue<Map<String, Double>>,
-        userBestScore: OptionalValue<BeatmapUserScoreDTO>,
+        userBestScore: OptionalValue<BeatmapUserScore>,
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>,
         playerAvatar: Image, mapperAvatar: Image?, songCover: OptionalValue<Image>,
     ): Surface {

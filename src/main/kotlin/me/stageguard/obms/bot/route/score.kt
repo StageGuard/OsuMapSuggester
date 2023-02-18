@@ -5,12 +5,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.stageguard.obms.*
+import me.stageguard.obms.bot.*
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
-import me.stageguard.obms.bot.calculatorProcessorDispatcher
-import me.stageguard.obms.bot.graphicProcessorDispatcher
-import me.stageguard.obms.bot.refactoredExceptionCatcher
-import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.cache.ReplayCache
 import me.stageguard.obms.database.model.BeatmapSkill
@@ -21,7 +18,7 @@ import me.stageguard.obms.osu.algorithm.`pp+`.calculateSkills
 import me.stageguard.obms.osu.algorithm.pp.calculateDifficultyAttributes
 import me.stageguard.obms.osu.algorithm.ppnative.PPCalculatorNative
 import me.stageguard.obms.osu.api.OsuWebApi
-import me.stageguard.obms.osu.api.dto.ScoreDTO
+import me.stageguard.osu.api.dto.*
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
 import me.stageguard.obms.osu.processor.replay.ReplayFrameAnalyzer
 import me.stageguard.obms.utils.InferredOptionalValue
@@ -43,7 +40,7 @@ import io.github.humbleui.skija.EncodedImageFormat
 import java.util.*
 import kotlin.math.pow
 
-fun GroupMessageSubscribersBuilder.recentScore() {
+internal fun GroupMessageSubscribersBuilder.recentScore() {
     routeLock(startWithIgnoreCase(".bps")) {
         OsuMapSuggester.launch(
             CoroutineName("Command \"bps\" of ${sender.id}") + refactoredExceptionCatcher
@@ -84,7 +81,8 @@ fun GroupMessageSubscribersBuilder.recentScore() {
                     Either(InvalidInputException(this))
                 }
             }.rightOrThrowLeft()
-            val score = OsuWebApi.userBeatmapScore(sender.id, bid, mods = mods.map { it.uppercase() }).rightOrThrowLeft()
+            val score =
+                OsuWebApi.userBeatmapScore(sender.id, bid, mods = mods.map { it.uppercase() }).rightOrThrowLeft()
             processRecentPlayData(score.score)
         }
 
@@ -99,21 +97,20 @@ fun GroupMessageSubscribersBuilder.recentScore() {
 }
 
 
-
-tailrec suspend fun GroupMessageEvent.getLastScore(
+internal tailrec suspend fun GroupMessageEvent.getLastScore(
     maxTryCount: Int,
     triedCount: Int = 0
-) : OptionalValue<ScoreDTO> =
+): OptionalValue<Score> =
     OsuWebApi.userScore(user = sender.id, limit = 1, offset = triedCount, includeFails = true).onLeft {
-        return if(maxTryCount == triedCount + 1) {
+        return if (maxTryCount == triedCount + 1) {
             Either(it)
         } else {
             getLastScore(maxTryCount, triedCount + 1)
         }
     }.mapRight {
         val single = it.single()
-        if(single.mode != "osu") {
-            return if(maxTryCount == triedCount + 1) {
+        if (single.mode != "osu") {
+            return if (maxTryCount == triedCount + 1) {
                 Either(UserScoreEmptyException(sender.id))
             } else {
                 getLastScore(maxTryCount, triedCount + 1)
@@ -123,7 +120,7 @@ tailrec suspend fun GroupMessageEvent.getLastScore(
     }
 
 
-suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withContext(calculatorProcessorDispatcher) {
+internal suspend fun GroupMessageEvent.processRecentPlayData(score: Score) = withContext(calculatorProcessorDispatcher) {
     val beatmapFile = BeatmapCache.getBeatmapFile(score.beatmap!!.id)
     val beatmap = BeatmapCache.getBeatmap(score.beatmap.id)
     //calculate pp, first: current miss, second: full combo
@@ -138,11 +135,15 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
     val ppCurvePoints = (mutableListOf<Pair<Double, Double>>() to mutableListOf<Pair<Double, Double>>()).also { p ->
         beatmapFile.onRight {
             p.first.add(score.accuracy * 100 to pp.right.total)
-            p.second.add(score.accuracy * 100 to PPCalculatorNative.of(it.absolutePath).mods(mods).accuracy(score.accuracy * 100).calculate().total)
-            generateSequence(900) { s -> if(s == 1000) null else s + 5 }.forEach { step ->
+            p.second.add(
+                score.accuracy * 100 to PPCalculatorNative.of(it.absolutePath).mods(mods).accuracy(score.accuracy * 100)
+                    .calculate().total
+            )
+            generateSequence(900) { s -> if (s == 1000) null else s + 5 }.forEach { step ->
                 val acc = step / 10.0
                 p.second.add(acc to PPCalculatorNative.of(it.absolutePath).mods(mods).accuracy(acc).calculate().total)
-                p.first.add(acc to
+                p.first.add(
+                    acc to
                         PPCalculatorNative.of(it.absolutePath).mods(mods)
                             .passedObjects(score.statistics.count300 + score.statistics.count100 + score.statistics.count50)
                             .misses(score.statistics.countMiss)
@@ -166,9 +167,9 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
         }
 
         skillAttributes["Jump"] = pp.right.total * (pp.right.aim.pow(1.1) / totalStrainWithoutMultiplier) *
-                (unwrapped.jumpAimStrain / totalAimStrain)
+            (unwrapped.jumpAimStrain / totalAimStrain)
         skillAttributes["Flow"] = pp.right.total * (pp.right.aim.pow(1.1) / totalStrainWithoutMultiplier) *
-                (unwrapped.flowAimStrain / totalAimStrain)
+            (unwrapped.flowAimStrain / totalAimStrain)
         skillAttributes["Speed"] = pp.right.total * (pp.right.speed.pow(1.1) / totalStrainWithoutMultiplier)
         skillAttributes["Accuracy"] = pp.right.total * (pp.right.accuracy.pow(1.1) / totalStrainWithoutMultiplier)
         skillAttributes["Flashlight"] = pp.right.total * (pp.right.flashlight.pow(1.1) / totalStrainWithoutMultiplier)
@@ -178,26 +179,32 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
 
     val modCombination = ModCombination.of(mods)
     val difficultyAttribute = beatmap.mapRight { it.calculateDifficultyAttributes(modCombination) }
-    val userBestScore = if(score.bestId != score.id && (score.replay == null || score.replay == false)) {
+    val userBestScore = if (score.bestId != score.id && (score.replay == null || score.replay == false)) {
         OsuWebApi.userBeatmapScore(sender.id, score.beatmap.id, mods = score.mods)
-    } else { Either.invoke(UnhandledException()) }
+    } else {
+        Either.invoke(UnhandledException())
+    }
 
     //我草，血压上来了
-    val replayAnalyzer = beatmap.run b@ { this@b.ifRight { b ->
-        score.run s@ {
-            if(this@s.replay == true) {
-                //if replay available, the replay must be the best score play of this beatmap
-                ReplayCache.getReplayData(this@s.bestId!!).run r@ { this@r.ifRight { r ->
-                    try {
-                        val rep = ReplayFrameAnalyzer(b, r, modCombination)
-                        InferredOptionalValue(rep)
-                    } catch (ex: Exception) {
-                        Either.invoke(UnhandledException().suppress(ex))
+    val replayAnalyzer = beatmap.run b@{
+        this@b.ifRight { b ->
+            score.run s@{
+                if (this@s.replay == true) {
+                    //if replay available, the replay must be the best score play of this beatmap
+                    ReplayCache.getReplayData(this@s.bestId!!).run r@{
+                        this@r.ifRight { r ->
+                            try {
+                                val rep = ReplayFrameAnalyzer(b, r, modCombination)
+                                InferredOptionalValue(rep)
+                            } catch (ex: Exception) {
+                                Either.invoke(UnhandledException().suppress(ex))
+                            }
+                        } ?: Either.invoke(this@r.left)
                     }
-                } ?: Either.invoke(this@r.left) }
-            } else Either.invoke(ReplayNotAvailable(this@s.id))
-        }
-    } ?: Either.invoke(this@b.left) }
+                } else Either.invoke(ReplayNotAvailable(this@s.id))
+            }
+        } ?: Either.invoke(this@b.left)
+    }
 
     launch(CoroutineName("Add skillAttribute of beatmap ${score.beatmap.id} to database")) {
         val sk = ppx.onLeft {
@@ -222,7 +229,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
         })
     }
 
-    val beatmapSet = if(score.beatmapset == null) {
+    val beatmapSet = if (score.beatmapset == null) {
         OsuWebApi.getBeatmap(sender.id, score.beatmap.id).mapRight { it.beatmapset!! }
     } else {
         InferredOptionalValue(score.beatmapset)
@@ -233,7 +240,7 @@ suspend fun GroupMessageEvent.processRecentPlayData(score: ScoreDTO) = withConte
     val bytes = withContext(graphicProcessorDispatcher) {
         RecentPlay.drawRecentPlayCard(
             score, beatmapSet, mapperInfo, modCombination, difficultyAttribute, ppCurvePoints,
-            if(skillAttributes.isNotEmpty()) InferredOptionalValue(skillAttributes) else Either(ppx.left),
+            if (skillAttributes.isNotEmpty()) InferredOptionalValue(skillAttributes) else Either(ppx.left),
             userBestScore, replayAnalyzer
         ).bytes(EncodedImageFormat.PNG)
     }
