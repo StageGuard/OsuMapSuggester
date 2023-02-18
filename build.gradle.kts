@@ -47,7 +47,7 @@ dependencies {
     testImplementation("org.jetbrains.skiko:skiko-awt-runtime-macos-x64:0.7.50")
     testImplementation("org.jetbrains.skiko:skiko-awt-runtime-macos-arm64:0.7.50")
 
-    if (System.getenv("CI") != "true") {
+    if (System.getenv("CI") == "true") {
         implementation("io.github.humbleui:skija-shared:0.109.1")
     }
 }
