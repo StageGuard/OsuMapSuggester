@@ -38,6 +38,9 @@ jobs:
           mkdir run
           echo "access_token=${{ secrets.ACCESS_TOKEN }}" >> run/tokens.properties 
           echo "refresh_token=${{ secrets.REFRESH_TOKEN }}" >> run/tokens.properties 
+          echo "client_id=${{ secrets.CLIENT_ID }}" >> run/config.properties 
+          echo "secret=${{ secrets.SECRET }}" >> run/config.properties  
+          echo "base_url=${{ secrets.BASE_URL }}" >> run/config.properties  
 
       - name: OsuWebApi Client Test
         shell: bash
