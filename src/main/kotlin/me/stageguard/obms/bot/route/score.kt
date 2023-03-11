@@ -1,14 +1,9 @@
 package me.stageguard.obms.bot.route
 
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runInterruptible
-import kotlinx.coroutines.withContext
 import me.stageguard.obms.*
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
-import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.refactoredExceptionCatcher
 import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
@@ -40,6 +35,7 @@ import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.warning
 import io.github.humbleui.skija.EncodedImageFormat
+import kotlinx.coroutines.*
 import java.util.*
 import kotlin.math.pow
 
@@ -237,7 +233,7 @@ suspend fun GroupMessageEvent.processScoreData(score: ScoreDTO) = withContext(ca
 
     OsuMapSuggester.logger.info("Generating image ScorePanel of ${sender.id} on ${score.id}.")
     val imageTimeStamp = System.currentTimeMillis()
-    val bytes = withContext(graphicProcessorDispatcher) {
+    val bytes = withContext(Dispatchers.IO) {
         RecentPlay.drawRecentPlayCard(
             score, beatmapSet, mapperInfo, modCombination, difficultyAttribute, ppCurvePoints,
             if(skillAttributes.isNotEmpty()) InferredOptionalValue(skillAttributes) else Either(ppx.left),
@@ -248,7 +244,7 @@ suspend fun GroupMessageEvent.processScoreData(score: ScoreDTO) = withContext(ca
     OsuMapSuggester.logger.info("Finished generating image ScorePanel of ${sender.id} on ${score.id}, took $imageTimeDiff milliseconds.")
     val externalResource = bytes.toExternalResource("png")
     OsuMapSuggester.logger.info("uploading image...")
-    val image = group.uploadImage(externalResource)
+    val image = withContext(Dispatchers.IO) { group.uploadImage(externalResource) }
     runInterruptible { externalResource.close() }
     atReply(image.toMessageChain())
 }

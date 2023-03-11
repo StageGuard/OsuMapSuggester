@@ -10,7 +10,6 @@ import me.stageguard.obms.osu.api.dto.ScoreDTO
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
-import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.refactoredExceptionCatcher
 import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
@@ -188,14 +187,14 @@ suspend fun orderScores(
 suspend fun GroupMessageEvent.processOrderResultAndSend(orderResult: OrderResult) {
     OsuMapSuggester.logger.info("Generating image BestPerformancePanel of ${sender.id}.")
     val currTimestamp = System.currentTimeMillis()
-    val bytes = withContext(graphicProcessorDispatcher) {
+    val bytes = withContext(Dispatchers.IO) {
         BestPerformanceDetail.drawBestPerformancesImage(orderResult).bytes(EncodedImageFormat.PNG)
     }
     val timeDiff = System.currentTimeMillis() - currTimestamp
     OsuMapSuggester.logger.info("Finished generating image BestPerformancePanel of ${sender.id}, took $timeDiff milliseconds.")
     val externalResource = bytes.toExternalResource("png")
     OsuMapSuggester.logger.info("uploading image...")
-    val image = group.uploadImage(externalResource)
+    val image = withContext(Dispatchers.IO) { group.uploadImage(externalResource) }
     runInterruptible { externalResource.close() }
     atReply(image.toMessageChain())
 }

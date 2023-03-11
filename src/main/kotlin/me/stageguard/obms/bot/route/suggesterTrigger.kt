@@ -6,7 +6,6 @@ import kotlinx.coroutines.*
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
-import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.route.SuggestedBeatmapCache.SUGBMPInfo
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
@@ -181,13 +180,13 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                 } ?.content ?: ""
             } ?: ""
 
-            val bytes = withContext(graphicProcessorDispatcher) {
+            val bytes = withContext(Dispatchers.IO) {
                 MapSuggester.drawRecommendBeatmapCard(
                     beatmapInfo, r.first, r.second, additionalTip
                 ).bytes(EncodedImageFormat.PNG)
             }
             val externalResource = bytes.toExternalResource("png")
-            val image = group.uploadImage(externalResource)
+            val image = withContext(Dispatchers.IO) { group.uploadImage(externalResource) }
             runInterruptible { externalResource.close() }
             atReply(buildMessageChain {
                 add(image)

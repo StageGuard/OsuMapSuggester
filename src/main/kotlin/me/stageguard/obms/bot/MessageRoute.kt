@@ -1,5 +1,7 @@
 package me.stageguard.obms.bot
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.bot.route.*
@@ -11,8 +13,11 @@ import net.mamoe.mirai.message.data.Message
 import net.mamoe.mirai.message.data.MessageChain
 import net.mamoe.mirai.message.data.buildMessageChain
 import net.mamoe.mirai.utils.info
+import kotlin.coroutines.CoroutineContext
 
-object MessageRoute {
+object MessageRoute : CoroutineScope {
+    override val coroutineContext: CoroutineContext
+        get() = OsuMapSuggester.coroutineContext + SupervisorJob()
     fun subscribeMessages(bot: Bot) {
         bot.eventChannel.subscribeGroupMessages {
             //basic commands

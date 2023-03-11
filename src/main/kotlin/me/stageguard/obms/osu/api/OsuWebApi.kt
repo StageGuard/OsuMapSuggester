@@ -9,11 +9,11 @@ import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.network.sockets.SocketTimeoutException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
 import me.stageguard.obms.*
-import me.stageguard.obms.bot.networkProcessorDispatcher
 import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.database.model.OsuUserInfo
 import me.stageguard.obms.osu.api.oauth.OAuthManager
@@ -246,7 +246,7 @@ object OsuWebApi {
         parameters: Map<String, Any>,
         headers: Map<String, String>,
         crossinline consumer: RESP.() -> R
-    ): OptionalValue<R> = withContext(networkProcessorDispatcher) {
+    ): OptionalValue<R> = withContext(Dispatchers.IO) {
         try {
             client.get {
                 url(buildString {
@@ -291,7 +291,7 @@ object OsuWebApi {
         url: String,
         parameters: Map<String, Any>,
         headers: Map<String, String>
-    ): OptionalValue<Headers> = withContext(networkProcessorDispatcher) {
+    ): OptionalValue<Headers> = withContext(Dispatchers.IO) {
         try {
             client.head {
                 url(buildString {
@@ -333,7 +333,7 @@ object OsuWebApi {
     @Suppress("DuplicatedCode")
     suspend inline fun <reified REQ, reified RESP> postImpl(
         url: String, token: String? = null, body: @Serializable REQ
-    ): OptionalValue<RESP> = withContext(networkProcessorDispatcher) {
+    ): OptionalValue<RESP> = withContext(Dispatchers.IO) {
         var responseText by Delegates.notNull<String>()
         try {
             responseText = client.post {

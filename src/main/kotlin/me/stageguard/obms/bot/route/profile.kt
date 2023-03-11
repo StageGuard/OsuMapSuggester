@@ -1,13 +1,8 @@
 package me.stageguard.obms.bot.route
 
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runInterruptible
-import kotlinx.coroutines.withContext
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.bot.MessageRoute.atReply
 import me.stageguard.obms.bot.RouteLock.routeLock
-import me.stageguard.obms.bot.graphicProcessorDispatcher
 import me.stageguard.obms.bot.refactoredExceptionCatcher
 import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.graph.bytes
@@ -18,6 +13,7 @@ import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import io.github.humbleui.skija.EncodedImageFormat
+import kotlinx.coroutines.*
 import me.stageguard.obms.PluginConfig
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.database.Database
@@ -320,7 +316,7 @@ fun GroupMessageEvent.drawInfoPanelAndSend() {
 
         OsuMapSuggester.logger.info("Generating user profile data of ${sender.id}.")
         val imageCurrTimeStamp = System.currentTimeMillis()
-        val bytes = withContext(graphicProcessorDispatcher) {
+        val bytes = withContext(Dispatchers.IO) {
             Profile.drawProfilePanel(
                 profile, panelStyle, performances,
                 bestScores.entries.first().value, bestScores.entries.last().value,
@@ -332,7 +328,7 @@ fun GroupMessageEvent.drawInfoPanelAndSend() {
         OsuMapSuggester.logger.info("Finished generating image ProfilePanel of ${sender.id}, took $imageTImeDiff milliseconds.")
         val externalResource = bytes.toExternalResource("png")
         OsuMapSuggester.logger.info("Uploading image...")
-        val image = group.uploadImage(externalResource)
+        val image = withContext(Dispatchers.IO) { group.uploadImage(externalResource) }
         runInterruptible { externalResource.close() }
         atReply(image.toMessageChain())
     }

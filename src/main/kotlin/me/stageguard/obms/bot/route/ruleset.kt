@@ -25,6 +25,7 @@ import net.mamoe.mirai.message.data.toMessageChain
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.info
 import io.github.humbleui.skija.EncodedImageFormat
+import kotlinx.coroutines.Dispatchers
 import org.ktorm.dsl.eq
 import org.ktorm.entity.*
 import java.lang.NumberFormatException
@@ -269,11 +270,11 @@ fun GroupMessageSubscribersBuilder.ruleset() {
 
             val rulesetCreatorsInfo = ruleset.map { it.author }.toSet().map { it to OsuUserInfo.getOsuIdAndName(it) }
 
-            val bytes = withContext(graphicProcessorDispatcher) {
+            val bytes = withContext(Dispatchers.IO) {
                 MapSuggester.drawRulesetList(ruleset, rulesetCreatorsInfo).bytes(EncodedImageFormat.PNG)
             }
             val externalResource = bytes.toExternalResource("png")
-            val image = group.uploadImage(externalResource)
+            val image = withContext(Dispatchers.IO) { group.uploadImage(externalResource) }
             runInterruptible { externalResource.close() }
 
             atReply(image.toMessageChain())
