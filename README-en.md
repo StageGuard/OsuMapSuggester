@@ -61,7 +61,7 @@ It is easy to deploy this bot.
 
 #### Run: 
 
-1. Clone this project and open with IntelliJ IDEA. Sync gradle project and run `mirai/buildPlugin` task to build the plugin binary file.
+1. Clone this project with submodule  (`git clone --recurse-submodules`)  and open with IntelliJ IDEA. Sync gradle project and run `mirai/buildPlugin` task to build the plugin binary file.
 
 > You can also build via command line by running `chmod +x gradlew && ./gradlew buildPlugin` command if your IntelliJ IDEA is not installed. The output binary file is in `build/mirai`.
 
