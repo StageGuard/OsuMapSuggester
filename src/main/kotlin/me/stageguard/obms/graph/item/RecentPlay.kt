@@ -744,7 +744,7 @@ object RecentPlay {
                     bestAccuracy,
                     (otherScoreInfoWidth - accuracyWidth) / 2 + accuracy.width,
                     accuracyText.capHeight + 15f * scale + accuracy.capHeight,
-                    if (scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
+                    if (accuracyDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
                 )
                 translate(0f, accuracyText.capHeight + 15f * scale + accuracy.capHeight + 35f * scale)
                 drawTextLineWithShadow(
@@ -757,7 +757,7 @@ object RecentPlay {
                     bestMaxCombo,
                     (otherScoreInfoWidth - maxComboWidth) / 2 + maxCombo.width,
                     maxComboText.capHeight + 15f * scale + maxCombo.capHeight,
-                    if (scoreDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
+                    if (maxComboDiff > 0) paint.setColor(colorGreen) else paint.setColor(colorRed), 3f * scale
                 )
                 drawTextLineWithShadow(
                     perfectCombo,
