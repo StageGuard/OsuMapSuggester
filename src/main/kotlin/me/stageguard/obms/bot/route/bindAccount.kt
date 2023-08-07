@@ -36,6 +36,17 @@ fun GroupMessageSubscribersBuilder.bindAccount() {
         }
     }
 
+    routeLock(startWithIgnoreCase(".rot")) {
+        val user = OsuUserInfo.getOsuIdAndName(sender.id)
+        if (user == null) {
+            atReply("请首先输入 .bind 绑定账号，在您的绑定失效后才能使用此指令更新令牌。");
+            return@routeLock
+        }
+        val link = OAuthManager.createOAuthLink(AuthType.BIND_ACCOUNT, listOf(sender.id, group.id))
+        atReply("请点击这个链接进行绑定更新: $link")
+
+    }
+
     routeLock(startWithIgnoreCase(".unbind")) {
         Database.query { db ->
             val user = db.sequenceOf(OsuUserInfo).find { it.qq eq sender.id }
