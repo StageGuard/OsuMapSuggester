@@ -1,6 +1,6 @@
 # OsuMapSuggester
 
-一个可以为 **osu!standard** 玩家推图的 [mirai-console](https://github.com/mamoe/mirai-console) 插件。
+一个可以为 **osu!standard** 玩家推图的基于 [Shiro](https://github.com/MisakaTAT/Shiro) 的机器人。
 
 English: [README-en.md](README-en.md)
 
@@ -45,10 +45,6 @@ OsuMapSuggester 将会开启一个 HTTP 前端来处理这些数据。
 
 - 有公网 IP 的服务器。
 
-- <details> <summary>mirai-console 运行环境</summary>
-      点击查看如何部署 mirai-console 环境: <a href="https://github.com/mamoe/mirai/blob/dev/docs/UserManual.md">https://github.com/mamoe/mirai/blob/dev/docs/UserManual.md</a>
-  </details>
-
 - <details> <summary>osu! OAuth 应用</summary>
   1. 前往 <a href="https://osu.ppy.sh/home/account/edit">https://osu.ppy.sh/home/account/edit</a><br><br>
       2. 点击 <b>New OAuth Application</b><br>
@@ -65,29 +61,29 @@ OsuMapSuggester 将会开启一个 HTTP 前端来处理这些数据。
 
 #### 运行
 
-1. 克隆项目和子模块 (`git clone --recurse-submodules https://github.com/StageGuard/OsuMapSuggester.git`) 并用 IntelliJ IDEA 打开工程. 同步 gradle 项目后运行 `mirai/buildPlugin` gradle 任务来构建项目。
+1. 克隆项目和子模块 (`git clone --recurse-submodules https://github.com/StageGuard/OsuMapSuggester.git`) 并用 IntelliJ IDEA 打开工程. 同步 gradle 项目后运行 `build/bootJar` gradle 任务来构建项目。
 
 > 在构建之前，首先需要安装 rust 工具链 [`cargo`](https://doc.rust-lang.org/cargo/)，gradle 同步过程中会检测 cargo 安装状态，请保证 cargo 已添加到在 `PATH` 环境变量中。
 
-> 如果你不想用 IntelliJ IDEA，也可以克隆后在命令行运行 `chmod +x gradlew && ./gradlew buildPlugin` 指令来构建. 构建完成后的 jar 输出在 `build/mirai`.
+> 如果你不想用 IntelliJ IDEA，也可以克隆后在命令行运行 `chmod +x gradlew && ./gradlew bootJar` 指令来构建. 构建完成后的 jar 输出在 `build/libs`.
 
-2. 把构建好的 jar 包放入 `<mirai-console目录>/plugins/` 中，启动 mirai console，不出意外的话你会看到以下输出：
-
-```
-2021-07-26 20:22:37 E/OsuMapSuggester: Failed to connect database: com.zaxxer.hikari.pool.HikariPool$PoolInitializationException: Failed to initialize pool: Access denied for user 'root'@'localhost' (using password: YES).
-2021-07-26 20:22:37 E/OsuMapSuggester: Retry to connect database in 10 seconds.
-```
-
-3. 停止 mirai console, 编辑配置文件 `config/OsuMapSuggester/OsuMapSuggester.Config.yml`
+3. 创建配置文件 `application.yaml` 编辑以下内容
 
 ```yaml
+server:
+  port: 5000 # 你的 OneBot 实现端反代服务器
+shiro:
+  ws:
+    server:
+      enable: true
+      url: "/ws/shiro"
 qq: 1234567890 # 为这个 BOT 启用插件
 database: 
   address: localhost # 数据库地址
   port: 3306 # 端口
   user: root # 账号
   password: testpwd # 密码
-  table: osu!beatmap suggester # 数据库名称（在准备工作第一步创建的数据库）
+  table: obmsug # 数据库名称（在准备工作第一步创建的数据库）
   maximumPoolSize: 10
 osuAuth: 
   clientId: 0 # OAuth clientId
@@ -101,10 +97,13 @@ frontend:
   port: 8081 # 前端端口
 ```
 
-4. 保存，重新运行 mirai console，登录设定的账号后，看到以下输出则意味着工作正常：
+4. 将 jar 和 application.yaml 放在同一个目录下，运行 `java -jar OsuMapSuggester-xxx.jar` 启动。若看到一下输出则证明启动成功
 
 ```
-2021-07-26 20:34:27 I/OsuMapSuggester: Subscribed group and friend messages.
+ INFO 11372 --- [atcher-worker-2] m.s.obms.frontend.NettyHttpServer        : Autoreload is disabled because the development mode is off.
+ INFO 11372 --- [atcher-worker-2] m.s.obms.frontend.NettyHttpServer        : Application started in 0.057 seconds.
+ INFO 11372 --- [atcher-worker-1] m.s.obms.frontend.NettyHttpServer        : Responding at http://localhost:8081
+ INFO 11372 --- [atcher-worker-2] m.s.obms.frontend.NettyHttpServer        : Frontend server respond at http://localhost:8081
 ```
 
 ## 问题反馈
@@ -117,7 +116,7 @@ frontend:
 
 ## 使用到的库
 
-- Mirai Framework: [mirai](https://github.com/mamoe/mirai/), [mirai-console](https://github.com/mamoe/mirai-console), [mirai-slf4j-bridge](https://github.com/project-mirai/mirai-slf4j-bridge)
+- OneBot: [Shiro](https://github.com/MisakaTAT/Shiro)
 - Database: [Ktorm](https://github.com/kotlin-orm/ktorm), [HikariCP](https://github.com/brettwooldridge/HikariCP)
 - Web Server: [ktor](https://github.com/ktorio/ktor)
 - Graphics: [skija](https://github.com/JetBrains/skija)
@@ -128,7 +127,7 @@ frontend:
 
 ```
 OsuMapSuggester
-Copyright (C) 2021 StageGuard
+Copyright (C) 2021-2024 StageGuard
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -142,22 +141,4 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
-```
-
-```
-mirai
-Copyright (C) 2019-2021 Mamoe Technologies and contributors.
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ```
