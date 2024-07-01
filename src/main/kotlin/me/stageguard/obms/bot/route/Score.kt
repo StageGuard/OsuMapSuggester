@@ -177,7 +177,7 @@ open class Score {
         }.onRight { unwrapped ->
             skillAttributes["Jump"] = unwrapped.jumpAimStrain
             skillAttributes["Flow"] = unwrapped.flowAimStrain
-            skillAttributes["Speed"] = unwrapped.jumpAimStrain
+            skillAttributes["Speed"] = unwrapped.speedStrain
             skillAttributes["Precision"] = unwrapped.precisionStrain
             skillAttributes["Stamina"] = unwrapped.staminaStrain
             skillAttributes["Accuracy"] = unwrapped.accuracyStrain
