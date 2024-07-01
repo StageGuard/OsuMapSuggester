@@ -813,7 +813,7 @@ class RecentPlayDraw {
             if (skillAttributes.isRight) {
                 drawPPPlusGraph(
                     graphCardWidth, graphCardHeight,
-                    "PP Segments", skillAttributes.right,
+                    "Strain", skillAttributes.right,
                     transparent40PercentBlack, colorWhite, colorYellow, colorGray, paint, scale
                 )
             } else {

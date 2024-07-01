@@ -40,7 +40,6 @@ import me.stageguard.obms.utils.warning
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.*
-import kotlin.math.pow
 
 @Shiro
 @Component
@@ -176,20 +175,12 @@ open class Score {
                 Optional.of(score.statistics.run { count300 + count100 + count50 })
             )
         }.onRight { unwrapped ->
-            val totalAimStrain = unwrapped.jumpAimStrain + unwrapped.flowAimStrain
-            val totalStrainWithoutMultiplier = pp.right.run {
-                aim.pow(1.1) + speed.pow(1.1) + accuracy.pow(1.1) + flashlight.pow(1.1)
-            }
-
-            skillAttributes["Jump"] = pp.right.total * (pp.right.aim.pow(1.1) / totalStrainWithoutMultiplier) *
-                    (unwrapped.jumpAimStrain / totalAimStrain)
-            skillAttributes["Flow"] = pp.right.total * (pp.right.aim.pow(1.1) / totalStrainWithoutMultiplier) *
-                    (unwrapped.flowAimStrain / totalAimStrain)
-            skillAttributes["Speed"] = pp.right.total * (pp.right.speed.pow(1.1) / totalStrainWithoutMultiplier)
-            skillAttributes["Accuracy"] = pp.right.total * (pp.right.accuracy.pow(1.1) / totalStrainWithoutMultiplier)
-            skillAttributes["Flashlight"] = pp.right.total * (pp.right.flashlight.pow(1.1) / totalStrainWithoutMultiplier)
-
-            if (skillAttributes["Flashlight"] == 0.0) skillAttributes.remove("Flashlight")
+            skillAttributes["Jump"] = unwrapped.jumpAimStrain
+            skillAttributes["Flow"] = unwrapped.flowAimStrain
+            skillAttributes["Speed"] = unwrapped.jumpAimStrain
+            skillAttributes["Precision"] = unwrapped.precisionStrain
+            skillAttributes["Stamina"] = unwrapped.staminaStrain
+            skillAttributes["Accuracy"] = unwrapped.accuracyStrain
         }
 
         val modCombination = ModCombination.of(mods)
