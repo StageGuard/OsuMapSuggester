@@ -121,7 +121,7 @@ class OAuthManager {
     suspend fun updateToken(user: User) : User {
         if (user.tokenExpireUnixSecond < LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)) {
             val response = refreshToken(user.refreshToken).mapLeft {
-                if(it is BadResponseException && it.respondText.contains("401")) {
+                if(it is BadResponseException && (it.respondText.contains("401") || it.respondText.contains("invalid"))) {
                     InvalidTokenException(user.qq)
                 } else it
             }.rightOrThrowLeft()
