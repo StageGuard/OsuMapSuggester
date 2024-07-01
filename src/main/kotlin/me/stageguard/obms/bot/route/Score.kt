@@ -110,8 +110,6 @@ open class Score {
     }
 
 
-
-
     private tailrec suspend fun GroupMessageEvent.getLastScore(
         maxTryCount: Int,
         triedCount: Int = 0
@@ -170,10 +168,7 @@ open class Score {
 
         val skillAttributes = mutableMapOf<String, Double>()
         val ppx = beatmap.mapRight {
-            it.calculateSkills(
-                ModCombination.of(mods),
-                Optional.of(score.statistics.run { count300 + count100 + count50 })
-            )
+            it.calculateSkills(ModCombination.of(mods), Optional.empty())
         }.onRight { unwrapped ->
             skillAttributes["Jump"] = unwrapped.jumpAimStrain
             skillAttributes["Flow"] = unwrapped.flowAimStrain
