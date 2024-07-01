@@ -1,19 +1,26 @@
 package me.stageguard.obms.database.model
 
+import jakarta.annotation.Resource
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
 import me.stageguard.obms.database.AddableTable
 import me.stageguard.obms.database.Database
+import me.stageguard.obms.database.model.BeatmapSkillTable.batchInsert
+import me.stageguard.obms.database.model.BeatmapSkillTable.batchUpdate1
+import me.stageguard.obms.database.model.BeatmapSkillTable.bid
 import me.stageguard.obms.osu.algorithm.`pp+`.calculateSkills
 import me.stageguard.obms.osu.algorithm.pp.calculateDifficultyAttributes
 import me.stageguard.obms.osu.processor.beatmap.Mod
 import me.stageguard.obms.osu.processor.beatmap.ModCombination
-import net.mamoe.mirai.utils.info
+import me.stageguard.obms.utils.info
+import me.stageguard.obms.utils.warning
 import org.ktorm.dsl.AssignmentsBuilder
 import org.ktorm.dsl.eq
 import org.ktorm.entity.*
 import org.ktorm.schema.*
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
 
 object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
     val id = int("id").primaryKey().bindTo { it.id }
@@ -49,15 +56,44 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
         set(precisionStrain, element.precisionStrain)
         set(rhythmComplexity, element.rhythmComplexity)
     }
+}
+
+interface BeatmapSkill : Entity<BeatmapSkill> {
+    companion object : Entity.Factory<BeatmapSkill>()
+    var id: Int
+    var bid: Int
+    var stars: Double
+    var bpm: Double
+    var length: Int
+    var circleSize: Double
+    var hpDrain: Double
+    var approachingRate: Double
+    var overallDifficulty: Double
+    var jumpAimStrain: Double
+    var flowAimStrain: Double
+    var speedStrain: Double
+    var staminaStrain: Double
+    var precisionStrain: Double
+    var rhythmComplexity: Double
+}
+
+
+@Component
+class BeatmapSkillTableEx {
+    private val logger = LoggerFactory.getLogger(BeatmapSkillTable::class.java)
+    @Resource
+    private lateinit var database: Database
+    @Resource
+    private lateinit var beatmapCache: BeatmapCache
 
     suspend fun addSingle(item: BeatmapSkill) = addAll(listOf(item))
 
-    suspend fun addAll(items: List<BeatmapSkill>) = Database.query { db ->
+    suspend fun addAll(items: List<BeatmapSkill>) = database.query { db ->
         val toUpdate = mutableListOf<BeatmapSkill>()
         val toInsert = mutableListOf<BeatmapSkill>()
 
         items.forEach { b ->
-            val find = db.sequenceOf(this@BeatmapSkillTable).find { it.bid eq b.bid }
+            val find = db.sequenceOf(BeatmapSkillTable).find { it.bid eq b.bid }
             if(find != null) toUpdate.add(b) else toInsert.add(b)
         }
 
@@ -67,16 +103,16 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
         effected
     }
 
-    suspend fun addAllViaBid(items: List<Int>, ifAbsent: Boolean = false) = Database.query { db ->
+    suspend fun addAllViaBid(items: List<Int>, ifAbsent: Boolean = false) = database.query { db ->
         val toUpdate = mutableListOf<BeatmapSkill>()
         val toInsert = mutableListOf<BeatmapSkill>()
 
         items.forEachIndexed { index, bid -> try {
-            OsuMapSuggester.logger.info { "Processing beatmap $bid, current count: ${index + 1}." }
-            val find = db.sequenceOf(this@BeatmapSkillTable).find { it.bid eq bid }
+            logger.info { "Processing beatmap $bid, current count: ${index + 1}." }
+            val find = db.sequenceOf(BeatmapSkillTable).find { it.bid eq bid }
             if(find != null && ifAbsent) return@forEachIndexed
 
-            val beatmap = BeatmapCache.getBeatmap(bid).rightOrThrowLeft()
+            val beatmap = beatmapCache.getBeatmap(bid).rightOrThrowLeft()
 
             val skills = beatmap.calculateSkills(ModCombination.of(Mod.None))
             val difficultyAttributes = beatmap.calculateDifficultyAttributes(ModCombination.of(Mod.None))
@@ -123,29 +159,10 @@ object BeatmapSkillTable : AddableTable<BeatmapSkill>("beatmap_skill") {
             if(find != null) toUpdate.add(dao) else toInsert.add(dao)
 
         } catch (ex: Exception) {
-            OsuMapSuggester.logger.warning("Error while add beatmap $bid.", ex)
+            logger.warning { "Error while add beatmap $bid.\n$ex" }
         } }
 
-        OsuMapSuggester.logger.info { "Process finished, updating database..." }
+        logger.info { "Process finished, updating database..." }
         (batchInsert(toInsert)?.size ?: 0) + (batchUpdate1(toUpdate, bid, { this.bid }) { it }?.size ?: 0)
     }
-}
-
-interface BeatmapSkill : Entity<BeatmapSkill> {
-    companion object : Entity.Factory<BeatmapSkill>()
-    var id: Int
-    var bid: Int
-    var stars: Double
-    var bpm: Double
-    var length: Int
-    var circleSize: Double
-    var hpDrain: Double
-    var approachingRate: Double
-    var overallDifficulty: Double
-    var jumpAimStrain: Double
-    var flowAimStrain: Double
-    var speedStrain: Double
-    var staminaStrain: Double
-    var precisionStrain: Double
-    var rhythmComplexity: Double
 }

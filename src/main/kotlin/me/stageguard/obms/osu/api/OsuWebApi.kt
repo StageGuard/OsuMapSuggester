@@ -1,23 +1,11 @@
 package me.stageguard.obms.osu.api
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.*
-import io.ktor.client.engine.okhttp.*
-import io.ktor.client.network.sockets.*
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.network.sockets.SocketTimeoutException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import jakarta.annotation.Resource
 import kotlinx.serialization.*
-import kotlinx.serialization.json.Json
 import me.stageguard.obms.*
 import me.stageguard.obms.bot.rightOrThrowLeft
-import me.stageguard.obms.database.model.OsuUserInfo
+import me.stageguard.obms.database.model.OsuUserInfoEx
 import me.stageguard.obms.osu.api.oauth.OAuthManager
-import me.stageguard.obms.frontend.route.AUTH_CALLBACK_PATH
 import me.stageguard.obms.osu.api.dto.*
 import me.stageguard.obms.utils.InferredOptionalValue
 import me.stageguard.obms.utils.OptionalValue
@@ -26,66 +14,25 @@ import me.stageguard.obms.utils.Either.Companion.left
 import me.stageguard.obms.utils.Either.Companion.mapLeft
 import me.stageguard.obms.utils.Either.Companion.onLeft
 import me.stageguard.obms.utils.Either.Companion.onRight
-import net.mamoe.mirai.utils.info
-import java.io.InputStream
-import kotlin.properties.Delegates
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
 
-object OsuWebApi {
-    const val BASE_URL_V2 = "https://osu.ppy.sh/api/v2"
-    const val BASE_URL_V1 = "https://osu.ppy.sh/api"
-    const val BASE_URL_OLD = "https://old.ppy.sh"
+@Component
+class OsuWebApi {
+    val BASE_URL_V2 = "https://osu.ppy.sh/api/v2"
+    val BASE_URL_V1 = "https://osu.ppy.sh/api"
+    val BASE_URL_OLD = "https://old.ppy.sh"
 
-    val json = Json { ignoreUnknownKeys = true }
-    val client = HttpClient(OkHttp) {
-        expectSuccess = false
-        install(HttpTimeout)
+    @Value("\${osuAuth.v1ApiKey}") private lateinit var v1ApiKey: String
 
-        if (PluginConfig.clientProxy.isNotBlank()) {
-            engine { proxy = ProxyBuilder.http(PluginConfig.clientProxy) }
-        }
-    }
+    @Resource
+    lateinit var oAuthManager: OAuthManager
+    @Resource
+    lateinit var osuHttpClient: OsuHttpClient
+    @Resource
+    private lateinit var osuUserInfoEx: OsuUserInfoEx
 
-    private const val MAX_IN_ONE_REQ = 50
-
-    /**
-     * Auth related
-     */
-
-    suspend fun getTokenWithCode(
-        code: String
-    ): OptionalValue<GetAccessTokenResponseDTO> = postImpl(
-        url = "https://osu.ppy.sh/oauth/token",
-        token = null,
-        body = GetAccessTokenRequestDTO(
-            clientId = PluginConfig.osuAuth.clientId,
-            clientSecret = PluginConfig.osuAuth.secret,
-            grantType = "authorization_code",
-            code = code,
-            redirectUri = "${PluginConfig.osuAuth.authCallbackBaseUrl}/$AUTH_CALLBACK_PATH"
-        )
-    )
-
-    suspend fun refreshToken(
-        refToken: String
-    ): OptionalValue<GetAccessTokenResponseDTO> = postImpl(
-        url = "https://osu.ppy.sh/oauth/token",
-        token = null,
-        body = RefreshTokenRequestDTO(
-            clientId = PluginConfig.osuAuth.clientId,
-            clientSecret = PluginConfig.osuAuth.secret,
-            grantType = "refresh_token",
-            refreshToken = refToken,
-            redirectUri = "${PluginConfig.osuAuth.authCallbackBaseUrl}/$AUTH_CALLBACK_PATH"
-        )
-    )
-
-    suspend fun getSelfProfileAfterVerifyToken(
-        token: String
-    ) = getImpl<String, GetUserDTO>(
-        url = "$BASE_URL_V2/me",
-        parameters = mapOf(),
-        headers = mapOf("Authorization" to "Bearer $token")
-    ) { json.decodeFromString(this) }
+    private val MAX_IN_ONE_REQ = 50
 
     /**
      * Api function related
@@ -104,16 +51,16 @@ object OsuWebApi {
         }
     )
 
-    suspend fun getBeatmapFileStream(bid: Int) = openStream(
+    suspend fun getBeatmapFileStream(bid: Int) = osuHttpClient.openStream(
         url = "$BASE_URL_OLD/osu/$bid",
         parameters = mapOf(),
         headers = mapOf()
     )
 
-    suspend fun getReplay(scoreId: Long) = getImpl<String, GetReplayDTO>(
+    suspend fun getReplay(scoreId: Long) = osuHttpClient.get<String, GetReplayDTO>(
         url = "$BASE_URL_V1/get_replay",
         parameters = mapOf(
-            "k" to PluginConfig.osuAuth.v1ApiKey,
+            "k" to v1ApiKey,
             "s" to scoreId
         ),
         headers = mapOf()
@@ -121,12 +68,12 @@ object OsuWebApi {
         if (contains("error")) {
             throw ReplayNotAvailable(scoreId)
         } else {
-            json.decodeFromString(this)
+            osuHttpClient.json.decodeFromString(this)
         }
     }
 
     suspend fun users(user: Long): OptionalValue<GetUserDTO> =
-        usersViaUID(user, kotlin.run { OsuUserInfo.getOsuId(user) ?: return Either(NotBindException(user)) })
+        usersViaUID(user, kotlin.run { osuUserInfoEx.getOsuId(user) ?: return Either(NotBindException(user)) })
 
     suspend fun usersViaUID(user: Long, uid: Int, mode: String = "osu"): OptionalValue<GetUserDTO> =
         get("/users/$uid", user, parameters = mapOf("mode" to mode))
@@ -137,7 +84,7 @@ object OsuWebApi {
         limit: Int = 10, offset: Int = 0
     //Kotlin bug: Result<T> is cast to java.util.List, use Either instead.
     ): OptionalValue<List<ScoreDTO>> {
-        val userId = OsuUserInfo.getOsuId(user) ?: return Either(NotBindException(user))
+        val userId = osuUserInfoEx.getOsuId(user) ?: return Either(NotBindException(user))
         val initialList: MutableList<ScoreDTO> = mutableListOf()
         suspend fun getTailrec(current: Int = offset) : OptionalValue<Unit> {
             if(current + MAX_IN_ONE_REQ < limit + offset) {
@@ -181,7 +128,7 @@ object OsuWebApi {
         user: Long, beatmapId: Int,
         mode: String = "osu", mods: List<String> = listOf()
     ) : OptionalValue<BeatmapUserScoreDTO> {
-        val userId = OsuUserInfo.getOsuId(user) ?: return Either(NotBindException(user))
+        val userId = osuUserInfoEx.getOsuId(user) ?: return Either(NotBindException(user))
         val queryParameters = mutableMapOf<String, Any>("mode" to mode)
         if (mods.isNotEmpty()) queryParameters["mods"] = mods
 
@@ -198,31 +145,32 @@ object OsuWebApi {
     suspend fun me(user: Long): OptionalValue<GetOwnDTO> = get("/me", user = user)
 
 
+
     /**
      * implementations
      */
     suspend inline fun <reified REQ, reified RESP> post(
         path: String, user: Long, body: @Serializable REQ
-    ) = postImpl<REQ, RESP>(
+    ) = osuHttpClient.post<REQ, RESP>(
         url = BASE_URL_V2 + path,
-        token = OAuthManager.getBindingToken(user).rightOrThrowLeft(),
+        token = oAuthManager.getBindingToken(user).rightOrThrowLeft(),
         body = body
     )
 
     suspend inline fun <reified RESP> get(
         path: String, user: Long, parameters: Map<String, Any> = mapOf()
-    ) = getImpl<String, RESP>(
+    ) = osuHttpClient.get<String, RESP>(
         url = BASE_URL_V2 + path,
-        headers = mapOf("Authorization" to "Bearer ${OAuthManager.getBindingToken(user).rightOrThrowLeft()}"),
+        headers = mapOf("Authorization" to "Bearer ${oAuthManager.getBindingToken(user).rightOrThrowLeft()}"),
         parameters = parameters
     ) {
         try {
             if(startsWith("[")) {
-                json.decodeFromString<ArrayResponseWrapper<RESP>>("""
+                osuHttpClient.json.decodeFromString<ArrayResponseWrapper<RESP>>("""
                 { "array": $this }
             """.trimIndent()).data
             } else {
-                json.decodeFromString(this)
+                osuHttpClient.json.decodeFromString(this)
             }
         } catch (ex: SerializationException) {
             if(contains("authentication") && contains("basic")) {
@@ -233,139 +181,6 @@ object OsuWebApi {
         }
     }
 
-    @Suppress("DuplicatedCode")
-    suspend inline fun openStream(
-        url: String,
-        parameters: Map<String, String>,
-        headers: Map<String, String>,
-    ) = getImpl<InputStream, InputStream>(url, parameters, headers) { this }
-
-    @Suppress("DuplicatedCode")
-    suspend inline fun <reified RESP, reified R> getImpl(
-        url: String,
-        parameters: Map<String, Any>,
-        headers: Map<String, String>,
-        crossinline consumer: RESP.() -> R
-    ): OptionalValue<R> = withContext(Dispatchers.IO) {
-        try {
-            client.get {
-                url(buildString {
-                    append(url)
-                    if (parameters.isNotEmpty()) {
-                        append("?")
-                        parameters.forEach { (k, v) ->
-                            if (v is List<*> || v is MutableList<*>) {
-                                val arrayParameter = (v as List<*>)
-                                arrayParameter.forEachIndexed { idx, lv ->
-                                    append("$k[]=$lv")
-                                    if(idx != arrayParameter.lastIndex) append("&")
-                                }
-                            } else {
-                                append("$k=$v")
-                            }
-                            append("&")
-                        }
-                    }
-                }.run {
-                    if (last() == '&') dropLast(1) else this
-                }.also { OsuMapSuggester.logger.info { "GET: $it" } })
-                headers.forEach { (s, s2) -> header(s, s2) }
-            }.run { InferredOptionalValue(consumer(this.body())) }
-        } catch (ex: Exception) {
-            when(ex) {
-                is RefactoredException -> Either(ex)
-                is SocketTimeoutException,
-                is HttpRequestTimeoutException,
-                is ConnectTimeoutException -> {
-                    Either(ApiRequestTimeoutException(url).suppress(ex))
-                }
-                else -> {
-                    Either(UnhandledException(ex))
-                }
-            }
-        }
-    }
-
-    @Suppress("DuplicatedCode")
-    suspend inline fun head(
-        url: String,
-        parameters: Map<String, Any>,
-        headers: Map<String, String>
-    ): OptionalValue<Headers> = withContext(Dispatchers.IO) {
-        try {
-            client.head {
-                url(buildString {
-                    append(url)
-                    if (parameters.isNotEmpty()) {
-                        append("?")
-                        parameters.forEach { (k, v) ->
-                            if (v is List<*> || v is MutableList<*>) {
-                                val arrayParameter = (v as List<*>)
-                                arrayParameter.forEachIndexed { idx, lv ->
-                                    append("$k[]=$lv")
-                                    if(idx != arrayParameter.lastIndex) append("&")
-                                }
-                            } else {
-                                append("$k=$v")
-                            }
-                            append("&")
-                        }
-                    }
-                }.run {
-                    if (last() == '&') dropLast(1) else this
-                }.also { OsuMapSuggester.logger.info { "HEAD: $it" } })
-                headers.forEach { header(it.key, it.value) }
-            }.let { InferredOptionalValue(it.headers) }
-        } catch (ex: Exception) {
-            when(ex) {
-                is SocketTimeoutException,
-                is HttpRequestTimeoutException,
-                is ConnectTimeoutException -> {
-                    Either(ApiRequestTimeoutException(url).suppress(ex))
-                }
-                else -> {
-                    Either(UnhandledException(ex))
-                }
-            }
-        }
-    }
-
-    @Suppress("DuplicatedCode")
-    suspend inline fun <reified REQ, reified RESP> postImpl(
-        url: String, token: String? = null, body: @Serializable REQ
-    ): OptionalValue<RESP> = withContext(Dispatchers.IO) {
-        var responseText by Delegates.notNull<String>()
-        try {
-            responseText = client.post {
-                url(url.also {
-                    OsuMapSuggester.logger.info { "POST: $url" }
-                })
-                if(token != null) header("Authorization", "Bearer $token")
-                setBody(json.encodeToString(body))
-                contentType(ContentType.Application.Json)
-            }.body()
-
-            InferredOptionalValue(json.decodeFromString(responseText))
-        } catch (ex: Exception) {
-            when(ex) {
-                is SocketTimeoutException,
-                is HttpRequestTimeoutException,
-                is ConnectTimeoutException -> {
-                    Either(ApiRequestTimeoutException(url).suppress(ex))
-                }
-                is SerializationException -> {
-                    Either(BadResponseException(url, responseText).suppress(ex))
-                }
-                else -> {
-                    Either(UnhandledException(ex))
-                }
-            }
-        }
-    }
-
-    fun closeClient() = kotlin.runCatching {
-        client.close()
-    }
 }
 
 @Serializable

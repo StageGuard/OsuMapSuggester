@@ -1,6 +1,6 @@
 package me.stageguard.obms.script
 
-import net.mamoe.mirai.console.util.cast
+import me.stageguard.obms.utils.cast
 import org.mozilla.javascript.*
 
 

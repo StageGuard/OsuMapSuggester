@@ -1,34 +1,6 @@
 package me.stageguard.obms.bot.route
 
-import kotlinx.atomicfu.AtomicRef
-import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.*
-import me.stageguard.obms.PluginConfig
-import me.stageguard.obms.bot.MessageRoute.atReply
-import me.stageguard.obms.bot.RouteLock.routeLock
-import me.stageguard.obms.bot.route.SuggestedBeatmapCache.SUGBMPInfo
-import me.stageguard.obms.database.Database
-import me.stageguard.obms.database.model.*
-import me.stageguard.obms.frontend.route.IMPORT_BEATMAP_PATH
-import me.stageguard.obms.graph.bytes
-import me.stageguard.obms.graph.item.MapSuggester
-import me.stageguard.obms.osu.api.OsuWebApi
-import me.stageguard.obms.script.ScriptEnvironHost
-import me.stageguard.obms.script.ScriptTimeoutException
-import me.stageguard.obms.script.synthetic.wrapped.ConvenientToolsForBeatmapSkill
-import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringBooleanWrapped
 import me.stageguard.obms.script.synthetic.wrapped.ColumnDeclaringComparableNumberWrapped
-import me.stageguard.obms.utils.Either.Companion.ifRight
-import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
-import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
-import net.mamoe.mirai.message.data.*
-import net.mamoe.mirai.message.sourceIds
-import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
-import io.github.humbleui.skija.EncodedImageFormat
-import org.ktorm.dsl.and
-import org.ktorm.dsl.eq
-import org.ktorm.entity.*
-import org.mozilla.javascript.EcmaError
 import kotlin.random.Random
 
 typealias Wrapper<T> = ColumnDeclaringComparableNumberWrapped<T>
@@ -52,8 +24,9 @@ object SuggestedBeatmapCache {
     class SUGBMPInfo(val groupId: Long, val rulesetId: Int, val bid: Int)
 }
 
+/*
 val beatmapMatcherPattern = Regex("[来|搞]一?[张|点](.+)(?:[谱|铺]面?|图)", RegexOption.IGNORE_CASE)
-fun GroupMessageSubscribersBuilder.suggesterTrigger() {
+fun GroupMessageSubscribersBuilder.suggesterTrigger(osuDirectBaseUrl: String) {
     routeLock(finding(beatmapMatcherPattern)) { content ->
         val trigger = beatmapMatcherPattern.find(content)!!.groupValues[1]
 
@@ -125,7 +98,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                         ).unwrap()
                     } catch (ex: EcmaError) {
                         atReply(" " + """
-                                An error occurred when executing condition expression: 
+                                An error occurred when executing condition expression:
                                 $ex
                                 Please contact this ruleset creator for more information.
                                 Ruleset info: id=${currentRuleset.id}, creator qq: ${currentRuleset.author}
@@ -195,7 +168,7 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
                     add("beatmapsets/${it.beatmapset!!.id}#osu/${it.id}")
                 } ?: add("b/${r.second.bid}")
                 add("\nosu!direct: ")
-                add("${PluginConfig.osuAuth.authCallbackBaseUrl}/$IMPORT_BEATMAP_PATH/${r.second.bid}")
+                add("$osuDirectBaseUrl/$IMPORT_BEATMAP_PATH/${r.second.bid}")
                 add("\n如果你(不)赞赏这条谱面规则，可对这条谱面推荐回复 \"+\"(\"-\")，它将有更大(小)的概率推荐给其他人。")
             }).also { receipt ->
                 SuggestedBeatmapCache.cache[receipt.sourceIds.sum()] = SUGBMPInfo(
@@ -257,3 +230,4 @@ fun GroupMessageSubscribersBuilder.suggesterTrigger() {
         }
     }
 }
+*/

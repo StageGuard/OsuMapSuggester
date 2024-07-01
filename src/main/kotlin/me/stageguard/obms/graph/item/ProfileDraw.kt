@@ -4,6 +4,7 @@ import io.github.humbleui.skija.*
 import io.github.humbleui.skija.svg.SVGDOM
 import io.github.humbleui.types.RRect
 import io.github.humbleui.types.Rect
+import jakarta.annotation.Resource
 import me.stageguard.obms.ImageReadException
 import me.stageguard.obms.RefactoredException
 import me.stageguard.obms.bot.route.PanelStyle
@@ -24,13 +25,18 @@ import me.stageguard.obms.utils.Either.Companion.mapRight
 import me.stageguard.obms.utils.Either.Companion.rightOrNull
 import me.stageguard.obms.utils.InferredOptionalValue
 import me.stageguard.obms.utils.OptionalValue
+import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.round
 
-object Profile {
+@Component
+class ProfileDraw {
+    @Resource
+    private lateinit var imageCache: ImageCache
+
     val scale = 2.0f
     val cardWidth = 1920 * scale
     val cardHeight = 1080 * scale
@@ -71,13 +77,13 @@ object Profile {
         newlyGainPp: Double, currentAverageBp: Double, lastAverageBp: Double,
         maxTweenDiff: Double, maxTweenDiffRank: Int, topMods: List<Pair<Mod, Int>>
     ): Surface {
-        val playerAvatar = ImageCache.getImageAsSkijaImage(profile.avatarUrl).rightOrNull
+        val playerAvatar = imageCache.getImageAsSkijaImage(profile.avatarUrl).rightOrNull
             ?: defaultAvatarImage.rightOrNull
             ?: throw IllegalStateException("Cannot get avatar fom server and local: ${profile.avatarUrl}")
 
         suspend fun getBannerImage(): Either<RefactoredException, Image> {
             val defaultAvatarMatchResult = defaultBannerUrlPattern.find(profile.coverUrl)
-            return ImageCache.getImageAsSkijaImage(
+            return imageCache.getImageAsSkijaImage(
                 profile.coverUrl,
                 if (defaultAvatarMatchResult != null) {
                     "default_banner_" + defaultAvatarMatchResult.groupValues.last()
@@ -94,7 +100,7 @@ object Profile {
         } else getBannerImage()
         val countryCharCode = profile.country.code.toCharArray()
             .joinToString("-") { (it.code + 127397).toString(16) }
-        val countrySVG = ImageCache.getSVGAsSkiaSVGDOM(
+        val countrySVG = imageCache.getSVGAsSkiaSVGDOM(
             "https://osu.ppy.sh/assets/images/flags/$countryCharCode.svg", countryCharCode
         )
 

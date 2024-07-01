@@ -12,21 +12,6 @@ open class PPCalculatorNative private constructor(
     private var _nPtr: Long) : PerformanceCalculator<PPResult<DifficultyAttributes>>, AutoCloseable {
     private var _nAttributeResultPtr: Long? = null
 
-    fun inheritAttributes(provider: PPCalculatorNative) : PPCalculatorNative {
-        LAZY_LOAD_LIB
-        assertNativePointer(_nPtr)
-
-        val attrPtr = provider._nAttributeResultPtr
-            ?: throw UnsupportedOperationException("Cannot inherit attribute from $provider because the provider hasn't calculated result.")
-
-        val ptr = attributes(_nPtr, attrPtr)
-        assertNativePointer(_nPtr)
-        _nPtr = ptr
-
-        provider._nAttributeResultPtr = null
-        return this
-    }
-
     override fun mods(vararg mods: Mod): PPCalculatorNative {
         LAZY_LOAD_LIB
         assertNativePointer(_nPtr)
@@ -114,7 +99,6 @@ open class PPCalculatorNative private constructor(
         val stream = calculate(_nPtr).inputStream()
         return stream.use { s -> DataInputStream(s).use { data ->
             // get leak address of the result struct to reuse by native backend.
-            _nAttributeResultPtr = data.readLong()
 
             val total = data.readDouble()
             val aim = data.readDouble()
@@ -150,7 +134,6 @@ open class PPCalculatorNative private constructor(
 
     override fun close() {
         if (_nPtr != -1L) releaseCalculator(_nPtr)
-        _nAttributeResultPtr ?.run { releaseAttribute(this) }
     }
 
     companion object {
@@ -190,7 +173,6 @@ private val LAZY_LOAD_LIB by lazy {
 }
 
 @JvmName("nCreate") private external fun createFromNative(beatmapPath: String): Long
-@JvmName("nAttributes") private external fun attributes(ptr: Long, attrPtr: Long): Long
 @JvmName("nMods") private external fun mods(ptr: Long, mods: Int): Long
 @JvmName("nCombo") private external fun combo(ptr: Long, combo: Int): Long
 @JvmName("nN300") private external fun n300(ptr: Long, n300: Int): Long
@@ -200,5 +182,4 @@ private val LAZY_LOAD_LIB by lazy {
 @JvmName("nPassedObjects") private external fun passedObjects(ptr: Long, passedObjects: Int): Long
 @JvmName("nAccuracy") private external fun accuracy(ptr: Long, accuracy: Double): Long
 @JvmName("nCalculate") private external fun calculate(ptr: Long): ByteArray
-@JvmName("nReleaseAttribute") private external fun releaseAttribute(attrPtr: Long)
 @JvmName("nReleaseCalculator") private external fun releaseCalculator(attr: Long)

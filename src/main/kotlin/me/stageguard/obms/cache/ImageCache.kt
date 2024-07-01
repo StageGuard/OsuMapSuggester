@@ -17,21 +17,28 @@ import me.stageguard.obms.utils.InferredOptionalValue
 import me.stageguard.obms.utils.OptionalValue
 import io.github.humbleui.skija.Image
 import io.github.humbleui.skija.svg.SVGDOM
+import jakarta.annotation.Resource
 import me.stageguard.obms.RefactoredException
 import me.stageguard.obms.graph.svgDom
+import me.stageguard.obms.osu.api.OsuHttpClient
 import me.stageguard.obms.utils.Either.Companion.invoke
+import org.springframework.stereotype.Component
 import java.io.File
 import java.io.InputStream
 import kotlin.properties.Delegates
 
-object ImageCache {
+@Component
+class ImageCache {
+    @Resource
+    private lateinit var osuHttpClient: OsuHttpClient
+
     @Suppress("NOTHING_TO_INLINE")
     private inline fun imageFile(name: String) = File(File(OsuMapSuggester.dataFolder.absolutePath, "image"), name)
 
     suspend fun getImageAsStream(
         url: String, fileName: String? = null, maxTryCount: Int = 4, tryCount: Int = 1
     ) : OptionalValue<InputStream> {
-        val headers = OsuWebApi.head(url, headers = mapOf(), parameters = mapOf())
+        val headers = osuHttpClient.head(url, headers = mapOf(), parameters = mapOf())
         headers.onRight { h ->
             val eTag = h["etag"]
             if (eTag != null || fileName != null) {
@@ -49,7 +56,7 @@ object ImageCache {
                         }
                     }
                 } else {
-                    val imageStream = OsuWebApi.openStream(url, headers = mapOf(), parameters = mapOf())
+                    val imageStream = osuHttpClient.openStream(url, headers = mapOf(), parameters = mapOf())
                     imageStream.onRight { s ->
                         withContext(Dispatchers.IO) { runInterruptible {
                             file.createNewFile()
@@ -101,7 +108,7 @@ object ImageCache {
         var exception: RefactoredException by Delegates.notNull()
         repeat(maxTryCount) {
             file.delete()
-            val imageStream = OsuWebApi.openStream(url, headers = mapOf(), parameters = mapOf())
+            val imageStream = osuHttpClient.openStream(url, headers = mapOf(), parameters = mapOf())
             exception = imageStream.onRight {
                 file.createNewFile()
                 return it.use { s ->

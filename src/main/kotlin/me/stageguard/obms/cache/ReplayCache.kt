@@ -1,5 +1,6 @@
 package me.stageguard.obms.cache
 
+import jakarta.annotation.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
@@ -18,8 +19,13 @@ import me.stageguard.obms.utils.Either.Companion.left
 import me.stageguard.obms.utils.Either.Companion.onRight
 import java.io.File
 import org.apache.commons.codec.binary.Base64
+import org.springframework.stereotype.Component
 
-object ReplayCache {
+@Component
+class ReplayCache {
+    @Resource
+    private lateinit var osuWebApi: OsuWebApi
+
     @Suppress("NOTHING_TO_INLINE")
     private inline fun replayFile(sid: Long) =
         File(OsuMapSuggester.dataFolder.absolutePath + File.separator + "replay" + File.separator + sid + ".lzma")
@@ -42,7 +48,7 @@ object ReplayCache {
             }
         } else {
             file.parentFile.mkdirs()
-            val replay = OsuWebApi.getReplay(scoreId)
+            val replay = osuWebApi.getReplay(scoreId)
             replay.onRight {
                 return if(it.encoding == "base64") {
                     val decoded = Base64.decodeBase64(it.content.replace("\\", "").toByteArray())

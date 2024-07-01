@@ -1,5 +1,6 @@
 package me.stageguard.obms.database.model
 
+import jakarta.annotation.Resource
 import me.stageguard.obms.database.AddableTable
 import me.stageguard.obms.database.Database
 import org.ktorm.dsl.*
@@ -10,6 +11,7 @@ import org.ktorm.schema.Table
 import org.ktorm.schema.int
 import org.ktorm.schema.long
 import org.ktorm.schema.varchar
+import org.springframework.stereotype.Component
 
 
 object OsuUserInfo : AddableTable<User>("users") {
@@ -20,14 +22,6 @@ object OsuUserInfo : AddableTable<User>("users") {
     val token = varchar("token").bindTo { it.token }
     val tokenExpireUnixSecond = long("tokenExpiresUnixSecond").bindTo { it.tokenExpireUnixSecond }
     val refreshToken = varchar("refreshToken").bindTo { it.refreshToken }
-
-    suspend fun getOsuId(qq: Long) = Database.query { db ->
-        db.sequenceOf(this@OsuUserInfo).find { it.qq eq qq } ?.osuId
-    }
-
-    suspend fun getOsuIdAndName(qq: Long) = Database.query { db ->
-        db.sequenceOf(this@OsuUserInfo).find { it.qq eq qq } ?.run { osuId to osuName }
-    }
 
     override fun <T : AssignmentsBuilder> T.mapElement(element: User) {
         set(qq, element.qq)
@@ -48,4 +42,18 @@ interface User : Entity<User> {
     var token: String
     var tokenExpireUnixSecond: Long
     var refreshToken: String
+}
+
+@Component
+class OsuUserInfoEx {
+    @Resource
+    private lateinit var database: Database
+
+    suspend fun getOsuId(qq: Long) = database.query { db ->
+        db.sequenceOf(OsuUserInfo).find { it.qq eq qq } ?.osuId
+    }
+
+    suspend fun getOsuIdAndName(qq: Long) = database.query { db ->
+        db.sequenceOf(OsuUserInfo).find { it.qq eq qq } ?.run { osuId to osuName }
+    }
 }

@@ -1,5 +1,6 @@
 package me.stageguard.obms.cache
 
+import jakarta.annotation.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
@@ -12,11 +13,17 @@ import me.stageguard.obms.utils.Either
 import me.stageguard.obms.utils.Either.Companion.left
 import me.stageguard.obms.utils.Either.Companion.mapRight
 import me.stageguard.obms.utils.Either.Companion.onRight
+import org.springframework.stereotype.Component
 import java.io.File
 
-object BeatmapCache {
+@Component
+class BeatmapCache {
+    @Resource
+    private lateinit var osuWebApi: OsuWebApi
+
     val CACHE_FOLDER get() = OsuMapSuggester.dataFolder.absolutePath + File.separator + "beatmap" + File.separator
     @Suppress("NOTHING_TO_INLINE")
+
     private inline fun beatmapFile(bid: Int) = File("$CACHE_FOLDER$bid.osu")
 
     suspend fun getBeatmapFile(bid: Int, maxTryCount: Int = 4, tryCount: Int = 1) : OptionalValue<File> {
@@ -35,7 +42,7 @@ object BeatmapCache {
             }
         } else kotlin.run {
             file.parentFile.mkdirs()
-            val beatmapStream = OsuWebApi.getBeatmapFileStream(bid)
+            val beatmapStream = osuWebApi.getBeatmapFileStream(bid)
             beatmapStream.onRight { s ->
                 withContext(Dispatchers.IO) { runInterruptible {
                     file.createNewFile()

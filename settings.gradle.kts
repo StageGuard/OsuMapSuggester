@@ -4,6 +4,5 @@ pluginManagement {
         gradlePluginPortal()
         google()
         mavenCentral()
-        maven("https://repo.mirai.mamoe.net/snapshots")
     }
 }

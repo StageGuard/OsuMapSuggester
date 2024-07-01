@@ -6,7 +6,6 @@ import me.stageguard.obms.graph.*
 import me.stageguard.obms.graph.common.drawDifficultyRatingCard
 import me.stageguard.obms.graph.common.drawPPPlusGraph
 import me.stageguard.obms.graph.common.drawPpCurveGraph
-import me.stageguard.obms.osu.algorithm.`pp+`.SkillAttributes
 import me.stageguard.obms.osu.algorithm.pp.DifficultyAttributes
 import me.stageguard.obms.osu.api.dto.BeatmapUserScoreDTO
 import me.stageguard.obms.osu.api.dto.BeatmapsetDTO
@@ -26,12 +25,18 @@ import me.stageguard.obms.utils.InferredOptionalValue
 import io.github.humbleui.skija.*
 import io.github.humbleui.types.RRect
 import io.github.humbleui.types.Rect
+import jakarta.annotation.Resource
 import me.stageguard.obms.graph.common.drawModIcon
+import org.springframework.stereotype.Component
 import java.lang.Exception
 import java.util.*
 import kotlin.math.*
 
-object RecentPlay {
+@Component
+class RecentPlayDraw {
+    @Resource
+    private lateinit var imageCache: ImageCache
+
     private val scale = 3.0f
     private val cardWidth get() = 1305 * scale
     private val cardHeight get() = 780 * scale
@@ -70,7 +75,7 @@ object RecentPlay {
         }
 
     private suspend fun getAvatarFromUrlOrDefault(url: String) =
-        ImageCache.getImageAsSkijaImage(url).rightOrNull ?: defaultAvatarImage.rightOrNull
+        imageCache.getImageAsSkijaImage(url).rightOrNull ?: defaultAvatarImage.rightOrNull
         ?: throw IllegalStateException("Cannot get avatar fom server and local: $url")
 
 
@@ -84,7 +89,7 @@ object RecentPlay {
         replayAnalyzer: OptionalValue<ReplayFrameAnalyzer>
     ): Surface {
         val playerAvatar = getAvatarFromUrlOrDefault(scoreDTO.user!!.avatarUrl)
-        val songCover = ImageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
+        val songCover = imageCache.getImageAsSkijaImage(beatmapSet.covers.cover2x)
         val mapperAvatar = mapperInfo?.avatarUrl?.let { getAvatarFromUrlOrDefault(it) }
 
         return drawRecentPlayCardImpl(

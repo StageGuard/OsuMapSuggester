@@ -10,26 +10,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.database.Database
 import me.stageguard.obms.database.model.*
 import me.stageguard.obms.frontend.dto.*
+import me.stageguard.obms.osu.api.OsuHttpClient
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.osu.api.dto.BeatmapDTO
 import me.stageguard.obms.osu.api.oauth.AuthType
 import me.stageguard.obms.osu.api.oauth.OAuthManager
-import me.stageguard.obms.osu.api.oauth.OAuthManager.updateToken
 import me.stageguard.obms.script.ScriptEnvironHost
 import me.stageguard.obms.utils.SimpleEncryptionUtils
-import net.mamoe.mirai.utils.info
+import me.stageguard.obms.utils.info
 import org.ktorm.dsl.and
 import org.ktorm.dsl.eq
 import org.ktorm.dsl.or
 import org.ktorm.entity.*
+import org.slf4j.LoggerFactory
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.time.LocalDate
@@ -47,8 +46,15 @@ const val ENC_KEY = "tg@#F%^J*^I(%f19"
  *    处理后会重定向至 (`I`)，并带有 `Set-Cookie: token`(通过 `context.response.cookies.append("token", ...)`)。
  */
 
+private val logger = LoggerFactory.getLogger("RulesetRoute")
+
 @OptIn(ExperimentalSerializationApi::class)
-fun Application.ruleset() {
+fun Application.ruleset(
+    oAuthManager: OAuthManager,
+    osuHttpClient: OsuHttpClient,
+    osuWebApi: OsuWebApi,
+    database: Database,
+) {
     val json = Json {
         ignoreUnknownKeys = true
     }
@@ -75,7 +81,7 @@ fun Application.ruleset() {
         post("/$RULESET_PATH/verify") {
             try {
                 val parameter = json.decodeFromString<WebVerificationRequestDTO>(context.receiveText())
-                val querySequence = Database.query { db ->
+                val querySequence = database.query { db ->
                     val find = db.sequenceOf(WebVerificationStore).find {
                         it.token eq URLDecoder.decode(parameter.token, Charset.defaultCharset())
                     } ?: return@query WebVerificationResponseDTO(1)
@@ -89,7 +95,7 @@ fun Application.ruleset() {
                     WebVerificationResponseDTO(
                         result = 0, qq = userInfo.qq,
                         osuId = userInfo.osuId, osuName = userInfo.osuName,
-                        osuApiToken = SimpleEncryptionUtils.aesEncrypt(userInfo.updateToken().token, ENC_KEY)
+                        osuApiToken = SimpleEncryptionUtils.aesEncrypt(oAuthManager.updateToken(userInfo).token, ENC_KEY)
                     )
                 }
 
@@ -109,7 +115,7 @@ fun Application.ruleset() {
         post("/$RULESET_PATH/getVerifyLink") {
             try {
                 val parameter = json.decodeFromString<CreateVerificationLinkRequestDTO>(context.receiveText())
-                val link = OAuthManager.createOAuthLink(AuthType.EDIT_RULESET, listOf(parameter.callbackPath))
+                val link = oAuthManager.createOAuthLink(AuthType.EDIT_RULESET, listOf(parameter.callbackPath))
                 context.respond(json.encodeToString(CreateVerificationLinkResponseDTO(0, link = link)))
             } catch (ex: Exception) {
                 ex.printStackTrace()
@@ -127,7 +133,7 @@ fun Application.ruleset() {
                 if(parameter.editType == 1) {
                     context.respond(json.encodeToString(CheckEditAccessResponseDTO(0)))
                 } else if (parameter.editType == 2) {
-                    val querySequence = Database.query { db ->
+                    val querySequence = database.query { db ->
                         val ruleset = db.sequenceOf(RulesetCollection).find { it.id eq parameter.rulesetId }
                             ?: return@query CheckEditAccessResponseDTO(1)
 
@@ -173,7 +179,7 @@ fun Application.ruleset() {
             try {
                 val parameter = json.decodeFromString<SubmitRequestDTO>(context.receiveText())
 
-                val querySequence = Database.query { db ->
+                val querySequence = database.query { db ->
                     val webUser = db.sequenceOf(WebVerificationStore).find {
                         it.token eq URLDecoder.decode(parameter.token, Charset.defaultCharset())
                     } ?: return@query SubmitResponseDTO(1)
@@ -205,7 +211,7 @@ fun Application.ruleset() {
                                 existRuleset.enabled = 1
                                 existRuleset.lastError = ""
                                 existRuleset.flushChanges()
-                                OsuMapSuggester.logger.info { "Ruleset changed from web: ${parameter.ruleset.name}(id=${newId}) by qq ${webUser.qq}." }
+                                logger.info { "Ruleset changed from web: ${parameter.ruleset.name}(id=${newId}) by qq ${webUser.qq}." }
                             } else {
                                 RulesetCollection.insert(Ruleset {
                                     name = parameter.ruleset.name
@@ -230,7 +236,7 @@ fun Application.ruleset() {
                                             (it.lastError eq "")
                                 }.last().id
                             }
-                            OsuMapSuggester.logger.info { "New ruleset added from web: ${parameter.ruleset.name}(id=${newId}) by qq ${webUser.qq}." }
+                            logger.info { "New ruleset added from web: ${parameter.ruleset.name}(id=${newId}) by qq ${webUser.qq}." }
                             SubmitResponseDTO(0, newId = newId)
                         }
                         1 -> {
@@ -244,7 +250,7 @@ fun Application.ruleset() {
 
                                 db.sequenceOf(BeatmapCommentTable).removeIf { it.rulesetId eq parameter.ruleset.id }
                                 existRuleset.delete()
-                                OsuMapSuggester.logger.info { "Ruleset deleted from web: ${parameter.ruleset.name}(id=${parameter.ruleset.id}) by qq ${webUser.qq}." }
+                                logger.info { "Ruleset deleted from web: ${parameter.ruleset.name}(id=${parameter.ruleset.id}) by qq ${webUser.qq}." }
                                 SubmitResponseDTO(5)
                             } else {
                                 SubmitResponseDTO(4)
@@ -270,7 +276,7 @@ fun Application.ruleset() {
             try {
                 val parameter = json.decodeFromString<GetBeatmapCommentRequestDTO>(context.receiveText())
 
-                val querySequence = Database.query { db ->
+                val querySequence = database.query { db ->
                     val comments = mutableMapOf(*parameter.beatmap.map { it to "" }.toTypedArray())
 
                     db.sequenceOf(BeatmapCommentTable).filter { col ->
@@ -306,8 +312,8 @@ fun Application.ruleset() {
                 val decryptedOsuApiToken = SimpleEncryptionUtils.aesDecrypt(parameter.osuApiToken, ENC_KEY)
 
                 // 不直接使用 OAuthManager.getBindingToken 因为每次使用就要查询一次数据库。
-                val apiResponse = OsuWebApi.getImpl<String, BeatmapDTO>(
-                    url = OsuWebApi.BASE_URL_V2 + "/beatmaps/${parameter.bid}/",
+                val apiResponse = osuHttpClient.get<String, BeatmapDTO>(
+                    url = osuWebApi.BASE_URL_V2 + "/beatmaps/${parameter.bid}/",
                     parameters = mapOf(),
                     mapOf("Authorization" to "Bearer $decryptedOsuApiToken")
                 ) { json.decodeFromString(this) }.rightOrThrowLeft()
@@ -329,7 +335,7 @@ fun Application.ruleset() {
             try {
                 val parameter = json.decodeFromString<SubmitBeatmapCommentRequestDTO>(context.receiveText())
 
-                val querySequence = Database.query { db ->
+                val querySequence = database.query { db ->
                     val webUser = db.sequenceOf(WebVerificationStore).find {
                         it.token eq URLDecoder.decode(parameter.token, Charset.defaultCharset())
                     } ?: return@query SubmitBeatmapCommentResponseDTO(1)

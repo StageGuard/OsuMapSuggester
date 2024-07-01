@@ -10,7 +10,7 @@ import me.stageguard.obms.osu.processor.beatmap.Mod
 import kotlin.math.*
 
 @Suppress("DuplicatedCode")
-object BestPerformanceDetail {
+object BestPerformanceDetailDraw {
     // Draw normal card (bpvs or bp)
     private const val cardWidth = 1125f
     private const val cardHeight = 60f
@@ -48,7 +48,12 @@ object BestPerformanceDetail {
         } else { // draw bpvs or bpa
             backgroundPadding * 2 + cardWidth + (if (isSingleColumn) 0f else intervalBetweenCards + cardWidth)
         }
-        val surfaceHeight = backgroundPadding * 2 + intervalBetweenCards * theLastLine + (theLastLine + 1) * cardHeight
+        val surfaceHeight = backgroundPadding * 2 +
+                intervalBetweenCards * theLastLine +
+                (theLastLine + 1) * cardHeight +
+                200
+
+
 
         val surface = Surface.makeRasterN32Premul(surfaceWidth.toInt(), surfaceHeight.toInt())
 

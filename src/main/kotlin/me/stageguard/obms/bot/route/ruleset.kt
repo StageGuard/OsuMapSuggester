@@ -1,36 +1,6 @@
 package me.stageguard.obms.bot.route
 
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runInterruptible
-import kotlinx.coroutines.withContext
-import me.stageguard.obms.InvalidInputException
-import me.stageguard.obms.NotBindException
-import me.stageguard.obms.OsuMapSuggester
-import me.stageguard.obms.PluginConfig
-import me.stageguard.obms.bot.*
-import me.stageguard.obms.bot.MessageRoute.atReply
-import me.stageguard.obms.bot.RouteLock.routeLock
-import me.stageguard.obms.database.Database
-import me.stageguard.obms.database.model.BeatmapCommentTable
-import me.stageguard.obms.database.model.Ruleset
-import me.stageguard.obms.database.model.RulesetCollection
-import me.stageguard.obms.database.model.OsuUserInfo
-import me.stageguard.obms.frontend.route.RULESET_PATH
-import me.stageguard.obms.graph.bytes
-import me.stageguard.obms.graph.item.MapSuggester
-import me.stageguard.obms.script.ScriptEnvironHost
-import net.mamoe.mirai.console.util.cast
-import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
-import net.mamoe.mirai.message.data.toMessageChain
-import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
-import net.mamoe.mirai.utils.info
-import io.github.humbleui.skija.EncodedImageFormat
-import kotlinx.coroutines.Dispatchers
-import org.ktorm.dsl.eq
-import org.ktorm.entity.*
-import java.lang.NumberFormatException
-import java.time.LocalDate
-
+/*
 fun GroupMessageSubscribersBuilder.ruleset() {
     suspend fun InteractiveConversationBuilder.processInteractive(
         nameArg: String? = null,
@@ -327,3 +297,4 @@ fun GroupMessageSubscribersBuilder.ruleset() {
         }
     }
 }
+*/

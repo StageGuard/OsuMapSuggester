@@ -1,18 +1,20 @@
 package me.stageguard.obms.script
 
-import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.stageguard.obms.OsuMapSuggester
-import net.mamoe.mirai.utils.error
-import net.mamoe.mirai.utils.info
+import me.stageguard.obms.utils.error
+import me.stageguard.obms.utils.info
 import org.mozilla.javascript.*
+import org.slf4j.LoggerFactory
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
 
 object ScriptEnvironHost : CoroutineScope {
+    private val logger = LoggerFactory.getLogger(this::class.java)
+
     private lateinit var initJob: Job
     private lateinit var ctx: Context
     private lateinit var topLevelScope: ImporterTopLevel
@@ -20,7 +22,7 @@ object ScriptEnvironHost : CoroutineScope {
     private val dispatcher = newSingleThreadContext("JavaScriptContext")
     private val lock = Mutex()
     private val exceptionHandler = CoroutineExceptionHandler { _: CoroutineContext, throwable: Throwable ->
-        OsuMapSuggester.logger.error { throwable.printStackTrace(); throwable.localizedMessage }
+        logger.error { throwable.printStackTrace(); throwable.localizedMessage }
     }
 
     private val compileStringPrivMethod = Context::class.java.getDeclaredMethod("compileString",
@@ -32,12 +34,12 @@ object ScriptEnvironHost : CoroutineScope {
         get() = dispatcher + exceptionHandler
 
     fun init() {
-        initJob = OsuMapSuggester.launch(dispatcher + exceptionHandler) {
+        initJob = OsuMapSuggester.scope.launch(dispatcher + exceptionHandler) {
             ctx = TEDetectContextFactory.enterContext()
             topLevelScope = ImporterTopLevel()
             //ScriptRuntime.initSafeStandardObjects(ctx, topLevelScope, true)
             ScriptRuntime.initStandardObjects(ctx, topLevelScope, true)
-            OsuMapSuggester.logger.info { "JavaScript context initialized." }
+            logger.info { "JavaScript context initialized." }
         }
     }
 

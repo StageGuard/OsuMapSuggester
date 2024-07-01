@@ -2,37 +2,77 @@ package me.stageguard.obms.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import me.stageguard.obms.PluginConfig
+import jakarta.annotation.Resource
 import me.stageguard.obms.OsuMapSuggester
 import me.stageguard.obms.database.model.*
+import me.stageguard.obms.utils.error
+import me.stageguard.obms.utils.info
 import me.stageguard.obms.utils.retry
-import net.mamoe.mirai.utils.error
-import net.mamoe.mirai.utils.info
-import net.mamoe.mirai.utils.warning
+import me.stageguard.obms.utils.warning
 import okhttp3.internal.closeQuietly
 import org.ktorm.database.Database
 import org.ktorm.database.Transaction
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
 import java.lang.IllegalArgumentException
 import java.sql.SQLException
 
-object Database {
+@Component
+class DatabaseLeaker {
+    @Resource
+    lateinit var database: me.stageguard.obms.database.Database
+
+
+    fun resolveInstance() {
+        INSTANCE = this
+    }
+
+    companion object {
+        var INSTANCE: DatabaseLeaker? = null
+    }
+}
+
+@Component
+class Database {
+    private val logger = LoggerFactory.getLogger(this::class.java)
 
     sealed class ConnectionStatus {
-        object CONNECTED : ConnectionStatus()
-        object DISCONNECTED : ConnectionStatus()
+        data object CONNECTED : ConnectionStatus()
+        data object DISCONNECTED : ConnectionStatus()
     }
+
+    @Value("\${database.address}")
+    private lateinit var address: String
+
+    @Value("\${database.port}")
+    private lateinit var _port: String
+    private val port by lazy { _port.toInt() }
+
+    @Value("\${database.user}")
+    private lateinit var user: String
+
+    @Value("\${database.password}")
+    private lateinit var password: String
+
+    @Value("\${database.table}")
+    private lateinit var table: String
+
+    @Value("\${database.maximumPoolSize}")
+    private lateinit var _maximumPoolSize: String
+    private val maximumPoolSize by lazy { _maximumPoolSize.toInt() }
 
     private lateinit var db : Database
     private lateinit var hikariSource : HikariDataSource
     private var connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED
 
     suspend fun <T> query(block: suspend Transaction.(Database) -> T) : T? = if(connectionStatus == ConnectionStatus.DISCONNECTED) {
-        OsuMapSuggester.logger.error { "Database is disconnected and the query operation will not be completed." }
+        logger.error { "Database is disconnected and the query operation will not be completed." }
         null
     } else db.useTransaction { t ->
         retry(3, exceptionBlock = {
             if(it is SQLException && it.toString().contains("Connection is closed")) {
-                OsuMapSuggester.logger.warning { "Database connection is closed, reconnecting..." }
+                logger.warning { "Database connection is closed, reconnecting..." }
                 close()
                 connect()
             } else throw it
@@ -46,10 +86,11 @@ object Database {
     }
 
     fun connect() {
+        logger.info { "Connecting to database $address." }
         db = Database.connect(hikariDataSourceProvider().also { hikariSource = it })
         connectionStatus = ConnectionStatus.CONNECTED
         initDatabase()
-        OsuMapSuggester.logger.info { "Database ${PluginConfig.database.table} is connected." }
+        logger.info { "Database $table is connected." }
     }
 
     fun isConnected() = connectionStatus == ConnectionStatus.CONNECTED
@@ -158,24 +199,20 @@ object Database {
 
     private fun hikariDataSourceProvider() : HikariDataSource = HikariDataSource(HikariConfig().apply {
         when {
-            PluginConfig.database.address == "" -> throw IllegalArgumentException("Database address is not set in config file ${PluginConfig.saveName}.")
-            PluginConfig.database.table == "" -> {
-                OsuMapSuggester.logger.warning { "Database table is not set in config file ${PluginConfig.saveName} and now it will be default value 'sctimetabledb'." }
-                PluginConfig.database.table = "osu!beatmap suggester"
+            address == "" -> throw IllegalArgumentException("Database address is not set in config file application.yml.")
+            table == "" -> {
+                logger.warning { "Database table is not set in application.yml and now it will be default value 'sctimetabledb'." }
+                table = "osu!beatmap suggester"
             }
-            PluginConfig.database.port !in 1024..65535 -> throw IllegalArgumentException("Database port is invalid.")
-            PluginConfig.database.user == "" -> throw IllegalArgumentException("Database user is not set in config file ${PluginConfig.saveName}.")
-            PluginConfig.database.password == "" -> throw IllegalArgumentException("Database password is not set in config file ${PluginConfig.saveName}.")
-            PluginConfig.database.maximumPoolSize == null -> {
-                OsuMapSuggester.logger.warning { "Database maximumPoolSize is not set in config file ${PluginConfig.saveName} and now it will be default value 10." }
-                PluginConfig.database.maximumPoolSize = 10
-            }
+            port !in 1024..65535 -> throw IllegalArgumentException("Database port is invalid.")
+            user == "" -> throw IllegalArgumentException("Database user is not set in config file application.yml.")
+            password == "" -> throw IllegalArgumentException("Database password is not set in config file application.yml.")
         }
-        jdbcUrl         = "jdbc:mysql://${PluginConfig.database.address}:${PluginConfig.database.port}/${PluginConfig.database.table}"
+        jdbcUrl         = "jdbc:mysql://${this@Database.address}:${this@Database.port}/${this@Database.table}"
         driverClassName = "com.mysql.cj.jdbc.Driver"
-        username        = PluginConfig.database.user
-        password        = PluginConfig.database.password
-        maximumPoolSize = PluginConfig.database.maximumPoolSize!!
+        username        = this@Database.user
+        password        = this@Database.password
+        maximumPoolSize = this@Database.maximumPoolSize
         poolName        = "OBMSDB Pool"
     })
 

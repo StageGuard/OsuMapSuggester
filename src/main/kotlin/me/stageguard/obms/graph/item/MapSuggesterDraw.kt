@@ -16,14 +16,23 @@ import me.stageguard.obms.utils.OptionalValue
 import io.github.humbleui.skija.*
 import io.github.humbleui.types.RRect
 import io.github.humbleui.types.Rect
+import jakarta.annotation.Resource
+import me.stageguard.obms.database.model.OsuUserInfoEx
+import org.springframework.stereotype.Component
 
-object MapSuggester {
+@Component
+class MapSuggesterDraw {
+    @Resource
+    private lateinit var imageCache: ImageCache
+    @Resource
+    private lateinit var osuUserInfoEx: OsuUserInfoEx
+
     //suggester
-    private const val cardHeight = 430f
-    private const val cardWidth = 900f
-    private const val ppPlusGraphHeight = cardHeight - 20f * 2
-    private const val ppPlusGraphWidth = 280f
-    private const val difficultyPanelHeight = 70f
+    private val cardHeight = 430f
+    private val cardWidth = 900f
+    private val ppPlusGraphHeight = cardHeight - 20f * 2
+    private val ppPlusGraphWidth = 280f
+    private val difficultyPanelHeight = 70f
 
     private val songInfoShadowColor = Color.makeARGB(153, 34, 40, 42)
     private val transparent40PercentBlack = Color.makeARGB(100, 14, 16, 17)
@@ -34,11 +43,11 @@ object MapSuggester {
     private val colorGreen = Color.makeRGB(179, 255, 102)
 
     //ruleset list
-    private const val rulesetCardHeight = 40f
-    private const val rulesetCardWidth = 1400f
-    private const val rulesetHeadHeight = 60f
-    private const val rulesetGlobalPadding = 60f
-    private const val rulesetIntervalBetweenCards = 10f
+    private val rulesetCardHeight = 40f
+    private val rulesetCardWidth = 1400f
+    private val rulesetHeadHeight = 60f
+    private val rulesetGlobalPadding = 60f
+    private val rulesetIntervalBetweenCards = 10f
 
     private val rulesetHeadColor = Color.makeRGB(32, 46, 31)
     private val rulesetListBackgroundColor = Color.makeRGB(35, 42, 34)
@@ -51,8 +60,8 @@ object MapSuggester {
         beatmapInfo: OptionalValue<BeatmapDTO>, beatmapType: Ruleset,
         beatmapSkill: BeatmapSkill, additionalTip: String
     ): Surface {
-        val songCover = beatmapInfo.mapRight { ImageCache.getImageAsSkijaImage(it.beatmapset!!.covers.cover2x) }
-        val suggester = OsuUserInfo.getOsuIdAndName(beatmapType.author).run {
+        val songCover = beatmapInfo.mapRight { imageCache.getImageAsSkijaImage(it.beatmapset!!.covers.cover2x) }
+        val suggester = osuUserInfoEx.getOsuIdAndName(beatmapType.author).run {
             if (this != null) {
                 Either.invoke<Long, Pair<Int, String>>(this)
             } else {

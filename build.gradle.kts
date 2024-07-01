@@ -1,10 +1,10 @@
-import org.gradle.jvm.tasks.Jar
-import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.io.ByteArrayOutputStream
 
 plugins {
-    id("net.mamoe.mirai-console") version "2.14.0"
-    val kotlinVersion = "1.7.0"
+    val kotlinVersion = "2.0.0"
+
+    id("org.springframework.boot") version "3.3.1"
+    id("io.spring.dependency-management") version "1.1.5"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
 }
@@ -14,7 +14,6 @@ project.version = "2.5.2"
 
 repositories {
     maven("https://packages.jetbrains.team/maven/p/skija/maven")
-    maven("https://repo.mirai.mamoe.net/snapshots")
     mavenLocal()
     mavenCentral()
     gradlePluginPortal()
@@ -43,70 +42,66 @@ val targetArch = when (arch) {
     else -> error("Unsupported arch: $arch")
 }
 
-configure<KotlinProjectExtension> {
-    project.dependencies {
-        //kotlinx utilities
-        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
-        implementation("org.jetbrains.kotlinx:atomicfu-jvm:$atomicFUVersion")
-        //skija
-        when {
-            host.startsWith("Windows") ->
-                api("io.github.humbleui:skija-windows:$skijaVersion")
-            host == "Mac OS X" ->
-                when (arch) {
-                    "x86_64", "amd64" -> api("io.github.humbleui:skija-macos-x64:$skijaVersion")
-                    "aarch64" -> api("io.github.humbleui:skija-macos-arm64:$skijaVersion")
-                    else -> error("Unsupported arch: $arch")
-                }
-            host == "Linux" ->
-                api("io.github.humbleui:skija-linux:$skijaVersion")
-            else -> error("Unsupported platform: $host")
-        }
-        //database related lib
-        implementation("org.ktorm:ktorm-core:${ktormVersion}")
-        implementation("mysql:mysql-connector-java:$mysqlVersion")
-        implementation("com.zaxxer:HikariCP:$hikariVersion")
-        //network
-        implementation("io.ktor:ktor-server-netty:$ktorServerVersion")
-        implementation("io.ktor:ktor-client-core:$ktorServerVersion")
-        implementation("io.ktor:ktor-client-okhttp:$ktorServerVersion")
-        //mirai
-        implementation("net.mamoe:mirai-slf4j-bridge:$miraiSlf4jBridgeVersion")
-        //apache utilities
-        implementation("commons-io:commons-io:2.11.0")
-        implementation("commons-codec:commons-codec:1.15")
-        implementation("org.apache.commons:commons-math3:3.6.1")
-        implementation("org.apache.commons:commons-compress:1.21")
-        implementation("org.tukaani:xz:1.9")
-        //javascript engine
-        implementation("org.mozilla:rhino:1.7.14")
-        //test suite
-        testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.5.21")
-        testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
-        implementation(kotlin("stdlib-jdk8"))
+dependencies {
+    //kotlinx utilities
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
+    implementation("org.jetbrains.kotlinx:atomicfu-jvm:$atomicFUVersion")
+    //skija
+    when {
+        host.startsWith("Windows") ->
+            api("io.github.humbleui:skija-windows:$skijaVersion")
+        host == "Mac OS X" ->
+            when (arch) {
+                "x86_64", "amd64" -> api("io.github.humbleui:skija-macos-x64:$skijaVersion")
+                "aarch64" -> api("io.github.humbleui:skija-macos-arm64:$skijaVersion")
+                else -> error("Unsupported arch: $arch")
+            }
+        host == "Linux" ->
+            api("io.github.humbleui:skija-linux:$skijaVersion")
+        else -> error("Unsupported platform: $host")
     }
+    //database related lib
+    implementation("org.ktorm:ktorm-core:${ktormVersion}")
+    implementation("mysql:mysql-connector-java:$mysqlVersion")
+    implementation("com.zaxxer:HikariCP:$hikariVersion")
+    // onebot required
+    implementation("com.mikuac:shiro:2.2.8")
+    implementation("org.springframework.boot:spring-boot-starter-websocket:3.3.1")
+    //network
+    implementation("io.ktor:ktor-server-netty:$ktorServerVersion")
+    implementation("io.ktor:ktor-client-core:$ktorServerVersion")
+    implementation("io.ktor:ktor-client-okhttp:$ktorServerVersion")
+    //apache utilities
+    implementation("commons-io:commons-io:2.11.0")
+    implementation("commons-codec:commons-codec:1.15")
+    implementation("org.apache.commons:commons-math3:3.6.1")
+    implementation("org.apache.commons:commons-compress:1.21")
+    implementation("org.tukaani:xz:1.9")
+    //javascript engine
+    implementation("org.mozilla:rhino:1.7.14")
+    //test suite
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.5.21")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
+    implementation(kotlin("stdlib-jdk8"))
+}
 
-    project.kotlin {
-        sourceSets {
-            all {
-                languageSettings {
-                    optIn("kotlin.RequiresOptIn")
-                    optIn("kotlin.ExperimentalStdlibApi")
-                    optIn("kotlin.contracts.ExperimentalContracts")
-                }
+kotlin {
+    sourceSets {
+        all {
+            languageSettings {
+                optIn("kotlin.RequiresOptIn")
+                optIn("kotlin.ExperimentalStdlibApi")
+                optIn("kotlin.contracts.ExperimentalContracts")
             }
         }
     }
 }
 
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.kotlinOptions {
-    jvmTarget = "11"
-}
-val compileTestKotlin: KotlinCompile by tasks
-compileTestKotlin.kotlinOptions {
-    jvmTarget = "11"
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 val version: Task by tasks.creating {
@@ -166,7 +161,7 @@ val generateJniHeaders: Task by tasks.creating {
             .forEach { file ->
                 if (!file.isFile) return@forEach
 
-                val output = org.apache.commons.io.output.ByteArrayOutputStream().use {
+                val output = ByteArrayOutputStream().use {
                     project.exec {
                         commandLine(javap, "-private", "-cp", buildDir.absolutePath, file.absolutePath)
                         standardOutput = it
@@ -210,14 +205,5 @@ val generateJniHeaders: Task by tasks.creating {
                     commandLine(javac, "-h", path, outputFile.absolutePath)
                 }.assertNormalExitValue()
             }
-    }
-}
-
-
-afterEvaluate {
-    arrayOf("buildPlugin", "buildPluginLegacy").forEach { taskName ->
-        tasks.named<Jar>(taskName).configure {
-            archiveBaseName.set("OsuMapSuggester-${targetOs}-${targetArch}")
-        }
     }
 }

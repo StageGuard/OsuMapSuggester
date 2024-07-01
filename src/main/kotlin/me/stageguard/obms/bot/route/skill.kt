@@ -8,14 +8,14 @@ import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusCalculator
 import me.stageguard.obms.osu.algorithm.`pp+`.PPPlusResult
 import me.stageguard.obms.osu.api.OsuWebApi
 import me.stageguard.obms.bot.MessageRoute.atReply
-import me.stageguard.obms.bot.RouteLock.routeLock
+import me.stageguard.obms.bot.MessageRoute.routeLock
 import me.stageguard.obms.bot.calculatorProcessorDispatcher
 import me.stageguard.obms.bot.refactoredExceptionCatcher
 import me.stageguard.obms.bot.rightOrThrowLeft
 import me.stageguard.obms.cache.BeatmapCache
-import net.mamoe.mirai.event.GroupMessageSubscribersBuilder
 import kotlin.math.pow
 
+/*
 fun GroupMessageSubscribersBuilder.skill() {
     routeLock(startWithIgnoreCase(".skill")) {
         OsuMapSuggester.launch(
@@ -67,4 +67,4 @@ fun GroupMessageSubscribersBuilder.skill() {
             }
         }
     }
-}
+}*/

@@ -183,9 +183,9 @@ data class ScoreStatisticsDTO(
     @SerialName("count_50")
     val count50: Int,
     @SerialName("count_geki")
-    val countGeki: Int,
+    val countGeki: Int?,
     @SerialName("count_katu")
-    val countKatu: Int,
+    val countKatu: Int?,
     @SerialName("count_miss")
     val countMiss: Int
 )

@@ -2,13 +2,13 @@ package me.stageguard.obms.utils
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
-import net.mamoe.mirai.utils.info
-import net.mamoe.mirai.utils.warning
+import me.stageguard.obms.OsuMapSuggester
+import me.stageguard.obms.OsuMapSuggester.Companion.dataFolder
+import me.stageguard.obms.OsuMapSuggester.Companion.logger
 import java.io.File
 import java.io.InputStream
 
-suspend fun KotlinPlugin.exportStaticResourcesToDataFolder() = withContext(Dispatchers.IO) {
+suspend fun OsuMapSuggester.exportStaticResourcesToDataFolder() = withContext(Dispatchers.IO) {
     listOf(
         "/font/osuFont.fnt",
         "/font/osuFont_0.png",
@@ -43,9 +43,9 @@ suspend fun KotlinPlugin.exportStaticResourcesToDataFolder() = withContext(Dispa
                 writeBytes(inputStream.readAllBytes())
             }
         } else {
-            this@exportStaticResourcesToDataFolder.logger.warning { "Resource not found: $it" }
+            logger.warning { "Resource not found: $it" }
         }
         inputStream?.close()
     }
-    this@exportStaticResourcesToDataFolder.logger.info { "Successfully exported static resources." }
+    logger.info { "Successfully exported static resources." }
 }

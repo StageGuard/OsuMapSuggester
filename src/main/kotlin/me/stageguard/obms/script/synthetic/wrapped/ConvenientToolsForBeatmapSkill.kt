@@ -6,6 +6,7 @@ import org.ktorm.dsl.eq
 import org.ktorm.dsl.or
 import org.mozilla.javascript.NativeArray
 
+/*
 object ConvenientToolsForBeatmapSkill {
     @JvmStatic
     fun contains(beatmapCollection: NativeArray) : ColumnDeclaringBooleanWrapped = kotlin.run {
@@ -31,4 +32,4 @@ object ConvenientToolsForBeatmapSkill {
             }
         )
     }
-}
+}*/
