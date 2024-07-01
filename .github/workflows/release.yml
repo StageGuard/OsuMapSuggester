@@ -10,7 +10,6 @@ jobs:
   build:
     strategy:
       matrix:
-        plugin_version: [ .mirai.jar, .mirai2.jar ]
         platform: [ ubuntu-latest, windows-latest, macos-latest ]
 
     name: Build on ${{ matrix.platform }}
@@ -33,17 +32,16 @@ jobs:
           chmod +x gradlew
           ./gradlew buildJniNative
 
-      - name: Build Mirai Plugin
+      - name: Build Boot Jar
         id: build_plugin
         run: |
           chmod +x gradlew
-          ./gradlew buildPlugin
-          ./gradlew buildPluginLegacy
+          ./gradlew bootJar
           ./gradlew version
           echo "::set-output name=artifact_name::$(cat version)"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.build_plugin.outputs.artifact_name }}${{ matrix.plugin_version }}
-          path: ${{ github.workspace }}/build/mirai/${{ steps.build_plugin.outputs.artifact_name }}${{ matrix.plugin_version }}
+          name: ${{ steps.build_plugin.outputs.artifact_name }}
+          path: ${{ github.workspace }}/build/libs/${{ steps.build_plugin.outputs.artifact_name }}

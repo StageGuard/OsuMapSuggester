@@ -34,7 +34,7 @@ jobs:
           chmod +x gradlew
           ./gradlew buildJniNative
 
-      - name: Build Mirai Plugin
+      - name: Build Boot Jar
         run: |
           chmod +x gradlew
-          ./gradlew build
+          ./gradlew bootJar
