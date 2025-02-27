@@ -1,0 +1,26 @@
+server:
+  port: 5000
+shiro:
+  ws:
+    server:
+      enable: true
+      url: "/ws/shiro"
+qq: 0000000000 # 为这个 BOT 启用插件
+database:
+  address: localhost # 数据库地址
+  port: 3306 # 端口
+  user: root # 账号
+  password: root # 密码
+  table: obmsug # 数据库名称（在准备工作第一步创建的数据库）
+  maximumPoolSize: 10
+clientProxy: ''
+osuAuth:
+  clientId: 0000 # OAuth clientId
+  secret: '00000000000000000000000000000000000000000' # OAuth client secret
+  # 回调地址，必须和 OAuth 设置的相同（不包含 /authCallback)
+  # 注意这个地址是为了生成绑定账号的 OAuth 链接。
+  authCallbackBaseUrl: 'http://localhost:8081'
+  v1ApiKey: '000000000000000000000000000000000' # vi api 密钥
+frontend:
+  host: localhost # 前端主机地址，注意这个地址是实际主机地址
+  port: 8081 # 前端端口
